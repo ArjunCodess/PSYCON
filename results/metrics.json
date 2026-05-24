@@ -1,0 +1,479 @@
+{
+  "models": [
+    {
+      "name": "rule_baseline",
+      "modality": "eda",
+      "accuracy": 0.724710687542546,
+      "precision": 1.0,
+      "recall": 0.24241288872236794,
+      "f1": 0.3902291917973462,
+      "false_positive_rate": 0.0,
+      "confusion_matrix": [
+        [
+          4676,
+          0
+        ],
+        [
+          2022,
+          647
+        ]
+      ]
+    },
+    {
+      "name": "logistic_regression",
+      "modality": "eda",
+      "accuracy": 0.8344452008168822,
+      "precision": 0.9337313432835821,
+      "recall": 0.5859872611464968,
+      "f1": 0.7200736648250461,
+      "false_positive_rate": 0.0237382378100941,
+      "confusion_matrix": [
+        [
+          4565,
+          111
+        ],
+        [
+          1105,
+          1564
+        ]
+      ]
+    },
+    {
+      "name": "random_forest",
+      "modality": "eda",
+      "accuracy": 0.779714091218516,
+      "precision": 0.7400639561443582,
+      "recall": 0.6069689022105658,
+      "f1": 0.6669411280362288,
+      "false_positive_rate": 0.12168520102651839,
+      "confusion_matrix": [
+        [
+          4107,
+          569
+        ],
+        [
+          1049,
+          1620
+        ]
+      ]
+    },
+    {
+      "name": "xgboost",
+      "modality": "eda",
+      "accuracy": 0.7916950306330838,
+      "precision": 0.811372334609076,
+      "recall": 0.5560134881978269,
+      "f1": 0.6598488216985327,
+      "false_positive_rate": 0.07378100940975192,
+      "confusion_matrix": [
+        [
+          4331,
+          345
+        ],
+        [
+          1185,
+          1484
+        ]
+      ]
+    },
+    {
+      "name": "lightgbm",
+      "modality": "eda",
+      "accuracy": 0.823281143635126,
+      "precision": 0.7803680981595092,
+      "recall": 0.7148744848257774,
+      "f1": 0.7461869378177551,
+      "false_positive_rate": 0.11484174508126604,
+      "confusion_matrix": [
+        [
+          4139,
+          537
+        ],
+        [
+          761,
+          1908
+        ]
+      ]
+    },
+    {
+      "name": "rule_baseline",
+      "modality": "bvp",
+      "accuracy": 0.6366235534377127,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "false_positive_rate": 0.0,
+      "confusion_matrix": [
+        [
+          4676,
+          0
+        ],
+        [
+          2669,
+          0
+        ]
+      ]
+    },
+    {
+      "name": "logistic_regression",
+      "modality": "bvp",
+      "accuracy": 0.7226684819605174,
+      "precision": 0.6388400702987698,
+      "recall": 0.5447733233420757,
+      "f1": 0.5880687563195146,
+      "false_positive_rate": 0.1757912745936698,
+      "confusion_matrix": [
+        [
+          3854,
+          822
+        ],
+        [
+          1215,
+          1454
+        ]
+      ]
+    },
+    {
+      "name": "random_forest",
+      "modality": "bvp",
+      "accuracy": 0.6017699115044248,
+      "precision": 0.46250732278851786,
+      "recall": 0.5916073435743724,
+      "f1": 0.5191517343416078,
+      "false_positive_rate": 0.3924294268605646,
+      "confusion_matrix": [
+        [
+          2841,
+          1835
+        ],
+        [
+          1090,
+          1579
+        ]
+      ]
+    },
+    {
+      "name": "xgboost",
+      "modality": "bvp",
+      "accuracy": 0.6780122532334921,
+      "precision": 0.8140495867768595,
+      "recall": 0.1476208317721993,
+      "f1": 0.2499207104345068,
+      "false_positive_rate": 0.01924721984602224,
+      "confusion_matrix": [
+        [
+          4586,
+          90
+        ],
+        [
+          2275,
+          394
+        ]
+      ]
+    },
+    {
+      "name": "lightgbm",
+      "modality": "bvp",
+      "accuracy": 0.6023144996596324,
+      "precision": 0.46055103318722607,
+      "recall": 0.5511427500936681,
+      "f1": 0.5017908920347944,
+      "false_positive_rate": 0.36847733105218133,
+      "confusion_matrix": [
+        [
+          2953,
+          1723
+        ],
+        [
+          1198,
+          1471
+        ]
+      ]
+    },
+    {
+      "name": "rule_baseline",
+      "modality": "motion",
+      "accuracy": 0.6366235534377127,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "false_positive_rate": 0.0,
+      "confusion_matrix": [
+        [
+          4676,
+          0
+        ],
+        [
+          2669,
+          0
+        ]
+      ]
+    },
+    {
+      "name": "logistic_regression",
+      "modality": "motion",
+      "accuracy": 0.6608577263444521,
+      "precision": 0.5590969455511288,
+      "recall": 0.31547396028475083,
+      "f1": 0.40335329341317366,
+      "false_positive_rate": 0.1420017108639863,
+      "confusion_matrix": [
+        [
+          4012,
+          664
+        ],
+        [
+          1827,
+          842
+        ]
+      ]
+    },
+    {
+      "name": "random_forest",
+      "modality": "motion",
+      "accuracy": 0.6164737916950306,
+      "precision": 0.47104851330203446,
+      "recall": 0.4511052828774822,
+      "f1": 0.46086124401913875,
+      "false_positive_rate": 0.2891360136869119,
+      "confusion_matrix": [
+        [
+          3324,
+          1352
+        ],
+        [
+          1465,
+          1204
+        ]
+      ]
+    },
+    {
+      "name": "xgboost",
+      "modality": "motion",
+      "accuracy": 0.631858407079646,
+      "precision": 0.4888888888888889,
+      "recall": 0.28849756463094794,
+      "f1": 0.36286522148916117,
+      "false_positive_rate": 0.1721556886227545,
+      "confusion_matrix": [
+        [
+          3871,
+          805
+        ],
+        [
+          1899,
+          770
+        ]
+      ]
+    },
+    {
+      "name": "lightgbm",
+      "modality": "motion",
+      "accuracy": 0.6189244383934649,
+      "precision": 0.4765850144092219,
+      "recall": 0.4956912701386287,
+      "f1": 0.4859504132231405,
+      "false_positive_rate": 0.31073567151411463,
+      "confusion_matrix": [
+        [
+          3223,
+          1453
+        ],
+        [
+          1346,
+          1323
+        ]
+      ]
+    },
+    {
+      "name": "rule_baseline",
+      "modality": "temp",
+      "accuracy": 0.6366235534377127,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "false_positive_rate": 0.0,
+      "confusion_matrix": [
+        [
+          4676,
+          0
+        ],
+        [
+          2669,
+          0
+        ]
+      ]
+    },
+    {
+      "name": "logistic_regression",
+      "modality": "temp",
+      "accuracy": 0.7081007488087134,
+      "precision": 0.585310367240819,
+      "recall": 0.6747845635069314,
+      "f1": 0.6268708666898712,
+      "false_positive_rate": 0.2728828058169376,
+      "confusion_matrix": [
+        [
+          3400,
+          1276
+        ],
+        [
+          868,
+          1801
+        ]
+      ]
+    },
+    {
+      "name": "random_forest",
+      "modality": "temp",
+      "accuracy": 0.4228727025187202,
+      "precision": 0.37152209492635024,
+      "recall": 0.8505058074185088,
+      "f1": 0.5171431825948286,
+      "false_positive_rate": 0.8212147134302823,
+      "confusion_matrix": [
+        [
+          836,
+          3840
+        ],
+        [
+          399,
+          2270
+        ]
+      ]
+    },
+    {
+      "name": "xgboost",
+      "modality": "temp",
+      "accuracy": 0.4800544588155208,
+      "precision": 0.3899310872894334,
+      "recall": 0.7632071937055077,
+      "f1": 0.516153553781832,
+      "false_positive_rate": 0.6815654405474765,
+      "confusion_matrix": [
+        [
+          1489,
+          3187
+        ],
+        [
+          632,
+          2037
+        ]
+      ]
+    },
+    {
+      "name": "lightgbm",
+      "modality": "temp",
+      "accuracy": 0.43036078965282504,
+      "precision": 0.37559533585153554,
+      "recall": 0.8568752341701011,
+      "f1": 0.5222653573875314,
+      "false_positive_rate": 0.8130881094952951,
+      "confusion_matrix": [
+        [
+          874,
+          3802
+        ],
+        [
+          382,
+          2287
+        ]
+      ]
+    },
+    {
+      "name": "rule_baseline",
+      "modality": "multimodal",
+      "accuracy": 0.724710687542546,
+      "precision": 1.0,
+      "recall": 0.24241288872236794,
+      "f1": 0.3902291917973462,
+      "false_positive_rate": 0.0,
+      "confusion_matrix": [
+        [
+          4676,
+          0
+        ],
+        [
+          2022,
+          647
+        ]
+      ]
+    },
+    {
+      "name": "logistic_regression",
+      "modality": "multimodal",
+      "accuracy": 0.8589516678012253,
+      "precision": 0.9185033316248078,
+      "recall": 0.6714125140502061,
+      "f1": 0.7757575757575758,
+      "false_positive_rate": 0.034003421727972626,
+      "confusion_matrix": [
+        [
+          4517,
+          159
+        ],
+        [
+          877,
+          1792
+        ]
+      ]
+    },
+    {
+      "name": "random_forest",
+      "modality": "multimodal",
+      "accuracy": 0.8658951667801226,
+      "precision": 0.7639498432601881,
+      "recall": 0.9130760584488572,
+      "f1": 0.8318825738180576,
+      "false_positive_rate": 0.1610350727117194,
+      "confusion_matrix": [
+        [
+          3923,
+          753
+        ],
+        [
+          232,
+          2437
+        ]
+      ]
+    },
+    {
+      "name": "xgboost",
+      "modality": "multimodal",
+      "accuracy": 0.8789652825051055,
+      "precision": 0.8122807017543859,
+      "recall": 0.8673660547021357,
+      "f1": 0.8389200942199674,
+      "false_positive_rate": 0.11441402908468777,
+      "confusion_matrix": [
+        [
+          4141,
+          535
+        ],
+        [
+          354,
+          2315
+        ]
+      ]
+    },
+    {
+      "name": "lightgbm",
+      "modality": "multimodal",
+      "accuracy": 0.8825051055139551,
+      "precision": 0.8286026200873362,
+      "recall": 0.8531285125515174,
+      "f1": 0.840686726970648,
+      "false_positive_rate": 0.10072711719418306,
+      "confusion_matrix": [
+        [
+          4205,
+          471
+        ],
+        [
+          392,
+          2277
+        ]
+      ]
+    }
+  ]
+}
