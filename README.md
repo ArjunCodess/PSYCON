@@ -8,11 +8,13 @@ The first software milestone is to validate the data and machine learning pipeli
 
 This keeps the project moving before human participant data collection begins, while still preserving the final goal: a real-time wearable system that runs on Psycon's own wrist and ear modules.
 
+The current implementation phase intentionally skips the mobile app. The active software work is the WESAD-first ML pipeline, shared protocol types, firmware starter projects, generated research results, and paper scaffolding.
+
 ## What We Are Building
 
 - Wrist module: collects physiological and motion signals from the biosensing hardware.
 - Ear/audio module: captures or derives audio features during trigger-based recording windows.
-- Mobile app: connects to both modules, synchronizes data, runs inference, visualizes signals, and stores sessions.
+- Mobile app: planned later; it will connect to both modules, synchronize data, run inference, visualize signals, and store sessions.
 - Offline ML pipeline: loads data, preprocesses signals, extracts features, trains models, and evaluates results.
 - Protocol layer: defines shared packet formats and data contracts across firmware, mobile, and ML code.
 - Research outputs: charts, metrics, model comparisons, and paper artifacts.
@@ -168,7 +170,7 @@ INMP441 I2S wiring:
 The software system is split into these layers:
 
 1. Data loading and acquisition
-   - WESAD dataset loading for initial research.
+   - WESAD `.pkl` files are the current source of truth because they include aligned signals and labels.
    - BLE packet ingestion from Psycon hardware later.
 2. Synchronization
    - Phone acts as central clock for hardware sessions.
@@ -180,7 +182,7 @@ The software system is split into these layers:
    - Heart-rate deviation, GSR level, GSR slope, motion intensity, jerk, audio energy, pitch proxy, and zero-crossing rate.
 5. Modeling
    - Rule-based baseline first.
-   - Classical ML next: logistic regression, random forest, and XGBoost.
+   - Classical ML next: logistic regression, random forest, XGBoost, and LightGBM.
    - Compare single-modality models against multimodal fusion.
 6. Mobile inference
    - Lightweight model execution in the app.
@@ -195,8 +197,11 @@ The software system is split into these layers:
 
 ```text
 psycon/
+  main.py
   README.md
   ml/
+    run_pipeline.py
+    src/
   mobile/
   firmware/
     wrist/
@@ -213,11 +218,14 @@ psycon/
     references.bib
 ```
 
-- `ml/`: main code files and folders for offline ML, preprocessing, feature extraction, training, and evaluation.
+- `main.py`: one-command reproducible entrypoint for the current WESAD ML pipeline.
+- `ml/`: offline ML code for preprocessing, feature extraction, training, and evaluation.
+- `ml/src/`: Python source modules for the ML pipeline.
+- `ml/run_pipeline.py`: CLI implementation used by root `main.py`.
 - `mobile/`: React Native mobile app code.
 - `firmware/wrist/`: ESP32 wrist module firmware.
 - `firmware/ear/`: ESP32 ear/audio module firmware.
-- `protocol/`: shared data contracts, packet formats, and schema notes.
+- `protocol/`: shared data contracts, packet formats, schema notes, and its own TypeScript tooling.
 - `data/raw/`: raw datasets, including WESAD and future Psycon session exports.
 - `data/processed/`: cleaned, synchronized, windowed, and feature-ready datasets.
 - `results/`: metrics, model outputs, generated reports, and experiment artifacts.
@@ -236,6 +244,11 @@ psycon/
 | 2026-05-24 | Do not use ESP-NOW for phone communication. | ESP-NOW can be used only between ESP32 devices if needed, not between phone and modules. |
 | 2026-05-24 | Ear module sends audio features for MVP, not continuous raw audio. | Feature packets are lower bandwidth and better for privacy than raw audio streaming. |
 | 2026-05-24 | Start with rule-based baseline plus classical ML before deep learning. | Small datasets and ISEF-style evaluation are better served by interpretable baselines first. |
+| 2026-05-24 | Do not implement mobile in the current phase. | The immediate goal is to finish WESAD-first research software, protocol code, and firmware starters. |
+| 2026-05-24 | Use WESAD `.pkl` files as the ML source of truth. | Pickle files contain the aligned signals and labels needed for reproducible training. |
+| 2026-05-24 | Keep raw WESAD data local and ignored by Git. | The dataset is large and should not be committed to the repository. |
+| 2026-05-24 | Use root `main.py` as the single reproducible command. | Running `python main.py` should execute the current end-to-end software pipeline. |
+| 2026-05-24 | Keep subsystem tooling inside subsystem folders. | Protocol TypeScript tooling belongs under `protocol/`, not the repository root. |
 
 ## Privacy And Safety
 
@@ -251,11 +264,61 @@ psycon/
 
 - Clean WESAD loading and preprocessing pipeline.
 - Baseline rule-based stress score.
-- Classical ML models for stress classification.
+- Classical ML models for stress classification, including logistic regression, random forest, XGBoost, and LightGBM.
 - Single-modality vs multimodal comparison results.
 - Charts and evaluation metrics.
 - App-ready inference artifacts.
-- Mobile dashboard and local data logger.
+- Mobile dashboard and local data logger later.
 - Wrist and ear firmware for the locked hardware.
 - Research paper assets in `paper/`.
 
+## Running The Current Software
+
+Run the full reproducible pipeline from the repository root:
+
+```powershell
+python main.py
+```
+
+This reads WESAD `.pkl` files from `data/raw/wesad/`, writes processed features to `data/processed/`, trains/evaluates models, and writes metrics, charts, and app-model artifacts to `results/`.
+
+Install Python dependencies:
+
+```powershell
+pip install -r requirements.txt
+```
+
+Run Python tests:
+
+```powershell
+python -m pytest
+```
+
+Run a one-subject WESAD smoke test:
+
+```powershell
+python main.py --limit-subjects 1
+```
+
+Install TypeScript dependencies and run protocol tests:
+
+```powershell
+cd protocol
+npm install
+npm test
+npm run typecheck
+cd ..
+```
+
+Firmware note: PlatformIO is still the intended build tool for `firmware/wrist` and `firmware/ear`. The repository includes `.vscode/c_cpp_properties.json` so the C/C++ extension can find ESP32 Arduino headers after PlatformIO installs the framework packages.
+
+Install PlatformIO when you are ready to build firmware:
+
+```powershell
+pip install platformio
+cd firmware\wrist
+platformio run
+cd ..\ear
+platformio run
+cd ..\..
+```
