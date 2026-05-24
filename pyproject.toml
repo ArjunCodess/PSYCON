@@ -1,0 +1,11 @@
+[project]
+name = "psycon"
+version = "0.1.0"
+description = "WESAD-first software and ML pipeline for Psycon stress detection."
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"
+

@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Node
+node_modules/
+coverage/
+dist/
+*.tsbuildinfo
+
+# Local datasets and generated research artifacts
+data/raw/wesad/
+
+# Firmware build outputs
+.pio/
+firmware/**/.pio/
+firmware/**/build/
+
+# Paper generated artifacts
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.log
+paper/*.out
+paper/*.synctex.gz
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/c_cpp_properties.json
+.idea/
