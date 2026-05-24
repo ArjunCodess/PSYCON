@@ -1,12 +1,18 @@
 \documentclass[conference]{IEEEtran}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{balance}
+
+\graphicspath{{../results/charts/}}
 
 \title{Psycon: A Multimodal Wearable System for Psychological State Detection}
 
 \author{
-  \IEEEauthorblockN{Author Name}
+  \IEEEauthorblockN{Psycon Research Team}
   \IEEEauthorblockA{
-    Institution Name\\
-    Email Address
+    Student Research Prototype\\
+    IRIS / ISEF MVP
   }
 }
 
@@ -15,27 +21,69 @@
 \maketitle
 
 \begin{abstract}
-This paper presents Psycon, a prototype multimodal wearable system for estimating psychological state from physiological, motion, and audio-derived signals. The initial software and machine learning pipeline is validated using the public WESAD dataset before adaptation to data collected from Psycon hardware, pending IRB guidance.
+This paper presents Psycon, a prototype multimodal wearable system for estimating psychological state from physiological, motion, and audio-derived signals. The current software pipeline is validated using the public WESAD dataset before adaptation to Psycon hardware data, pending IRB guidance. The implemented pipeline extracts five-second feature windows from wearable signals and compares rule-based, logistic regression, random forest, XGBoost, and LightGBM classifiers across single-modality and multimodal feature sets. On the current WESAD split, the best-performing model is multimodal LightGBM with 88.25\% accuracy.
 \end{abstract}
 
 \section{Introduction}
 
-Stress detection using wearable sensors is challenging because individual signals can be noisy and ambiguous. Psycon explores whether multimodal sensing can improve robustness compared with single-modality approaches.
+Stress detection using wearable sensors is challenging because individual signals can be noisy and ambiguous. Heart and electrodermal signals can change due to stress, but also due to temperature, activity, sensor contact, or individual physiology. Motion can indicate agitation, but it can also indicate ordinary movement. Psycon explores whether multimodal sensing can improve robustness compared with single-modality approaches.
+
+The long-term system consists of a wrist biosensing module, an ear/audio module, and a mobile application for synchronization, inference, visualization, and storage. The present work focuses on the software and machine learning foundation. It uses WESAD, a public multimodal wearable stress and affect dataset, to validate the pipeline before collecting human-participant data from Psycon hardware \cite{schmidt2018wesad}.
 
 \section{Methods}
 
-The planned system combines a wrist biosensing module, an ear audio module, and a mobile application for synchronization, feature extraction, inference, visualization, and local storage. Initial experiments use WESAD for software pipeline validation.
+The current implementation validates the software and modeling pipeline using WESAD pickle files as the source of truth, because they contain aligned physiological signals and labels. The pipeline is reproducible from the repository root with \texttt{python main.py}. Raw WESAD data is stored locally and excluded from version control.
+
+Wrist signals are mapped to Psycon concepts as follows: WESAD EDA is treated as a GSR proxy, accelerometer data is treated as motion, BVP is treated as a heart-signal proxy, and temperature is retained as an optional contextual feature. Signals are resampled to a common 4 Hz timeline. Five-second windows with a one-second hop are used for feature extraction.
+
+The first classifier is binary: WESAD baseline is mapped to calm and WESAD stress is mapped to high stress. Amusement and other labels are ignored for the first model. Mild stress remains reserved for future Psycon-specific participant data because WESAD does not provide a direct mild-stress class.
+
+Extracted features include EDA mean, standard deviation, range, and slope; BVP mean, standard deviation, range, and slope; accelerometer magnitude and jerk features; and temperature mean, standard deviation, range, and slope. The evaluation compares rule-based, logistic regression, random forest, XGBoost, and LightGBM models across single-modality and multimodal feature sets.
+
+The train-test split is grouped by subject so that windows from held-out subjects are used for evaluation. This is stricter than a random window-level split and better reflects generalization to unseen users.
 
 \section{Results}
 
-Results will include baseline performance, classical machine learning performance, and comparisons between single-modality and multimodal fusion models.
+The current WESAD run produced 27,493 labeled windows from 15 subjects. The dataset contained 17,569 calm windows and 9,924 high-stress windows after label filtering.
+
+\begin{table}[h]
+\centering
+\caption{Top WESAD Model Results}
+\label{tab:model-results}
+\begin{tabular}{llrrrr}
+\toprule
+Model & Modality & Acc. & Prec. & Rec. & FPR \\
+\midrule
+LightGBM & Multimodal & 0.883 & 0.829 & 0.853 & 0.101 \\
+XGBoost & Multimodal & 0.879 & 0.812 & 0.867 & 0.114 \\
+Random forest & Multimodal & 0.866 & 0.764 & 0.913 & 0.161 \\
+Logistic regression & Multimodal & 0.859 & 0.919 & 0.671 & 0.034 \\
+Logistic regression & EDA only & 0.834 & 0.934 & 0.586 & 0.024 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The strongest result was obtained by the multimodal LightGBM model with 88.25\% accuracy. XGBoost and random forest also performed best when using multimodal features. The EDA-only logistic regression result was strong, but it remained below the best multimodal models. This supports the central research direction: sensor fusion can improve performance compared with relying on a single modality.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\linewidth]{model_comparison.png}
+\caption{Accuracy comparison across model families and signal modalities.}
+\label{fig:model-comparison}
+\end{figure}
 
 \section{Discussion}
 
-The discussion will cover model performance, sensor limitations, privacy considerations, and the transition from public-dataset validation to Psycon hardware validation.
+The WESAD results validate the software and machine learning approach, but they do not prove accuracy on Psycon hardware. WESAD uses different sensors and does not include the planned trigger-based audio feature stream. Therefore, the current result should be framed as software-pipeline validation rather than device validation.
 
+The results also show why machine learning is useful in this project. Rule-based thresholds provide an interpretable baseline, but learned models improve performance by combining weak signals into a stronger prediction. The best models used multiple modalities, which aligns with the project hypothesis. The best LightGBM model classified 4,205 calm windows and 2,277 stress windows correctly, with 471 false positives and 392 false negatives on the held-out split.
+
+There are several limitations. The first classifier is binary because WESAD does not provide a direct mild-stress class. The model therefore maps scores to calm, mild stress, and high stress for output, but true mild-stress training requires future Psycon-specific labeled data. Human participant collection must wait for IRB guidance or approval. Audio privacy also remains important; the MVP should prefer audio features over continuous raw audio.
+
+Future work will adapt the pipeline to Psycon hardware data, add participant-specific baseline calibration, evaluate trigger-based audio features, and compare the deployed on-device inference result with offline research models.
+
+\balance
 \bibliographystyle{IEEEtran}
 \bibliography{references}
 
 \end{document}
-
