@@ -1,0 +1,14 @@
+{
+  "name": "@psycon/protocol",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "vitest": "^3.0.0"
+  }
+}
