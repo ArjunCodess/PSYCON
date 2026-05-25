@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pickle
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -28,7 +29,9 @@ def discover_subjects(raw_dir: Path = WESAD_RAW_DIR) -> list[WesadSubject]:
 def load_subject(subject: WesadSubject | str | Path) -> dict[str, Any]:
     path = _subject_to_path(subject)
     with path.open("rb") as f:
-        return pickle.load(f, encoding="latin1")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="dtype\\(\\): align should be passed")
+            return pickle.load(f, encoding="latin1")
 
 
 def map_wesad_label(label: int) -> str | None:
@@ -52,4 +55,3 @@ def _subject_to_path(subject: WesadSubject | str | Path) -> Path:
     if path.suffix == ".pkl":
         return path
     return WESAD_RAW_DIR / path.name / f"{path.name}.pkl"
-

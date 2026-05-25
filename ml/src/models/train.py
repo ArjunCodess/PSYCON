@@ -16,6 +16,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from ..config import CHARTS_DIR, RESULTS_DIR, STATE_THRESHOLDS
+from ..config import COMMON_HZ, HOP_SECONDS, WINDOW_SECONDS
 from ..features import feature_columns, modality_columns
 from .baseline import RuleBaseline
 
@@ -29,6 +30,8 @@ class ModelResult:
     recall: float
     f1: float
     false_positive_rate: float
+    actual_stress: int
+    predicted_stress: int
     confusion_matrix: list[list[int]]
 
 
@@ -128,9 +131,9 @@ def export_app_model(model: Pipeline, feature_names: list[str], features: pd.Dat
         "trainingMetadata": {
             "dataset": "WESAD",
             "labelPolicy": "baseline=calm, stress=high_stress, amusement/other ignored",
-            "windowSeconds": 5,
-            "hopSeconds": 1,
-            "commonHz": 4,
+            "windowSeconds": WINDOW_SECONDS,
+            "hopSeconds": HOP_SECONDS,
+            "commonHz": COMMON_HZ,
         },
     }
     path.write_text(json.dumps(artifact, indent=2), encoding="utf-8")
@@ -150,6 +153,8 @@ def _evaluate(name: str, modality: str, model: Any, x_test: pd.DataFrame, y_test
         recall=float(recall),
         f1=float(f1),
         false_positive_rate=fpr,
+        actual_stress=int(np.sum(y_test == 1)),
+        predicted_stress=int(np.sum(y_pred == 1)),
         confusion_matrix=cm.astype(int).tolist(),
     )
 
