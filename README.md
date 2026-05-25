@@ -1,14 +1,16 @@
-# Psycon: Multimodal Psychological State Detection Wearable System
+# PSYCON: Psychophysiological Condition Observation Network
 
-Psycon is a dual-module wearable and mobile software system for estimating calm, mild stress, and high stress using multimodal physiological, motion, and audio-derived signals.
+PSYCON stands for **Psychophysiological Condition Observation Network**. It is a dual-module wearable and mobile software system for estimating calm, mild stress, and high stress using multimodal physiological, motion, and audio-derived signals.
 
 ## Current Direction
 
-The first software milestone is to validate the data and machine learning pipeline using the public WESAD dataset. After IRB guidance, the same pipeline will be adapted for data collected from the Psycon hardware.
+The first software milestone is to validate the data and machine learning pipeline using the public WESAD dataset. After IRB guidance, the same pipeline will be adapted for data collected from the PSYCON hardware.
 
-This keeps the project moving before human participant data collection begins, while still preserving the final goal: a real-time wearable system that runs on Psycon's own wrist and ear modules.
+This keeps the project moving before human participant data collection begins, while still preserving the final goal: a real-time wearable system that runs on PSYCON's own wrist and ear modules.
 
 The current implementation phase intentionally skips the mobile app. The active software work is the WESAD-first ML pipeline, shared protocol types, firmware starter projects, generated research results, and paper scaffolding.
+
+After IRB approval or official guidance, the main research goal becomes personalization: PSYCON should learn each user's normal physiological baseline and evaluate stress as deviation from that baseline, not as raw sensor values.
 
 ## What We Are Building
 
@@ -27,7 +29,7 @@ The working hypothesis is that combining physiological, behavioral, and audio-de
 
 ## Product Requirements Summary
 
-Psycon is designed as a hybrid multimodal human-state inference system. The target states are:
+PSYCON is designed as a hybrid multimodal human-state inference system. The target states are:
 
 | Score | State |
 | --- | --- |
@@ -57,7 +59,7 @@ Core software requirements:
 - Stress visualization graphs.
 - Data synchronization with packet loss and delay handling.
 - Moving-average filtering, outlier removal, missing-value handling, and per-user normalization.
-- Sliding-window feature extraction over 3-5 second windows.
+- Sliding-window feature extraction over 10-30 second windows, updating every 2-5 seconds.
 - Lightweight on-device inference with target latency under 2 seconds.
 - SQLite-based local storage for raw signals, features, labels, and predictions.
 - Labeling interface for research sessions.
@@ -171,7 +173,7 @@ The software system is split into these layers:
 
 1. Data loading and acquisition
    - WESAD `.pkl` files are the current source of truth because they include aligned signals and labels.
-   - BLE packet ingestion from Psycon hardware later.
+   - BLE packet ingestion from PSYCON hardware later.
 2. Synchronization
    - Phone acts as central clock for hardware sessions.
    - Packets include timestamps and sequence numbers.
@@ -179,7 +181,7 @@ The software system is split into these layers:
 3. Preprocessing
    - Filtering, outlier removal, missing-value handling, and baseline normalization.
 4. Feature extraction
-   - Heart-rate deviation, GSR level, GSR slope, motion intensity, jerk, audio energy, pitch proxy, and zero-crossing rate.
+   - Mean HR/BVP, HR variation proxy, GSR level, GSR slope, GSR peak count, temperature change, motion intensity, jerk, audio energy, pitch proxy, and zero-crossing rate.
 5. Modeling
    - Rule-based baseline first.
    - Classical ML next: logistic regression, random forest, XGBoost, and LightGBM.
@@ -200,7 +202,6 @@ psycon/
   main.py
   README.md
   ml/
-    run_pipeline.py
     src/
   mobile/
   firmware/
@@ -221,12 +222,11 @@ psycon/
 - `main.py`: one-command reproducible entrypoint for the current WESAD ML pipeline.
 - `ml/`: offline ML code for preprocessing, feature extraction, training, and evaluation.
 - `ml/src/`: Python source modules for the ML pipeline.
-- `ml/run_pipeline.py`: CLI implementation used by root `main.py`.
 - `mobile/`: React Native mobile app code.
 - `firmware/wrist/`: ESP32 wrist module firmware.
 - `firmware/ear/`: ESP32 ear/audio module firmware.
 - `protocol/`: shared data contracts, packet formats, schema notes, and its own TypeScript tooling.
-- `data/raw/`: raw datasets, including WESAD and future Psycon session exports.
+- `data/raw/`: raw datasets, including WESAD and future PSYCON session exports.
 - `data/processed/`: cleaned, synchronized, windowed, and feature-ready datasets.
 - `results/`: metrics, model outputs, generated reports, and experiment artifacts.
 - `results/charts/`: generated visualizations and plots.
@@ -249,10 +249,63 @@ psycon/
 | 2026-05-24 | Keep raw WESAD data local and ignored by Git. | The dataset is large and should not be committed to the repository. |
 | 2026-05-24 | Use root `main.py` as the single reproducible command. | Running `python main.py` should execute the current end-to-end software pipeline. |
 | 2026-05-24 | Keep subsystem tooling inside subsystem folders. | Protocol TypeScript tooling belongs under `protocol/`, not the repository root. |
+| 2026-05-25 | Define PSYCON as Psychophysiological Condition Observation Network. | The acronym now reflects the actual project identity. |
+| 2026-05-25 | Capitalize PSYCON in project-facing docs and paper. | It is an acronym and reads more clearly in research materials. |
+| 2026-05-25 | Use 10-second windows with 2-second updates in the current pipeline. | This better matches wearable stress-detection windows than very short 5-second windows. |
+| 2026-05-25 | Add baseline-normalized features to the ML pipeline. | Personalized deviation from each user's calm baseline is central to the post-IRB system. |
+
+## Personalization And First-Wear Routine
+
+The most important post-approval improvement is personalization. PSYCON should not depend only on raw sensor values because every person has a different normal heart rate, GSR level, skin temperature, and motion pattern.
+
+The target runtime pipeline is:
+
+```text
+Sensors -> Window -> Feature extraction -> Baseline normalization -> ML model -> Stress output
+```
+
+### First-Wear Baseline Routine
+
+After IRB approval or formal confirmation that the planned procedure is allowed, each new user should complete a first-wear routine:
+
+1. Seated calm baseline: sit relaxed for 2-5 minutes.
+2. Normal movement baseline: walk normally for 1-2 minutes.
+3. Higher-motion baseline: short safe run or brisk movement only if appropriate and approved.
+4. Optional labeled task sessions: collect approved relaxed and stressed labels for personal model training.
+
+The goal is not to diagnose stress. The goal is to learn the user's normal physiological range so later predictions can use relative features:
+
+```text
+hr_diff = current_hr - baseline_hr
+gsr_diff = current_gsr - baseline_gsr
+temp_diff = current_temp - baseline_temp
+motion_diff = current_motion - baseline_motion
+```
+
+The baseline can adapt slowly over time:
+
+```text
+baseline = 0.95 * old_baseline + 0.05 * new_calm_observation
+```
+
+This is the line we should be able to defend in judging:
+
+> Unlike generic models, PSYCON calibrates to each individual's physiological baseline, improving robustness in real-world scenarios.
+
+### Current Code Support
+
+The current WESAD pipeline already includes the software foundation for this idea:
+
+- WESAD windows are now 10 seconds long with a 2-second hop.
+- GSR peak count and signal change features are extracted.
+- Per-subject calm baselines are computed from WESAD baseline segments.
+- Baseline-difference features are added before model training.
+
+Future PSYCON hardware sessions should use the same pattern with the user's first-wear baseline instead of WESAD's baseline labels.
 
 ## Privacy And Safety
 
-- Psycon is a research prototype, not a medical diagnostic device.
+- PSYCON is a research prototype, not a medical diagnostic device.
 - No medical diagnosis claims should be made from the output.
 - Human participant data collection must wait for IRB response, exemption, or approval.
 - Data collection should be local-first where possible.
@@ -281,6 +334,14 @@ python main.py
 ```
 
 This reads WESAD `.pkl` files from `data/raw/wesad/`, writes processed features to `data/processed/`, trains/evaluates models, and writes metrics, charts, and app-model artifacts to `results/`.
+
+The command also prints a terminal summary of:
+
+- discovered WESAD subjects
+- labeled window counts
+- class balance
+- best model results
+- generated artifact paths
 
 Install Python dependencies:
 
@@ -320,5 +381,14 @@ cd firmware\wrist
 platformio run
 cd ..\ear
 platformio run
-cd ..\..
+cd ..\.. 
 ```
+
+## Team And Contributions
+
+PSYCON is being built by two Grade 11 high school students from **City Montessori School, Quality Building, Sector G, LDA Colony, Kanpur Road, Lucknow, Uttar Pradesh 226012, India**.
+
+| Member | Contribution |
+| --- | --- |
+| **Arjun Vijay Prakash** | Software, ML pipeline, protocol, reproducible results, and paper software methods. |
+| **Saksham Yadav** | Hardware design, wiring, biosensing module, audio module, and physical wearable implementation. |
