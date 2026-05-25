@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+from scipy.signal import find_peaks
 
 from .config import COMMON_HZ, HOP_SECONDS, WINDOW_SECONDS
 from .wesad import map_wesad_label
@@ -37,6 +38,34 @@ def extract_windows(
     return pd.DataFrame(rows)
 
 
+def add_subject_baseline_features(features: pd.DataFrame) -> pd.DataFrame:
+    """Add per-subject calm-baseline deltas used for personalization experiments."""
+    output = features.copy()
+    baseline_columns = [
+        "bvp_mean",
+        "bvp_std",
+        "eda_mean",
+        "eda_slope",
+        "eda_peak_count",
+        "temp_mean",
+        "acc_mag_mean",
+        "jerk_mean",
+    ]
+    available_columns = [col for col in baseline_columns if col in output.columns]
+    calm = output[output["label"] == "calm"]
+    baselines = calm.groupby("subject")[available_columns].mean()
+    global_baseline = calm[available_columns].mean()
+
+    for col in available_columns:
+        values: list[float] = []
+        for _, row in output[["subject", col]].iterrows():
+            subject = row["subject"]
+            baseline = baselines.loc[subject, col] if subject in baselines.index else global_baseline[col]
+            values.append(float(row[col] - baseline))
+        output[f"{col}_baseline_diff"] = values
+    return output
+
+
 def feature_columns(columns: list[str] | pd.Index) -> list[str]:
     excluded = {"subject", "window_start_s", "window_end_s", "label", "label_binary"}
     return [str(c) for c in columns if str(c) not in excluded]
@@ -66,14 +95,24 @@ def _series_features(prefix: str, values: np.ndarray, sample_hz: int) -> dict[st
     x = np.asarray(values, dtype=float)
     t = np.arange(len(x), dtype=float) / sample_hz
     slope = float(np.polyfit(t, x, 1)[0]) if len(x) > 1 else 0.0
-    return {
+    features = {
         f"{prefix}_mean": float(np.mean(x)),
         f"{prefix}_std": float(np.std(x)),
         f"{prefix}_min": float(np.min(x)),
         f"{prefix}_max": float(np.max(x)),
         f"{prefix}_slope": slope,
+        f"{prefix}_change": float(x[-1] - x[0]) if len(x) else 0.0,
         f"{prefix}_range": float(np.max(x) - np.min(x)),
     }
+    if prefix == "eda":
+        prominence = max(float(np.std(x)) * 0.5, 1e-9)
+        peaks, _ = find_peaks(x, prominence=prominence)
+        features["eda_peak_count"] = float(len(peaks))
+    if prefix == "bvp":
+        prominence = max(float(np.std(x)) * 0.5, 1e-9)
+        peaks, _ = find_peaks(x, prominence=prominence)
+        features["bvp_peak_count"] = float(len(peaks))
+    return features
 
 
 def _acc_features(acc: np.ndarray, sample_hz: int) -> dict[str, float]:
@@ -86,4 +125,3 @@ def _acc_features(acc: np.ndarray, sample_hz: int) -> dict[str, float]:
         "jerk_mean": float(np.mean(np.abs(jerk))),
         "jerk_max": float(np.max(np.abs(jerk))),
     }
-
