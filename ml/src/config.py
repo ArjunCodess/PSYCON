@@ -9,8 +9,8 @@ RESULTS_DIR = ROOT / "results"
 CHARTS_DIR = RESULTS_DIR / "charts"
 
 COMMON_HZ = 4
-WINDOW_SECONDS = 5
-HOP_SECONDS = 1
+WINDOW_SECONDS = 10
+HOP_SECONDS = 2
 CHEST_LABEL_HZ = 700
 
 LABEL_CALM = "calm"
@@ -22,4 +22,3 @@ STATE_THRESHOLDS = {
     "mild_stress": [0.3, 0.6],
     LABEL_HIGH_STRESS: [0.6, 1.0],
 }
-
