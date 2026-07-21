@@ -1,367 +1,225 @@
 # PSYCON: Psychophysiological Condition Observation Network
 
-PSYCON stands for **Psychophysiological Condition Observation Network**. It is a dual-module wearable and mobile software system for estimating calm, mild stress, and high stress using multimodal physiological, motion, and audio-derived signals.
+PSYCON is a two-module research wearable for testing whether **wearer-attributed speech acoustics improve acute-stress estimation over wrist physiology alone**. The project combines a continuously logging wrist module, a Wi-Fi audio module, a server-side acoustic pipeline, and the existing WESAD-based machine-learning pipeline.
 
-## Current Direction
+This is a research prototype, not a medical device. It does not diagnose stress disorders, depression, anxiety, ADHD, autism, PTSD, or any other condition.
 
-The first software milestone is to validate the data and machine learning pipeline using the public WESAD dataset. After IRB guidance, the same pipeline will be adapted for data collected from the PSYCON hardware.
+## Current state
 
-This keeps the project moving before human participant data collection begins, while still preserving the final goal: a real-time wearable system that runs on PSYCON's own wrist and ear modules.
+The purchased components have been powered and checked individually. The repository already contains a reproducible WESAD preprocessing and classical-ML pipeline, result artifacts, shared TypeScript protocol code, firmware starters, tests, and paper scaffolding.
 
-The current implementation phase intentionally skips the mobile app. The active software work is the WESAD-first ML pipeline, shared protocol types, firmware starter projects, generated research results, and paper scaffolding.
+The integrated system does **not** exist yet. In particular, the current firmware does not provide production-quality continuous capture, reliable upload, real wrist acquisition, clock synchronization, wearer identification, or 24-hour power behavior. The next milestone is defined in the [seven-week build plan](docs/SEVEN_WEEK_BUILD_PLAN.md).
 
-After IRB approval or official guidance, the main research goal becomes personalization: PSYCON should learn each user's normal physiological baseline and evaluate stress as deviation from that baseline, not as raw sensor values.
+## Scope for the next seven weeks
 
-## What We Are Building
-
-- Wrist module: collects physiological and motion signals from the biosensing hardware.
-- Ear/audio module: captures or derives audio features during trigger-based recording windows.
-- Mobile app: planned later; it will connect to both modules, synchronize data, run inference, visualize signals, and store sessions.
-- Offline ML pipeline: loads data, preprocesses signals, extracts features, trains models, and evaluates results.
-- Protocol layer: defines shared packet formats and data contracts across firmware, mobile, and ML code.
-- Research outputs: charts, metrics, model comparisons, and paper artifacts.
-
-## Research Question
-
-Can multimodal sensing improve stress detection accuracy compared to single-modality systems?
-
-The working hypothesis is that combining physiological, behavioral, and audio-derived features can reduce false positives and improve robustness compared with single-sensor stress detection.
-
-## Product Requirements Summary
-
-PSYCON is designed as a hybrid multimodal human-state inference system. The target states are:
-
-| Score | State |
-| --- | --- |
-| 0.0-0.3 | Calm |
-| 0.3-0.6 | Mild Stress |
-| 0.6-1.0 | High Stress |
-
-The intended processing flow is:
+Build and validate one end-to-end path:
 
 ```text
-Sensors
--> Data synchronization
--> Preprocessing
--> Feature extraction
--> Sub-models
--> Fusion model
--> Post-processing
--> Stress output
--> Storage
+INMP441 microphone
+  -> ESP32 I2S DMA capture
+  -> numbered one-second PCM chunks
+  -> Wi-Fi + persistent HTTPS
+  -> durable server ingest and acknowledgement
+  -> speech and quality detection
+  -> speaker diarization and wearer verification
+  -> acoustic feature extraction
+  -> alignment with wrist windows
+  -> wrist-only, audio-only, and late-fusion comparison
 ```
 
-Core software requirements:
+The success criterion is evidence, not a polished consumer product. By Week 7 the system must complete a repeatable 24-hour engineering soak, quantify gaps and power use, reject audio that cannot be assigned safely to the wearer, and produce a reproducible modality comparison.
 
-- Dual BLE connectivity for wrist and ear modules.
-- Real-time dashboard for heart rate, GSR, motion, audio activity, and stress level.
-- Local event logging with timestamps.
-- Stress visualization graphs.
-- Data synchronization with packet loss and delay handling.
-- Moving-average filtering, outlier removal, missing-value handling, and per-user normalization.
-- Sliding-window feature extraction over 10-30 second windows, updating every 2-5 seconds.
-- Lightweight on-device inference with target latency under 2 seconds.
-- SQLite-based local storage for raw signals, features, labels, and predictions.
-- Labeling interface for research sessions.
-- Debug dashboard for raw signals, feature trends, and model outputs.
-- Power-aware processing with adaptive sampling and trigger-based audio.
+The following are outside this milestone:
 
-## Locked MVP Hardware
+- Mental-health or neurodevelopmental diagnosis.
+- NLP-based interpretation of what somebody says.
+- A mobile application, cloud product, alerts, recommendations, or chatbot.
+- Deep learning trained from a small private dataset.
+- Claims that voice alone can determine whether somebody is stressed.
 
-### Module 1: Biosensing Wrist Module
+## Hardware
 
-- ESP32-WROOM-32E dev board
-- MAX30102
-- MPU6050
-- ADS1115
-- GSR electrodes
-- RC filter
-- TP4056
-- MCP1700
-- LiPo battery
+### Wrist module
 
-### Module 2: Audio Module
+- ESP32-WROOM-32E development board
+- MAX30102 for PPG
+- MPU6050 for motion
+- ADS1115 with GSR electrodes
+- TP4056 charger module and LiPo battery
+- MCP1700 as a clean sensor rail only
 
-- ESP32-WROOM-32E
-- INMP441
-- TP4056
-- LiPo battery
+The wrist module logs continuously, including while nobody is speaking or the audio server is unavailable. It must preserve raw samples or documented batches, sequence numbers, timestamps, battery state, contact/quality flags, and error counters.
 
-### Important Hardware Note
+### Audio module
 
-The original PRD mentions ESP32-S3, MLX90614, and BH1750. The locked MVP hardware is ESP32-WROOM-32E and does not include temperature or ambient-light sensing unless those sensors are added later.
+- ESP32-WROOM-32E development board
+- INMP441 omnidirectional I2S microphone
+- TP4056 charger module and LiPo battery
+- A microSD module is the recommended addition for outage buffering
 
-## Wiring Notes
+The microphone is sampled at **16 kHz, mono**. The INMP441 places 24 useful bits in 32-bit I2S slots; firmware converts these to signed PCM16 only after verifying the bit shift and channel configuration with known recordings. Capture runs continuously through I2S DMA and must never wait for a network request.
 
-### Power
+### Existing wiring
 
-- Battery positive to TP4056 `B+`.
-- Battery negative to TP4056 `B-`.
-- TP4056 `OUT+` to ESP32 `5V`.
-- TP4056 `OUT-` to ESP32 `GND`.
-- MCP1700 is for clean sensor power only:
-  - `IN` to ESP32 `5V`
-  - `GND` to common ground
-  - `OUT` to clean `3.3V` for sensors
-  - Add `1uF` capacitor between `IN` and `GND`
-  - Add `1uF` capacitor between `OUT` and `GND`
+Wrist I2C uses `GPIO21` for SDA and `GPIO22` for SCL. The MAX30102, MPU6050, and ADS1115 share this bus; MPU6050 `AD0` and ADS1115 `ADDR` are grounded, and ADS1115 `A0` reads the GSR circuit.
 
-### Wrist I2C Bus
-
-ESP32 pins:
-
-- `GPIO21` -> SDA
-- `GPIO22` -> SCL
-
-Shared I2C devices:
-
-| Device | SDA | SCL | VCC | GND |
-| --- | --- | --- | --- | --- |
-| MAX30102 | GPIO21 | GPIO22 | 3.3V | GND |
-| MPU6050 | GPIO21 | GPIO22 | 3.3V | GND |
-| ADS1115 | GPIO21 | GPIO22 | 3.3V | GND |
-
-Additional wiring:
-
-- MAX30102 `INT` is not connected for MVP.
-- MPU6050 `AD0` to `GND`.
-- ADS1115 `ADDR` to `GND`, using address `0x48`.
-- ADS1115 `A0` reads the GSR signal.
-
-### GSR Circuit
-
-```text
-3.3V --[100k resistor]---*------ Electrode 1
-                         |
-                         +------ ADS1115 A0
-                         |
-                       [0.1uF]
-                         |
-                        GND
-                         |
-                   Electrode 2
-```
-
-The `100k` resistor creates the voltage divider, skin resistance changes the measured voltage, and the `0.1uF` capacitor reduces noise.
-
-### Ear Audio Module
-
-INMP441 I2S wiring:
-
-| INMP441 Pin | ESP32 Pin |
+| INMP441 | ESP32 |
 | --- | --- |
-| VCC | 3.3V |
+| VCC | 3.3 V |
 | GND | GND |
 | WS | GPIO25 |
 | SCK | GPIO26 |
 | SD | GPIO33 |
 | L/R | GND |
 
-### Hardware Failure Points
+The MCP1700 must not power the ESP32 because its current capability is intended for the sensor rail. The present TP4056 arrangement also cannot be assumed to provide safe load sharing while charging; Saksham must identify the exact board and validate its power path before any worn charging test.
 
-- Do not power the ESP32 from the MCP1700.
-- Keep common ground within each module.
-- Check battery polarity before powering on.
-- Do not swap SDA/SCL.
-- Use the `100k` resistor and `0.1uF` capacitor in the GSR circuit.
-- Keep electrode contact firm.
-- Avoid loose wires because they produce noisy readings.
+## Audio transport
 
-## Software Architecture
+The primary path is **ESP32 -> Wi-Fi access point -> HTTPS server**. BLE and a phone gateway remain contingency options only if measured ESP32 Wi-Fi power or reliability makes direct upload unusable.
 
-The software system is split into these layers:
+Firmware uses independent FreeRTOS tasks:
 
-1. Data loading and acquisition
-   - WESAD `.pkl` files are the current source of truth because they include aligned signals and labels.
-   - BLE packet ingestion from PSYCON hardware later.
-2. Synchronization
-   - Phone acts as central clock for hardware sessions.
-   - Packets include timestamps and sequence numbers.
-   - Streams are aligned into time-consistent windows.
-3. Preprocessing
-   - Filtering, outlier removal, missing-value handling, and baseline normalization.
-4. Feature extraction
-   - Mean HR/BVP, HR variation proxy, GSR level, GSR slope, GSR peak count, temperature change, motion intensity, jerk, audio energy, pitch proxy, and zero-crossing rate.
-5. Modeling
-   - Rule-based baseline first.
-   - Classical ML next: logistic regression, random forest, XGBoost, and LightGBM.
-   - Compare single-modality models against multimodal fusion.
-6. Mobile inference
-   - Lightweight model execution in the app.
-   - Target inference latency under 2 seconds.
-7. Storage and visualization
-   - Local SQLite storage in the mobile app.
-   - Charts and result artifacts saved under `results/`.
-8. Research evaluation
-   - Accuracy, precision, recall, false-positive rate, confusion matrix, and stability over time.
+1. **Capture task.** It continuously drains I2S DMA into double or triple buffers and records overruns.
+2. **Chunk task.** It creates one-second chunks with an immutable header and CRC/checksum.
+3. **Upload task.** It sends binary bodies over a persistent authenticated HTTPS connection and retries without blocking capture.
+4. **Storage task.** It writes unacknowledged chunks to microSD and removes them only after a durable server acknowledgement.
 
-## Folder Structure
+Each request body uses a versioned, fixed-size little-endian binary header followed by PCM bytes. The header includes `protocol_version`, `device_id`, `session_id`, `boot_id`, `sequence`, `first_sample_index`, capture time, sample rate, format, sample count, payload length, CRC32, battery voltage, and clipping/overrun flags. HTTPS headers carry the device credential and idempotency key. The server's idempotency key is `(device_id, session_id, boot_id, sequence)`, so retrying a request cannot process the same audio twice.
+
+Audio is uploaded as `application/octet-stream`; JSON/base64 would add bandwidth and parsing work without adding information. At 16 kHz, 16-bit mono PCM, raw audio is 32 kB/s, about **2.76 GB/day per device** before protocol overhead. One second is a sensible starting chunk because it fits several buffers in ESP32 RAM while keeping retry cost and HTTP overhead manageable.
+
+Internal flash is not a 24-hour queue. If microSD is not added, the device can buffer only a short outage in RAM and the project must report the resulting data loss honestly. The server acknowledges a chunk only after both its metadata and bytes are durably stored.
+
+Two operating modes will be evaluated:
+
+- **Engineering mode** uploads continuous PCM so missing samples, feature fidelity, bandwidth, and power can be measured.
+- **Research mode** still captures continuously but uploads speech-active regions with pre/post-roll plus explicit silence intervals, after the gate has been validated against engineering mode.
+
+Compression is deferred until the raw baseline works. IMA ADPCM or Opus can be evaluated later only by comparing downstream pitch, loudness, and eGeMAPS stability against the PCM reference.
+
+## What happens on the server
+
+The first implementation should stay small: a FastAPI ingest service, PostgreSQL metadata, files on a controlled server volume, and a separate Python worker. The ingest service writes to a temporary file, flushes it, atomically renames it, commits the chunk record, and only then acknowledges; startup reconciliation handles an orphaned file from a crash between those steps. Redis, Kafka, MinIO, Kubernetes, and a public cloud speech API would add operations work before the core experiment is proven.
 
 ```text
-psycon/
-  main.py
-  README.md
-  ml/
-    src/
-  mobile/
-  firmware/
-    wrist/
-    ear/
-  protocol/
-  data/
-    raw/
-    processed/
-  results/
-    charts/
-  tests/
-  paper/
-    main.tex
-    references.bib
+HTTPS request
+  -> authenticate device
+  -> validate header, length, order, and checksum
+  -> write bytes and metadata durably
+  -> acknowledge idempotently
+  -> assemble rolling analysis windows
+  -> measure signal quality and detect speech
+  -> diarize speakers
+  -> verify wearer
+  -> extract features only from accepted wearer speech
+  -> align with wrist features and quality masks
+  -> store features, results, and deletion status
+  -> delete raw audio according to the approved retention rule
 ```
 
-- `main.py`: one-command reproducible entrypoint for the current WESAD ML pipeline.
-- `ml/`: offline ML code for preprocessing, feature extraction, training, and evaluation.
-- `ml/src/`: Python source modules for the ML pipeline.
-- `mobile/`: React Native mobile app code.
-- `firmware/wrist/`: ESP32 wrist module firmware.
-- `firmware/ear/`: ESP32 ear/audio module firmware.
-- `protocol/`: shared data contracts, packet formats, schema notes, and its own TypeScript tooling.
-- `data/raw/`: raw datasets, including WESAD and future PSYCON session exports.
-- `data/processed/`: cleaned, synchronized, windowed, and feature-ready datasets.
-- `results/`: metrics, model outputs, generated reports, and experiment artifacts.
-- `results/charts/`: generated visualizations and plots.
-- `tests/`: tests for ML, protocol, mobile-independent logic, and data processing.
-- `paper/`: research paper source, generated PDF, and bibliography.
+Processing is asynchronous, so a slow acoustic worker cannot hold up capture. The server records every missing, duplicate, late, corrupt, or rejected chunk, which makes a 24-hour completeness claim auditable.
 
-## Decisions Log
+## Distinguishing the wearer from the surroundings
 
-| Date | Decision | Reason |
+A single omnidirectional microphone cannot physically isolate its wearer, so this is a staged rejection problem rather than a magic filter:
+
+1. **Signal quality** rejects clipping, extremely low level, excessive noise, and corrupt windows.
+2. **Voice activity detection** separates speech from silence and non-speech using a local streaming model such as [Silero VAD](https://github.com/snakers4/silero-vad).
+3. **Speaker diarization** separates turns from different speakers using [pyannote.audio](https://github.com/pyannote/pyannote-audio).
+4. **Wearer verification** compares each diarized turn with an enrolled wearer template using a 16 kHz ECAPA-TDNN embedding model such as [SpeechBrain's VoxCeleb model](https://huggingface.co/speechbrain/spkrec-ecapa-voxceleb).
+5. **Abstention** marks overlapping speakers, TV/music, weak similarity, and too little voiced audio as unknown; those segments never enter stress inference.
+
+Enrollment should collect at least three 30-second samples from the wearer in quiet, normal, and moderately noisy conditions. The verification threshold must be tuned with the actual microphone and placement against the wearer, at least three other speakers, a television, music, overlap, walking, and fabric noise. Report false acceptance, false rejection, diarization error rate, and accepted-speech coverage.
+
+Placement matters as much as software. A collar, lapel, or near-mouth mount improves the wearer's level relative to the room, while an exposed omnidirectional board on the wrist will often capture everybody equally. If the seven-week tests cannot reach an acceptable false-acceptance rate, the honest next hardware revision is a second microphone or contact/throat microphone; the software must not invent certainty.
+
+## Acoustic features
+
+No paid feature API is required. The server calculates features locally, which keeps the pipeline reproducible and avoids sending identifiable audio to another provider.
+
+[openSMILE](https://audeering.github.io/opensmile-python/) supplies the standardized **eGeMAPSv02 88-functionals** set for research use. Its license must be checked again before any commercial use. NumPy/librosa can provide audit calculations and plots, while optional speech-to-text is postponed until acoustic processing is reliable.
+
+| Feature family | Initial measurements | Why it is included |
 | --- | --- | --- |
-| 2026-05-24 | Use WESAD-first pipeline for initial ML validation. | It lets the software and research pipeline start before human participant data collection. |
-| 2026-05-24 | Contact IRB at `IRBassist@isb.edu` before participant data collection. | Human participant physiological and stress data requires proper ethics guidance before collection. |
-| 2026-05-24 | Plan the mobile app in React Native + TypeScript. | One codebase can support Android-first hardware testing while keeping an iOS path open. |
-| 2026-05-24 | Use BLE as the phone communication path. | Phones do not directly support ESP-NOW; BLE is the practical phone-to-ESP32 path. |
-| 2026-05-24 | Do not use ESP-NOW for phone communication. | ESP-NOW can be used only between ESP32 devices if needed, not between phone and modules. |
-| 2026-05-24 | Ear module sends audio features for MVP, not continuous raw audio. | Feature packets are lower bandwidth and better for privacy than raw audio streaming. |
-| 2026-05-24 | Start with rule-based baseline plus classical ML before deep learning. | Small datasets and ISEF-style evaluation are better served by interpretable baselines first. |
-| 2026-05-24 | Do not implement mobile in the current phase. | The immediate goal is to finish WESAD-first research software, protocol code, and firmware starters. |
-| 2026-05-24 | Use WESAD `.pkl` files as the ML source of truth. | Pickle files contain the aligned signals and labels needed for reproducible training. |
-| 2026-05-24 | Keep raw WESAD data local and ignored by Git. | The dataset is large and should not be committed to the repository. |
-| 2026-05-24 | Use root `main.py` as the single reproducible command. | Running `python main.py` should execute the current end-to-end software pipeline. |
-| 2026-05-24 | Keep subsystem tooling inside subsystem folders. | Protocol TypeScript tooling belongs under `protocol/`, not the repository root. |
-| 2026-05-25 | Define PSYCON as Psychophysiological Condition Observation Network. | The acronym now reflects the actual project identity. |
-| 2026-05-25 | Capitalize PSYCON in project-facing docs and paper. | It is an acronym and reads more clearly in research materials. |
-| 2026-05-25 | Use 10-second windows with 2-second updates in the current pipeline. | This better matches wearable stress-detection windows than very short 5-second windows. |
-| 2026-05-25 | Add baseline-normalized features to the ML pipeline. | Personalized deviation from each user's calm baseline is central to the post-IRB system. |
+| Pitch/prosody | F0 median, IQR, standard deviation, range, slope | Captures relative prosodic change while avoiding a single unstable pitch value. |
+| Level | RMS, peak, clipping rate, dBFS | Detects signal strength and bad capture; dBFS is relative to the digital scale. |
+| Perceptual voice | openSMILE loudness, jitter, shimmer, HNR | Provides standardized voice-quality descriptors used in affective speech research. |
+| Spectrum | MFCCs, spectral slope, centroid/roll-off, flux, ZCR | Describes timbre and change, but quality masks are required because noise also changes them. |
+| Timing | voiced fraction, speech/pause ratio, pause count and duration | Works directly from VAD and remains interpretable. |
 
-## Personalization And First-Wear Routine
+Absolute sound pressure level in dB SPL cannot be recovered from microphone samples without an acoustic calibrator, fixed gain, and controlled geometry. PSYCON will report dBFS, perceptual loudness, and deviation from the enrolled user's own baseline unless Saksham performs a documented SPL calibration.
 
-The most important post-approval improvement is personalization. PSYCON should not depend only on raw sensor values because every person has a different normal heart rate, GSR level, skin temperature, and motion pattern.
+Features are extracted only from wearer-accepted segments and aggregated in 30-second rolling windows containing at least five seconds of accepted voiced speech. Windows below that threshold return `insufficient_audio`, allowing the late-fusion model to fall back to the wrist rather than fabricate an audio score.
 
-The target runtime pipeline is:
+## Wrist processing and multimodal experiment
 
-```text
-Sensors -> Window -> Feature extraction -> Baseline normalization -> ML model -> Stress output
-```
+The wrist pipeline will use PPG-derived heart rate/variability measures, EDA tonic/phasic measures, and accelerometer magnitude/motion flags. Movement is a required confounder signal because exercise can produce the same direction of heart-rate and electrodermal changes as stress.
 
-### First-Wear Baseline Routine
+The two papers shared in the conversation guide the method rather than supply code to copy:
 
-After IRB approval or formal confirmation that the planned procedure is allowed, each new user should complete a first-wear routine:
+- The [Stress-Predict pilot study](https://pmc.ncbi.nlm.nih.gov/articles/PMC9654418/) used 64 Hz PPG, controlled tasks, task-boundary labels, accelerometry, and personalized adaptive reference ranges. It supports personalization and careful labeling, while its reported individual variability warns against universal raw thresholds.
+- The [2024 Frontiers systematic review](https://www.frontiersin.org/journals/computer-science/articles/10.3389/fcomp.2024.1478851/full) summarizes the standard collect-preprocess-feature-model pipeline across wearable stress studies and the tradeoff between controlled and free-living evaluation. It is a review, not a complete PSYCON implementation.
 
-1. Seated calm baseline: sit relaxed for 2-5 minutes.
-2. Normal movement baseline: walk normally for 1-2 minutes.
-3. Higher-motion baseline: short safe run or brisk movement only if appropriate and approved.
-4. Optional labeled task sessions: collect approved relaxed and stressed labels for personal model training.
+Audio and wrist clocks are aligned using session IDs, NTP-corrected device time, monotonically increasing sample indices, and explicit gap masks. The experiment must compare:
 
-The goal is not to diagnose stress. The goal is to learn the user's normal physiological range so later predictions can use relative features:
+- Wrist-only baseline.
+- Audio-only baseline on wearer-accepted speech.
+- Quality-aware late fusion, which can operate when speech is absent.
+
+The central research claim is supported only if late fusion improves subject-independent metrics over wrist-only and the improvement survives motion, speaker-attribution, and missing-data analysis. Public data such as WESAD supports wrist development, and an appropriately licensed multimodal dataset such as StressID can support early audio experiments; neither replaces validation on the final hardware after ethics approval.
+
+## Power and 24-hour operation
+
+“Always on” creates two separate requirements:
+
+- **24-hour service** may use a reviewed external-power or power-path arrangement while acquisition continues.
+- **24-hour untethered runtime** must be proven from measured current and an actual discharge test.
+
+Battery capacity is estimated as:
 
 ```text
-hr_diff = current_hr - baseline_hr
-gsr_diff = current_gsr - baseline_gsr
-temp_diff = current_temp - baseline_temp
-motion_diff = current_motion - baseline_motion
+required_mAh = measured_average_mA * target_hours / usable_fraction
 ```
 
-The baseline can adapt slowly over time:
+Use a conservative usable fraction such as 0.8 until discharge measurements establish a better value. Wi-Fi upload, retries, microSD writes, LEDs, sensors, regulators, and current peaks all have to be active during measurement. A claimed 24-hour runtime based only on a component datasheet is invalid.
+
+The direct questions and acceptance tests for Saksham are in the [power section of the seven-week plan](docs/SEVEN_WEEK_BUILD_PLAN.md#questions-saksham-must-close).
+
+## Repository layout
 
 ```text
-baseline = 0.95 * old_baseline + 0.05 * new_calm_observation
+PSYCON/
+  main.py                         # Existing WESAD experiment entrypoint
+  ml/src/                         # Loading, preprocessing, features, models
+  firmware/wrist/                 # Wrist firmware starter
+  firmware/ear/                   # Audio firmware starter
+  protocol/                       # Shared TypeScript contracts and tests
+  tests/                          # ML and firmware static tests
+  results/                        # Existing metrics, charts, model artifacts
+  paper/                          # Current LaTeX paper scaffold
+  docs/SEVEN_WEEK_BUILD_PLAN.md   # Active execution plan
 ```
 
-This is the line we should be able to defend in judging:
+The plan will add `server/`, server tests, packet fixtures, session manifests, and soak-test reports. These folders are described as future work until they actually exist.
 
-> Unlike generic models, PSYCON calibrates to each individual's physiological baseline, improving robustness in real-world scenarios.
+## Run the existing software
 
-### Current Code Support
-
-The current WESAD pipeline already includes the software foundation for this idea:
-
-- WESAD windows are now 10 seconds long with a 2-second hop.
-- GSR peak count and signal change features are extracted.
-- Per-subject calm baselines are computed from WESAD baseline segments.
-- Baseline-difference features are added before model training.
-
-Future PSYCON hardware sessions should use the same pattern with the user's first-wear baseline instead of WESAD's baseline labels.
-
-## Privacy And Safety
-
-- PSYCON is a research prototype, not a medical diagnostic device.
-- No medical diagnosis claims should be made from the output.
-- Human participant data collection must wait for IRB response, exemption, or approval.
-- Data collection should be local-first where possible.
-- Audio collection should be minimized.
-- The MVP should prefer audio features over continuous raw audio.
-- Participants should understand what is collected, why it is collected, and how it is stored before any future study.
-
-## Target Outputs
-
-- Clean WESAD loading and preprocessing pipeline.
-- Baseline rule-based stress score.
-- Classical ML models for stress classification, including logistic regression, random forest, XGBoost, and LightGBM.
-- Single-modality vs multimodal comparison results.
-- Charts and evaluation metrics.
-- App-ready inference artifacts.
-- Mobile dashboard and local data logger later.
-- Wrist and ear firmware for the locked hardware.
-- Research paper assets in `paper/`.
-
-## Running The Current Software
-
-Run the full reproducible pipeline from the repository root:
-
-```powershell
-python main.py
-```
-
-This reads WESAD `.pkl` files from `data/raw/wesad/`, writes processed features to `data/processed/`, trains/evaluates models, and writes metrics, charts, and app-model artifacts to `results/`.
-
-The command also prints a terminal summary of:
-
-- discovered WESAD subjects
-- labeled window counts
-- class balance
-- best model results
-- generated artifact paths
-
-Install Python dependencies:
+Install Python dependencies and run the WESAD pipeline:
 
 ```powershell
 pip install -r requirements.txt
+python main.py
 ```
 
-Run Python tests:
-
-```powershell
-python -m pytest
-```
-
-Run a one-subject WESAD smoke test:
+Run a one-subject smoke test and the Python tests:
 
 ```powershell
 python main.py --limit-subjects 1
+python -m pytest
 ```
 
-Install TypeScript dependencies and run protocol tests:
+Test the TypeScript protocol:
 
 ```powershell
 cd protocol
@@ -371,24 +229,28 @@ npm run typecheck
 cd ..
 ```
 
-Firmware note: PlatformIO is still the intended build tool for `firmware/wrist` and `firmware/ear`. The repository includes `.vscode/c_cpp_properties.json` so the C/C++ extension can find ESP32 Arduino headers after PlatformIO installs the framework packages.
-
-Install PlatformIO when you are ready to build firmware:
+Build firmware after installing PlatformIO:
 
 ```powershell
 pip install platformio
-cd firmware\wrist
+cd firmware\ear
 platformio run
-cd ..\ear
+cd ..\wrist
 platformio run
-cd ..\.. 
+cd ..\..
 ```
 
-## Team And Contributions
+## Privacy and study gate
 
-PSYCON is being built by two Grade 11 high school students from **City Montessori School, Quality Building, Sector G, LDA Colony, Kanpur Road, Lucknow, Uttar Pradesh 226012, India**.
+Twenty-four-hour audio records identifiable speech from the wearer and bystanders. Before recording participants, the project needs the applicable school/IRB decision, informed consent and minor assent/parental permission where required, a visible recording indicator, a physical mute control, encryption in transit, access control, pseudonymous identifiers, a raw-audio retention/deletion policy, and a procedure for bystander speech and deletion requests.
 
-| Member | Contribution |
+Bench tests, generated speech, public recordings, and voluntary developer recordings can be used to build transport and processing, but stress-induction studies and long personal recordings must follow the approved protocol. Charging a worn device connected to GSR electrodes must also wait for an electrically reviewed power design.
+
+## Team
+
+| Member | Primary ownership |
 | --- | --- |
-| **Arjun Vijay Prakash** | Software, ML pipeline, protocol, reproducible results, and paper software methods. |
-| **Saksham Yadav** | Hardware design, wiring, biosensing module, audio module, and physical wearable implementation. |
+| Arjun Vijay Prakash | Server, protocols, acoustic pipeline, synchronization, ML, evaluation, and reproducibility |
+| Saksham Yadav | Electronics, firmware integration, microphone placement, wrist signal quality, battery/power path, enclosure, and physical reliability |
+
+Both owners share weekly integration gates. A subsystem is complete only when the other owner can reproduce its acceptance test from a recorded fixture or the real device.
