@@ -1,393 +1,671 @@
-# PSYCON Seven-Week Build Plan
+# PSYCON Seven-Week Implementation Plan
 
-**Owners:** Arjun Vijay Prakash — software; Saksham Yadav — software, hardware and device firmware
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Build target:** A continuously logging wrist module and a continuously capturing audio module whose server can isolate likely wearer speech, calculate acoustic features, align both modalities, and compare wrist-only, audio-only, and late-fusion acute-stress models.
+**Goal:** Build and evaluate a research prototype that compares wrist-only, wearer-audio-only, and quality-aware combined stress classification using the supplied hardware and a reproducible server pipeline.
 
-**Starting point:** Components have been purchased and checked individually. The repository has a working WESAD-first software pipeline, protocol skeleton, firmware starters, tests, result artifacts, and paper scaffolding. The integrated device and audio server still have to be built.
+**Architecture:** ESP32 devices send small, numbered sensor and PCM chunks over HTTPS to a FastAPI Cloud ingest API. The API stores raw objects in a private Supabase Storage bucket and metadata in Supabase PostgreSQL; a separate batch worker performs audio attribution, feature extraction, synchronization, classification, and ablations. The physical build remains two modules only if two complete controller/power sets are present; otherwise the first integration is a single combined benchtop device with two logical streams.
 
-## The decision that controls this plan
+**Tech Stack:** ESP32/Arduino/PlatformIO, I2C, I2S, Wi-Fi/HTTPS, FastAPI Cloud, FastAPI/Pydantic, PostgreSQL/Supabase Storage, NumPy/pandas/SciPy, openSMILE/librosa, PyTorch/torchaudio, Silero VAD, pyannote.audio, SpeechBrain, scikit-learn/XGBoost/LightGBM, pytest, TypeScript/Vitest.
 
-The project's novelty is the measured relationship between **wearer-attributed voice acoustics and wrist physiology during acute stress**. The long PRD's depression, anxiety-disorder, PTSD, ADHD, autism, cognitive-decline, and emotion-diagnosis ideas are deferred. Seven weeks is enough to build and evaluate one research system; it is not enough to validate a catalogue of medical claims.
+---
 
-The primary architecture is direct audio upload from the ESP32 over Wi-Fi. The phone app, BLE audio gateway, NLP, and cloud speech APIs are not on the critical path.
+**Owners:** Arjun Vijay Prakash - server, data, audio, ML, evaluation; Saksham Yadav - physical build, power, firmware, signal quality. Both owners sign off each integration gate.
+
+## Decisions incorporated into this plan
+
+1. **The server is FastAPI.** FastAPI Cloud is the easiest deployment target for the ingest/control API and can be used when Arjun receives account access.
+2. **Cloud storage is external to the API instance.** Supabase PostgreSQL stores metadata and a private Supabase Storage bucket stores audio/sensor objects. The API never treats its local filesystem as durable.
+3. **Heavy audio inference is a separate worker.** VAD, diarization, SpeechBrain, and openSMILE run locally in batch during the prototype. This avoids coupling ingestion to PyTorch memory/CPU requirements and FastAPI Cloud scale-to-zero behavior.
+4. **The supplied list is the source of truth, but quantities remain a physical check.** It lists a generic 30-pin ESP32, TP4056 charger, 500 mAh LiPo per module, MAX30102, MPU6050, ADS1115, INMP441, MCP9808, and TEMT6000.
+5. **ADS1115 is not a GSR circuit.** Student acquisition cannot include EDA until a documented low-voltage, current-limited analog front-end and electrodes pass an electrical review.
+6. **The TP4056 is not used as a load-sharing charger.** The linked seller instructs users to disconnect the load while charging. No device is charged while worn.
+7. **Libraries do not provide ground-truth labels.** They implement preprocessing, features, and classifiers. Labels come from the approved experimental condition plus age-appropriate participant self-report.
+8. **Three modality runs are mandatory:** wrist only, audio only, and quality-aware combined late fusion. All use the same participant/session split and source windows.
+9. **Mechanical talking is a named limitation.** The protocol pairs calm speech with challenge speech where approval permits, records task identity, and never claims that instructed speech represents natural conversation.
+10. **School-student experiments require a study gate.** Team ownership of the experiment does not replace institutional ethics review, school permission, parental/guardian permission, participant assent, or a distress/withdrawal/deletion procedure.
+
+### Saksham answer status
+
+| Topic | Accepted answer | Remaining evidence |
+| --- | --- | --- |
+| Battery | Witty Fox 1S LiPo, 500 mAh per module, 3.7 V nominal, 4.2 V full, JST 2-pin | Verify polarity, maximum discharge current, physical condition, and delivered capacity |
+| Charger | USB-C TP4056 with DW01A + FS8205A protection; no power path | Verify PROG resistor and actual charge current; keep load off during charging |
+| Charging | Power-off charging is the MVP policy | Add written procedure and verify device cannot be worn/operated while charging |
+| Runtime | Preliminary estimate: 5-7 hours light load, 2-4 hours heavy Wi-Fi | Measure every operating mode and run a logged discharge test |
+| Low battery | Warn near 20%, flush unsent data, shut down cleanly, retain ESP32 brownout protection | Implement and calibrate thresholds against the actual board/cell discharge curve |
+| microSD | Optional 16-32 GB FAT32 SPI buffer | It is not in the supplied list; if added, measure current and test forced-power-loss recovery |
+| Microphone | Start 10-20 cm from mouth; compare with another speaker at 1 m | Validate level advantage, clothing/wind/resonance, I2S format, clipping, DC offset, and DMA loss |
+| Wrist rates | MAX30102 100 Hz, MPU6050 100 Hz, ADS1115 128 SPS, MCP9808 1 Hz, TEMT6000 10 Hz | Verify sustainable bus timing, signal quality, storage, and feature stability |
+| GSR | ADS1115 +/-4.096 V initial range, 128 SPS; Ag/AgCl electrodes with fixed placement | Document safe excitation/front-end and calibrate code-to-volts-to-conductance conversion |
+| Timestamping | Timestamp at acquisition, then buffer and transport; use sequences | Implement and quantify loss, reboot recovery, and clock drift |
+| Thermal/current | Required for charge, upload, retry, sensors, and long operation | All measurements remain open |
+
+## Current state and file map
+
+### Existing files to modify
+
+| Path | Responsibility |
+| --- | --- |
+| `requirements.txt` | Current WESAD/ML packages; keep core and study dependencies separated into installable groups |
+| `pyproject.toml` | Python version and root pytest configuration |
+| `firmware/ear/src/main.cpp` | Current INMP441/BLE starter; becomes the two-board audio build if two controllers exist |
+| `firmware/wrist/src/main.cpp` | Current I2C/BLE placeholder; becomes real wrist acquisition if two controllers exist |
+| `firmware/ear/platformio.ini` | Audio firmware library pins and versions |
+| `firmware/wrist/platformio.ini` | Wrist firmware library pins and versions |
+| `ml/src/features.py` | Hardware-compatible wrist features and modality definitions |
+| `ml/src/models/train.py` | Participant-grouped classifiers, metrics, and ablation runner |
+| `protocol/src/types.ts` | Shared logical packet/window/result types |
+| `tests/firmware/test_firmware_static.py` | Static pin, queue, and placeholder-removal checks |
+| `tests/ml/test_wesad_pipeline.py` | Existing WESAD regression tests |
+| `README.md` | Build truth, setup, experiment, caveats |
+| `paper/main.tex` | Final measured method/results, never planned results |
+
+### Files to create during implementation
+
+| Path | Responsibility |
+| --- | --- |
+| `docs/hardware/BOM.md` | Exact quantities, photos/markings, revisions, voltages, and measured current |
+| `docs/hardware/WIRING.md` | Verified pin map, I2C addresses, power rails, GSR front-end, and safety notes |
+| `docs/study/PROTOCOL.md` | Approved task order, labels, consent/assent, stopping and deletion procedures |
+| `docs/study/BIAS_REGISTER.md` | Bias, detection method, mitigation, residual limitation, and owner |
+| `firmware/combined/` | One-controller benchtop build when two complete controller/power sets are unavailable |
+| `protocol/spec/chunk-v2.md` | Binary packet fields, byte order, CRC, idempotency, and response semantics |
+| `protocol/fixtures/` | Golden audio and wrist packets shared across C++, Python, and TypeScript |
+| `server/requirements.txt` | FastAPI Cloud compatible API dependencies |
+| `server/app/main.py` | FastAPI application and health route |
+| `server/app/api/` | Device authentication, sessions, chunks, status, and completion routes |
+| `server/app/domain/` | Packet validation and acknowledgement rules without cloud SDK coupling |
+| `server/app/storage/` | Local-test and Supabase object/metadata adapters |
+| `server/migrations/` | PostgreSQL schema migrations |
+| `tests/server/` | Route, idempotency, crash-window, authentication, and storage tests |
+| `tools/simulate_device.py` | Numbered good/duplicate/missing/corrupt/retried upload fixture |
+| `tools/smoke_cloud.py` | Health, auth, upload, retry, and status smoke test against a deployed URL |
+| `worker/requirements.txt` | Compatible pinned audio/ML environment |
+| `worker/psycon_worker/` | Decode, attribution, feature, alignment, and replay jobs |
+| `tests/worker/` | Golden-waveform, attribution-gate, feature, and replay tests |
+| `ml/src/hardware_features.py` | Actual-device wrist windowing and feature extraction |
+| `ml/src/ablation.py` | Identical-split wrist/audio/combined experiment runner |
+| `tests/ml/test_ablation.py` | Leakage, missingness, split, and result-schema tests |
+| `reports/` | Generated attribution, ablation, power, and soak reports |
+
+## Frozen build architecture
+
+### Hardware topology decision
+
+On the first day, count the physical parts and select exactly one topology:
+
+- **Two-board topology:** separate wrist and audio ESP32 boards, each with a safe regulator/power path. This is preferred for wearable placement and maps to `firmware/wrist/` and `firmware/ear/`.
+- **One-board topology:** one ESP32 services I2C wrist sensors and the I2S microphone. This is the easiest electrical/software integration when only one controller/power set exists and lives in `firmware/combined/`. It is a benchtop/proof build until microphone and wrist placement are physically validated.
+
+Do not keep both topologies active after the Week 1 decision.
+
+### Starting pin map
+
+| Function | ESP32 GPIO | Device |
+| --- | --- | --- |
+| I2C SDA | 21 | MAX30102, MPU6050, ADS1115, MCP9808 |
+| I2C SCL | 22 | MAX30102, MPU6050, ADS1115, MCP9808 |
+| I2S WS | 25 | INMP441 WS |
+| I2S BCLK | 26 | INMP441 SCK |
+| I2S data input | 33 | INMP441 SD |
+| Analog channel 0 | ADS1115 A0 | Reviewed GSR front-end output only |
+| Analog channel 1 | ADS1115 A1 | TEMT6000 analog output |
+
+Expected default I2C addresses are MAX30102 `0x57`, MPU6050 `0x68`, ADS1115 `0x48`, and MCP9808 `0x18`. Record what the scan actually finds. Never use a 5 V pull-up on an ESP32 GPIO; inspect the linked MAX30102 breakout because the listing warns that its logic may be 1.8 V.
+
+### Starting sample configuration
+
+These are implementation baselines to validate, not evidence that the final signal is adequate:
+
+| Stream | Starting rate | Stored values |
+| --- | ---: | --- |
+| INMP441 | 16,000 Hz | Mono PCM16 converted from verified 24-bit I2S slots |
+| MAX30102 | 100 Hz | Raw red/IR samples, FIFO overflow, contact and saturation flags |
+| MPU6050 | 100 Hz | Raw calibrated accelerometer and gyroscope axes |
+| Approved EDA front-end via ADS1115 | 128 samples/s, +/-4.096 V initial range | ADC code, volts, derived conductance only after circuit calibration |
+| MCP9808 | 1 Hz | Local sensor temperature and quality/status |
+| TEMT6000 via ADS1115 | 10 samples/s | ADC code and normalized ambient-light context |
+
+The MAX30102 output is treated as PPG, not a clinical SpO2 measurement. MCP9808 is a skin-adjacent/environmental proxy, not core temperature. TEMT6000 is a quality/context covariate, not a stress marker.
+
+### Power constraints
+
+The linked cell is 500 mAh. With a conservative 80% usable fraction, 24 hours permits:
+
+```text
+500 mAh * 0.80 / 24 h = 16.7 mA average
+```
+
+Continuous active ESP32 Wi-Fi plus audio is expected to exceed that budget. Saksham's unmeasured planning ranges are 5-7 hours for light load and 2-4 hours for heavy Wi-Fi, but they are not results. The milestone requires an actual untethered runtime measurement. A separate supervised powered soak may establish 24-hour service.
+
+The board is identified as a USB-C TP4056 with DW01A + FS8205A protection and no true power path. A likely 1.2 kOhm PROG resistor would set approximately 1 A, but the resistor and actual current must be verified because the cell is 500 mAh. Never exceed the cell's documented limit, and do not charge with the device worn, operating, or connected to GSR electrodes.
+
+### Device-to-cloud contract
+
+Each chunk contains a versioned little-endian header followed by raw bytes:
+
+```text
+protocol_version, header_bytes, device_id, session_id, boot_id,
+stream_type, sequence, first_sample_index, captured_at_unix_us,
+sample_rate, channels, sample_format, sample_count, payload_bytes,
+crc32, battery_mv, queue_depth, quality_flags, error_counters
+```
+
+The server uses `(device_id, session_id, boot_id, stream_type, sequence)` as the idempotency key. It returns:
+
+- `accepted` after the object and metadata record are durable;
+- `already_present` when the same key and checksum already exist;
+- `conflict` when a key is reused with different bytes;
+- a retryable error when durable storage is not confirmed;
+- a non-retryable validation error for malformed headers, lengths, or authentication.
+
+One second of 16 kHz, 16-bit, mono PCM is 32,000 bytes. Continuous engineering mode produces roughly 2.76 GB/day before overhead. Research mode may gate uploads only after a continuous reference proves that the gate preserves feature values and speech coverage.
+
+### FastAPI Cloud deployment
+
+FastAPI Cloud hosts only the request/response API and status routes. Supabase stores private objects and PostgreSQL rows. The batch worker is separate.
+
+Required environment variables are:
+
+```text
+DATABASE_URL
+SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
+PSYCON_DEVICE_KEY_PEPPER
+PSYCON_RAW_RETENTION_DAYS
+PSYCON_ENV
+```
+
+Create them as encrypted FastAPI Cloud secrets. The credential owner logs in through the FastAPI Cloud CLI/dashboard; credentials are not pasted into source, committed, printed in logs, or embedded as shared plaintext in all devices.
+
+API surface:
+
+```text
+GET  /health
+POST /v1/sessions
+POST /v1/chunks
+GET  /v1/devices/{device_id}/status
+POST /v1/sessions/{session_id}/complete
+```
+
+Object keys are immutable:
+
+```text
+raw/{pseudonymous_device_id}/{session_id}/{boot_id}/{stream_type}/{sequence}.bin
+```
+
+If storage succeeds and the metadata transaction fails, reconciliation records or removes the orphan according to the retention policy. If metadata succeeds without the expected object, processing state becomes `storage_missing` and the device receives a retryable acknowledgement.
+
+## Feature and classification contract
+
+### Wrist features
+
+- PPG: pulse rate, pulse amplitude, inter-beat interval quality, RMSSD/SDNN only when enough valid beats exist.
+- EDA: tonic level/slope and phasic response count/amplitude only after safe calibrated circuitry exists.
+- Motion: acceleration magnitude, jerk, gyro energy, non-wear and motion-artifact flags.
+- Temperature: mean/slope as local context.
+- Light: ambient/contact context and PPG-quality interaction.
+
+Primary hardware windows are 60 seconds with a 10-second hop because HRV features need more than the current WESAD 10-second window. A feature is marked missing rather than filled with zero when its quality requirement fails.
+
+### Audio features
+
+The worker applies signal checks, Silero VAD, pyannote diarization, and SpeechBrain ECAPA wearer verification. Only accepted wearer speech enters openSMILE `eGeMAPSv02` and audit features such as F0 summaries, RMS/dBFS, loudness, HNR, MFCC/spectral summaries, and speech/pause timing. Each 60-second model window requires at least five seconds of accepted voiced speech; otherwise it is `insufficient_audio`.
+
+### Labels
+
+The approved protocol records a condition label, task identifier, task start/end, and an age-appropriate self-report after each block. The primary binary comparison is calm versus task-induced challenge with self-report agreement. A window is `label_uncertain` when the task marker is missing or the approved self-report rule contradicts the task condition; uncertain windows do not enter primary training.
+
+Libraries perform classification but do not generate these labels. Logistic regression is the preregistered primary classifier because it is interpretable and stable for a small pilot. Random forest, XGBoost, and LightGBM are secondary comparisons and must reuse the exact split.
+
+### Mandatory ablation matrix
+
+| Run | Input | Missing-audio rule | Purpose |
+| --- | --- | --- | --- |
+| A | Wrist physiology and quality/context | Not applicable | Primary baseline |
+| B | Accepted wearer-audio features | Return `insufficient_audio`; report coverage | Audio-only evidence |
+| C | Quality-aware late fusion of A and B | Fall back to A and record the fallback | Main novelty test |
+| D | PPG only | Not applicable | Wrist component attribution |
+| E | EDA only, if safe front-end exists | Not applicable | Wrist component attribution |
+| F | Wrist physiology without then with motion/context | Not applicable | Motion/task confounding check |
+| G | Combined without then with quality gating | Fall back only in gated run | Value of explicit missingness/quality |
+| H | Population features versus participant calm-baseline deltas | Same as parent modality | Personalization sensitivity |
+
+Runs A-C are required even if data quality is poor. E is omitted with an explicit `EDA hardware unavailable` result if the reviewed front-end is absent; it is never fabricated from an ADC-only connection.
+
+Use participant-grouped outer evaluation, preferably leave-one-participant-out for the pilot, with any threshold selection and feature selection confined to training participants. Adjacent windows from a session never cross a split. Report balanced accuracy, macro-F1, sensitivity, specificity/false-positive rate, calibration, participant-bootstrap confidence intervals, per-participant results, accepted-audio coverage, missingness, and attribution errors.
+
+## Bias and limitation register
+
+| Risk | Required handling | Residual limitation to report |
+| --- | --- | --- |
+| Mechanical/instructed talking | Include calm-speaking and challenge-speaking blocks, record task, compare within speaking task | Natural conversation remains unvalidated |
+| Speech availability differs by student/state | Report accepted seconds and `insufficient_audio` by participant/condition | Audio performance applies only when usable wearer speech exists |
+| Age, puberty, sex, language, accent, speaking style | Participant-grouped splits; describe sample composition; do not use demographics as stress features | A small school sample cannot represent all students |
+| Skin tone, fit, perfusion, motion, ambient light | Store PPG quality, contact, motion, and light; stratify failures | Reflective wrist PPG may fail unequally across participants |
+| Motion and task identity | Include motion/task covariates and within-task analysis | Model may still learn protocol structure rather than stress |
+| Speaker/bystander attribution | Held-out other speakers, overlap rejection, false acceptance/rejection report | One omnidirectional microphone cannot guarantee wearer isolation |
+| Classroom noise and room identity | Record room/session/device, vary approved order, keep sessions grouped | Environment-specific performance may not transfer |
+| Overlapping windows and repeated measures | Split by participant/session before fitting and bootstrap by participant | Effective sample size is participants, not windows |
+| Label uncertainty | Combine task markers with approved self-report rule; exclude uncertain primary windows | Task-induced challenge is not a clinical stress diagnosis |
+| Selection and observer effects | Record recruitment route, refusal/withdrawal, and recording awareness | Volunteers from one school may behave differently |
+| Temperature interpretation | Call MCP9808 local/skin-adjacent temperature only | It cannot establish core temperature or causality |
+| Small pilot and model search | Preregister primary model/run, report all ablations and confidence intervals | Negative or unstable results are expected and valid |
 
 ## Definition of done
 
-At the end of Week 7, a clean checkout and documented hardware build must demonstrate:
+By the end of Week 7, the repository and physical build must demonstrate:
 
-1. Continuous 16 kHz mono I2S capture without deliberate 250 ms gaps or silent DMA overruns.
-2. Numbered PCM16 chunks sent over authenticated persistent HTTPS, buffered during a measured outage, and acknowledged only after durable server storage.
-3. Continuous PPG, GSR, and accelerometer acquisition with real sample rates, units, contact/quality flags, sequence accounting, and local logging.
-4. A server pipeline that validates audio, detects speech, separates speakers, verifies the enrolled wearer, rejects uncertainty, and calculates reproducible acoustic features.
-5. A shared timeline for wrist and audio windows with measurable drift, loss, late arrival, and missing-modality masks.
-6. Wrist-only, audio-only, and quality-aware late-fusion results with subject-independent evaluation and an `insufficient_signal` outcome.
-7. A 24-hour powered engineering soak, plus a measured untethered discharge test that reports the actual runtime even if it is below 24 hours.
-8. Reproducible code, packet fixtures, saved-session replay, a power budget, failure reports, and claims limited to what the measurements support.
+1. A photographed, revision-specific BOM and wiring diagram matching the tested hardware.
+2. Continuous acquisition with sample indices, timestamps, quality flags, gap counts, and no placeholder sensor values.
+3. Authenticated, idempotent FastAPI Cloud ingestion with durable private object storage and PostgreSQL metadata.
+4. Saved-session replay that produces deterministic features and records exact package/model versions.
+5. Wearer attribution that reports VAD, diarization, false acceptance, false rejection, overlap rejection, and accepted coverage.
+6. Student data collected only under the completed study gate, or a clearly marked adult/bench-only result if approval is not complete.
+7. Wrist-only, audio-only, and quality-aware combined results from identical participant splits, plus diagnostic ablations that the available hardware supports.
+8. A 24-hour supervised powered soak and a separate measured 500 mAh untethered runtime result.
+9. A final report that separates measured results, uncertainty, bias, failure cases, and future work.
 
-## Frozen system design
+## Week 1 - Freeze hardware, safety, and protocol
 
-### Device-to-server path
+**Goal:** Turn the supplied shopping list and starter code into one verified electrical design and one packet contract.
 
-```text
-INMP441 -> I2S DMA -> PCM16 chunker -> RAM queue -> microSD retry queue
-                                               -> Wi-Fi -> HTTPS ingest
-                                                            |
-                                                            v
-                                       durable bytes + metadata -> ACK
-                                                            |
-                                                            v
-                                          asynchronous acoustic worker
+### Task 1: Physical inventory and topology
+
+**Files:** Create `docs/hardware/BOM.md`; create `docs/hardware/WIRING.md`; modify the selected firmware directory.
+
+- [ ] Photograph both sides of every board and record quantity, printed module/IC markings, connector polarity, measured rail voltage, I2C address, and whether a regulator/level shifter is present.
+- [ ] Select the two-board topology only if two complete controller and safe power sets are physically present; otherwise create `firmware/combined/` from the working pin definitions and freeze one-board integration.
+- [ ] Confirm the MAX30102 logic voltage with its actual schematic or measurements before it joins the ESP32 bus.
+- [ ] Document the exact GSR front-end and electrodes. If absent, mark EDA electrically blocked and leave ADS1115 A0 disconnected from people.
+- [ ] Confirm the TP4056 has DW01A + FS8205A, measure its PROG resistor and actual charge current, and record a power-off charge procedure with the load disconnected.
+- [ ] Verify JST polarity and obtain the battery's maximum discharge-current evidence; inspect the cell for swelling or damage.
+- [ ] Run the I2C scanner and record the discovered addresses in `docs/hardware/WIRING.md`.
+
+Run:
+
+```powershell
+platformio run -d firmware/ear
+platformio run -d firmware/wrist
+python -m pytest tests/firmware -q
 ```
 
-- Capture and upload run in separate FreeRTOS tasks. A slow request may fill a queue, but it must never pause I2S reads.
-- Start with one-second chunks. At 16 kHz/16-bit/mono, each payload is 32,000 bytes and raw traffic is about 2.76 GB/day before overhead.
-- Send a fixed-size, versioned, little-endian binary header followed by PCM bytes as `application/octet-stream`, not JSON/base64. HTTPS headers carry authentication and the idempotency key.
-- Keep one authenticated HTTPS connection alive and reconnect with bounded exponential backoff.
-- Use microSD for unacknowledged audio if outages longer than a few seconds must be survived. ESP32 RAM is only a short shock absorber; internal flash is not a continuous queue.
-- Delete a local chunk only after an idempotent server acknowledgement.
-- Start with continuous PCM in engineering mode. Add speech-active upload only after the full-stream reference proves that the gate preserves the required features.
+Expected: both existing starters compile and static tests pass before topology-specific changes begin.
 
-### Audio chunk contract
+### Task 2: Protocol v2 fixtures
 
-Freeze these fields by the end of Week 1:
+**Files:** Create `protocol/spec/chunk-v2.md`; create binary files in `protocol/fixtures/`; modify `protocol/src/types.ts`; add `protocol/tests/chunk-v2.test.ts`; add `tests/protocol/test_chunk_v2.py`.
 
-| Field | Purpose |
-| --- | --- |
-| `protocol_version` | Allows future decoders to reject incompatible packets. |
-| `device_id`, `session_id`, `boot_id` | Identifies the device, recording, and reboot epoch. |
-| `sequence` | Detects missing, duplicate, and reordered chunks. |
-| `first_sample_index` | Reconstructs time even if the wall clock jumps. |
-| `captured_at_unix_us` | Aligns the device to the server and wrist timeline. |
-| `sample_rate`, `channels`, `sample_format` | Makes decoding explicit rather than guessed. |
-| `sample_count`, `payload_bytes`, `checksum` | Detects truncation and corruption. |
-| `battery_mv`, `queue_depth` | Connects transport failures with power and backlog. |
-| `clip_count`, `dma_overrun_count` | Prevents damaged recordings from looking valid. |
+- [ ] Specify every header field, width, signedness, unit, byte order, CRC coverage, maximum payload, idempotency rule, and error response.
+- [ ] Produce one audio chunk and one wrist batch whose decoded values and checksums are written in the spec.
+- [ ] Decode the same fixture in TypeScript and Python; firmware emits the same bytes in Week 3.
 
-The server uses `(device_id, session_id, boot_id, sequence)` as the idempotency key. It returns `accepted`, `already_present`, or a retryable/non-retryable error; an HTTP response by itself is not proof that the bytes are durable.
+Run:
 
-### Server pipeline
-
-Keep the first server deployable by two people:
-
-- FastAPI ingest and session endpoints.
-- PostgreSQL for devices, sessions, chunk metadata, feature windows, quality flags, results, and deletion records.
-- A controlled filesystem volume for transient raw chunks. Ingest writes a temporary file, flushes it, atomically renames it, commits metadata, and then acknowledges; startup reconciliation resolves a crash between the file and database steps.
-- A separate Python worker that polls pending chunks or jobs; add Redis only if measurements show the database queue is insufficient.
-- Structured logs and a small status page for last sequence, backlog, battery, gaps, and processing delay.
-
-The worker stages are:
-
-```text
-decode -> quality checks -> VAD -> diarization -> wearer verification
-       -> wearer-only rolling windows -> openSMILE/eGeMAPS + audit features
-       -> wrist alignment -> modality outputs -> late fusion -> retention/deletion
+```powershell
+cd protocol
+npm test
+npm run typecheck
+cd ..
+python -m pytest tests/protocol -q
 ```
 
-### Wearer attribution
+Expected: both decoders agree exactly on all fixture fields and CRC values.
 
-The INMP441 is a single omnidirectional microphone, so speaker attribution has three independent jobs:
+### Week 1 exit gate
 
-- Silero VAD or an equivalent local VAD decides whether speech exists.
-- pyannote.audio separates speaker turns; its labels identify different speakers, not the wearer's identity.
-- A SpeechBrain ECAPA-TDNN speaker embedding compares each turn with a wearer enrollment template.
+- The build has a real parts/quantity record and one selected topology.
+- No unsafe or assumed GSR connection exists.
+- The charger, cell, regulator path, and logic levels are documented.
+- Protocol fixtures decode identically in Python and TypeScript.
 
-Enrollment uses three or more 30-second samples recorded with the final microphone placement in quiet, ordinary, and moderately noisy conditions. The accepted threshold is tuned on held-out wearer speech and at least three other voices. Overlap, television, music, short turns, and uncertain similarity return `unknown`, and unknown audio is excluded from stress inference.
+## Week 2 - Build and deploy the FastAPI ingest path
 
-Required attribution metrics are VAD precision/recall, diarization error rate, wearer false-acceptance rate, wearer false-rejection rate, overlap rejection, and the fraction of session time with accepted wearer speech. Accuracy on a few clean voice clips is not enough.
+**Goal:** Make the easiest reliable cloud path work end-to-end before adding audio models.
 
-### Acoustic features
+### Task 3: Local FastAPI service
 
-Use local libraries rather than an external feature API:
+**Files:** Create `server/requirements.txt`, `server/app/main.py`, `server/app/api/`, `server/app/domain/`, `server/app/storage/`, `server/migrations/`, and `tests/server/`.
 
-- openSMILE `eGeMAPSv02` 88 functionals as the standardized primary vector.
-- F0 median/IQR/range/slope; RMS, peak and dBFS; perceptual loudness; jitter, shimmer and HNR; MFCC and spectral summaries; VAD-derived speech/pause measurements.
-- Thirty-second rolling windows with at least five seconds of accepted wearer speech. Anything below the threshold is `insufficient_audio`.
-- Relative dBFS and loudness are valid. Absolute dB SPL is not claimed without acoustic calibration and fixed geometry.
-- Transcript content, sentiment, word choice, and speaking rate from ASR are deferred until the acoustic pipeline passes the 24-hour test.
+- [ ] Implement `/health`, session creation, binary chunk ingest, status, and session completion.
+- [ ] Hash per-device API keys and use constant-time comparison; never store or log the plaintext key.
+- [ ] Validate header version, lengths, stream limits, sequence, and CRC before storage.
+- [ ] Write immutable objects through a storage interface, then insert metadata and return `accepted`; make exact retries return `already_present`.
+- [ ] Add local filesystem and in-memory metadata adapters for tests, plus Supabase Storage/PostgreSQL adapters for deployment.
+- [ ] Test unauthorized requests, malformed data, duplicate retry, key/checksum conflict, storage failure, database failure, and status gap reporting.
 
-### Fusion
+Run:
 
-Use late fusion first because speech is intermittent. Each modality emits a probability or score plus a quality value; the fusion layer weights valid modalities and falls back to the wrist when audio is missing. Train and report wrist-only, audio-only, and late-fusion variants from the same splits and windows.
+```powershell
+python -m pip install -r server/requirements.txt
+python -m pytest tests/server -q
+fastapi dev server/app/main.py
+```
 
-The main experiment answers one question: **Does accepted wearer speech improve subject-independent acute-stress estimation beyond the wrist-only system?** If the answer is no, the system is still a useful result because the attribution, missingness, and ablation evidence explain why.
+Expected: tests pass and local `/docs` shows only the frozen API surface.
 
-## Questions Saksham must close
+### Task 4: FastAPI Cloud and Supabase deployment
 
-These are design inputs, not optional documentation. Record the answer, measurement method, photograph/schematic, and consequence for every item.
+**Files:** Create `.fastapicloudignore`; create `tools/smoke_cloud.py`; modify `server/README.md`.
 
-### Power and 24/7 operation — close in Week 1
+- [ ] Arjun receives FastAPI Cloud team/app access through the provider's login/team flow, not a credential committed to the repository.
+- [ ] Create a Supabase PostgreSQL project and private `audio-chunks` bucket in a region allowed by the study data policy.
+- [ ] Attach Supabase to the FastAPI Cloud app or create the pooled `DATABASE_URL`, then add all required values as encrypted secrets.
+- [ ] Apply migrations from the trusted development environment before the API accepts device traffic.
+- [ ] Deploy the subdirectory with `fastapi deploy server`.
+- [ ] Run the cloud smoke tool with the deployment URL supplied through `PSYCON_API_BASE`; verify accepted upload, exact retry, conflict rejection, and status.
 
-1. What is the exact LiPo manufacturer, part number, nominal capacity, maximum discharge current, protection circuit, connector polarity, and physical condition for each module?
-2. What exact TP4056 board was purchased, what is its charge-program resistor/current, and does its schematic contain a true load-sharing/power-path circuit? A charger with `OUT+/-` labels is not automatically a power path.
-3. Can the board run while charging without mis-terminating charge, overheating, or routing uncontrolled current through the cell? If this is unknown, will the build add a power-path charger such as a BQ24074-class board or define charging downtime?
-4. What voltage reaches the ESP32 across the full LiPo discharge curve? Is the present connection within the development board's input requirements, or is a buck/boost or regulated rail required?
-5. What are average and peak currents for audio capture only, capture plus continuous Wi-Fi upload, reconnect/backlog upload, microSD write, and worst-case retry? Measure at the battery, not from software estimates.
-6. What are average and peak currents for wrist acquisition, local logging, and radio activity with every sensor at its final sample rate?
-7. What battery capacity follows from `average_mA * 24 / usable_fraction`, and does the physical battery actually deliver it in a discharge test?
-8. What is the brownout threshold, low-battery warning, queue-flush procedure, and controlled shutdown behavior?
-9. What temperatures occur at the ESP32, charger, regulator, and battery during charging, Wi-Fi backlog upload, and a 24-hour powered run?
-10. Can a microSD module be added to the audio build, and what capacity, filesystem, wiring, peak current, and corruption-recovery behavior will it use?
-11. Will any device be charged while worn or connected to GSR electrodes? The answer should remain no until the power path and isolation are reviewed.
+Run:
 
-### Microphone and enclosure — close by Week 3
+```powershell
+fastapi login
+fastapi deploy server
+python tools/smoke_cloud.py --base-url $env:PSYCON_API_BASE
+```
 
-1. Where is the microphone mounted relative to the mouth, and what level difference is measured between the wearer and another person one metre away?
-2. Does the enclosure block the acoustic port or add resonance, wind, cable, or fabric-contact noise?
-3. Is there a visible recording indicator and a physical microphone disable control?
-4. Do walking, head movement, Wi-Fi transmission, charging, or microSD writes contaminate the recordings?
-5. Is the `L/R` channel, I2S bit alignment, gain, clipping margin, and DC removal verified with a known recording rather than assumed?
-6. Can continuous I2S run while the network stalls, and are DMA overruns counted and exposed?
+Expected: the smoke test exits zero, the private bucket contains one immutable test object, and PostgreSQL contains one matching chunk row despite the retry.
 
-### Wrist acquisition — close by Week 3
+### Task 5: Failure-recovery simulator
 
-1. What exact PPG, accelerometer/gyroscope, and GSR sampling rates are used, and why are they sufficient for the chosen features?
-2. Are raw PPG samples preserved, and how are FIFO overflow, contact loss, saturation, ambient light, and motion artifact reported?
-3. What ADS1115 gain and rate are used, what is the GSR circuit's safe excitation, and how are codes converted to documented units?
-4. What electrode material, spacing, attachment pressure, and replacement procedure produce repeatable contact?
-5. Are batches timestamped at acquisition rather than transmission, and can every missing sample be counted?
-6. Does sensor logging continue through audio silence, Wi-Fi outage, server failure, and module reboot?
+**Files:** Create `tools/simulate_device.py`; add `tests/server/test_recovery.py`.
 
-## Questions Arjun must close
+- [ ] Send numbered chunks, repeat one, omit one, corrupt one, disconnect once, and retry after the response is lost.
+- [ ] Verify that received, missing, duplicate-attempt, conflict, and corrupt counts match the scripted scenario.
 
-### Server and protocol — close by Week 2
+Run:
 
-- Where will the development and demonstration server run, who owns its credentials, and what happens if that network has no internet route?
-- How are device secrets provisioned and rotated without committing them to Git?
-- What exactly makes an acknowledgement durable, and how are duplicate, corrupt, late, and out-of-order chunks represented?
-- How long can the server be offline before the device queue fills, and what deterministic policy applies when it does?
-- How are NTP correction, sample-index time, wall-clock jumps, reboot epochs, and long-run drift recorded?
-- What raw-audio retention period applies to engineering tests and approved research sessions, and how is deletion verified?
+```powershell
+python tools/simulate_device.py --base-url $env:PSYCON_API_BASE --scenario recovery
+```
 
-### Research — close by Week 4
+Expected: server status reports the intentional gap and corrupt rejection, while each accepted idempotency key has one durable object and row.
 
-- Which final wrist features can the purchased sensors reproduce without WESAD temperature data?
-- What public audio or multimodal dataset is licensed for the intended experiments, and what domain mismatch remains against the INMP441 placement?
-- What constitutes ground truth, and how will labels be collected without leaking task boundaries into the model?
-- What subject-independent split, metrics, confidence intervals, and quality-abstention analysis will be reported?
-- What result would falsify the claim that audio contributes useful information beyond the wrist?
+### Week 2 exit gate
 
-## Week 1 — Make continuous audio real
+- FastAPI Cloud deployment works with Arjun's supplied account access.
+- Raw bytes live in private durable object storage, not an API-instance directory.
+- Metadata, secrets, idempotency, and failure paths are tested.
+- The API remains responsive without any audio ML package installed.
 
-**Goal:** Prove the microphone, bit format, server boundary, and power assumptions before adding models.
+## Week 3 - Make acquisition continuous and measurable
 
-### Arjun
+**Goal:** Replace starter placeholders with real acquisition and prove that the network cannot stop sampling.
 
-1. Add a `server/` FastAPI skeleton with a simulated-device upload endpoint, binary-body validation, file spool, metadata schema, and structured log.
-2. Define protocol v2 and make one golden chunk fixture decodable in Python, TypeScript, and C++.
-3. Build a simulator that sends numbered one-second PCM chunks, duplicates one, skips one, corrupts one, and retries after a disconnect.
-4. Add a session manifest containing code versions, device/boot IDs, expected sample counts, actual chunks, gaps, and checksums.
-5. Freeze the research scope and update project issues so diagnosis, NLP, mobile UI, and extra sensors cannot enter the sprint.
+### Task 6: Continuous audio firmware
 
-### Saksham
+**Files:** Modify `firmware/ear/src/main.cpp` or `firmware/combined/src/main.cpp`; modify its `platformio.ini`; modify `tests/firmware/test_firmware_static.py`.
 
-1. Replace the firmware's short read and 250 ms delay with continuous I2S DMA capture and double/triple buffering.
-2. Save or stream a five-minute known speech recording and verify channel, sign, bit shift, sample rate, clipping, playback speed, and absence of periodic gaps.
-3. Measure capture-only and capture-plus-Wi-Fi current at the battery, including peaks and board temperature.
-4. Identify every battery, charger, regulator, and board variant and answer the Week 1 power questions.
-5. Decide whether a microSD breakout and a true power-path charger must be purchased immediately.
+- [ ] Replace the 256-sample read plus 250 ms delay with continuous I2S DMA capture.
+- [ ] Use independent capture, chunk, and upload tasks with bounded queues and observable high-water marks.
+- [ ] Verify INMP441 channel selection and bit shift from a recorded tone and speech fixture before PCM16 conversion.
+- [ ] Count clipping, DMA overrun, Wi-Fi reconnect, retry, dropped queue item, and reboot reason.
+- [ ] Implement NTP sync records while retaining sample index as the monotonic source of duration.
+- [ ] Use a bounded RAM retry queue because microSD is not in the supplied list; emit explicit gap records on overflow. If the measured outage requirement exceeds RAM, add a 16-32 GB FAT32 SPI card using append-only files and periodic flush/recovery tests.
+- [ ] Place the microphone 10-20 cm from the mouth for the first fixture and measure wearer level against a speaker one metre away.
 
-### Exit gate
+### Task 7: Real wrist acquisition
 
-- Thirty minutes of continuous device audio reaches the ingest service with no unexplained sample gaps.
-- The server detects the intentionally missing, duplicate, and corrupt chunks.
-- A recorded file plays correctly and its exact sample count matches elapsed capture time within the measured clock error.
-- The first power table and 24-hour capacity estimate use measured current.
-- Any required microSD or power-path part is ordered now; waiting until Week 6 is a plan failure.
+**Files:** Modify `firmware/wrist/src/main.cpp` or `firmware/combined/src/main.cpp`; modify its `platformio.ini`; add hardware fixture checks under `tests/firmware/`.
 
-## Week 2 — Make Wi-Fi failure recoverable
+- [ ] Implement MAX30102 raw FIFO reads with contact, overflow, saturation, and ambient-light flags.
+- [ ] Implement calibrated MPU6050 acceleration and gyro batches.
+- [ ] Implement MCP9808 local temperature and TEMT6000 ADC reads.
+- [ ] Configure MAX30102 at 100 Hz, MPU6050 at 100 Hz, MCP9808 at 1 Hz, and TEMT6000 at 10 Hz, then measure whether the selected I2C bus rate sustains every stream without loss.
+- [ ] Implement ADS1115 EDA at 128 SPS and +/-4.096 V only after the approved front-end is documented; use Ag/AgCl electrodes at fixed spacing/pressure, calibrate codes to volts/conductance, or publish `eda_unavailable` rather than zeros.
+- [ ] Timestamp each batch immediately at acquisition, then buffer and transport it with sample index, units, sequence, quality, and battery/status fields.
+- [ ] Add a calibrated low-battery warning near 20%, queue flush, clean shutdown, and persisted reboot/brownout reason; keep hardware brownout protection enabled.
 
-**Goal:** Separate capture from transport and prove the acknowledgement/retry contract.
+Run:
 
-### Arjun
+```powershell
+platformio run -d firmware/ear
+platformio run -d firmware/wrist
+python -m pytest tests/firmware -q
+```
 
-1. Implement authenticated persistent HTTPS upload, idempotent database insertion, durable file writes, and explicit acknowledgements.
-2. Add metadata tables for device, session, chunk, retry, processing state, and deletion state.
-3. Implement clock-sync records and timeline reconstruction from `first_sample_index`.
-4. Add automated integration tests for timeout before/after durable write, duplicate retry, reconnect, reboot with a new `boot_id`, bad checksum, and queue-full policy.
-5. Build a minimal status endpoint/page for last sequence, missing ranges, backlog, battery, and ingest delay.
+For a one-board topology, replace both PlatformIO commands with:
 
-### Saksham
+```powershell
+platformio run -d firmware/combined
+```
 
-1. Run capture, chunking, upload, and storage as independent tasks with bounded queues and observable high-water marks.
-2. Implement microSD write/replay if the part is present; otherwise quantify the exact RAM-only outage limit and resulting limitation.
-3. Add NTP startup/periodic sync, monotonic sample indexing, reconnect backoff, watchdog reason, and persistent error counters.
-4. Test a forced ten-minute Wi-Fi outage, access-point restart, server timeout, and DNS failure while capture continues.
-5. Begin real wrist drivers with explicit configurations; no placeholder values may cross the protocol boundary.
+Expected: the selected build compiles and no placeholder sensor values or deliberate capture sleeps remain.
 
-### Exit gate
+### Task 8: Device-to-cloud stress test
 
-- A two-hour audio run includes a ten-minute outage and automatically drains its backlog without duplicate processing.
-- I2S sample accounting continues throughout the outage and DMA overrun count remains zero, or the failure is explained and fixed before Week 3.
-- The server can restart between write and acknowledgement without losing or double-processing the chunk.
-- Wrist firmware emits real, versioned sensor batches or a documented blocker with a dated fix.
+- [ ] Record 30 minutes of continuous audio and all available wrist streams.
+- [ ] Force a two-minute Wi-Fi outage and server error while sampling continues.
+- [ ] Compare expected sample indices with accepted chunks, firmware counters, and server gap ranges.
+- [ ] Measure battery current for capture-only, normal upload, reconnect, and backlog drain.
+- [ ] Measure audio-only, audio+BLE, audio+Wi-Fi, worst-case retry, sensors-only, sensors+BLE, and sensors+Wi-Fi current as separate rows.
+- [ ] Measure ESP32, TP4056, battery, and regulator temperature during charging, upload/backlog drain, and the longest safe run.
 
-## Week 3 — Build the acoustic feature worker
+### Week 3 exit gate
 
-**Goal:** Turn stored PCM into reproducible quality decisions and acoustic vectors.
+- Audio playback has correct duration/pitch and no unexplained periodic gaps.
+- Real wrist values and quality states reach the cloud.
+- Acquisition continues through the forced outage; any bounded-RAM loss is explicit.
+- The first measured runtime estimate replaces datasheet-only assumptions.
 
-### Arjun
+## Week 4 - Freeze the student protocol, attribution, features, and models
 
-1. Implement decode and golden-waveform tests for duration, amplitude, clipping, RMS, dBFS, and known fundamental frequency.
-2. Add signal-quality rules and Silero VAD with stored speech intervals and confidence.
-3. Add openSMILE `eGeMAPSv02` extraction plus transparent audit features for pitch, level, spectrum, and timing.
-4. Assemble 30-second rolling windows across chunk boundaries and require five seconds of voiced audio.
-5. Store the extractor version, parameters, source chunk range, quality decision, and vector checksum so replay is deterministic.
+**Goal:** Make the experiment scientifically and ethically executable before student collection.
 
-### Saksham
+### Task 9: Study protocol and bias register
 
-1. Freeze microphone placement after tests for distance, fabric, wind, walking, Wi-Fi, enclosure, and another nearby speaker.
-2. Finish real PPG, GSR, and motion acquisition with timestamps, batching, quality flags, and local logging.
-3. Measure the integrated audio build's current with microSD and final Wi-Fi behavior.
-4. Produce calibration recordings with quiet speech, background noise, TV/music, clipping, very low level, walking, and fabric rub.
+**Files:** Create `docs/study/PROTOCOL.md`; create `docs/study/BIAS_REGISTER.md`; create approved forms outside the public repository according to institutional policy.
 
-### Exit gate
+- [ ] Record the ethics decision, school authorization, guardian permission, student assent, withdrawal/deletion path, distress stop rule, data roles, retention, and bystander-audio procedure.
+- [ ] Define four analysis cells using only approved minimal-risk tasks: calm/quiet, calm/speaking, challenge/quiet, and challenge/speaking. The speaking cells use comparable verbal material so “was instructed to talk” is not identical to “stress.”
+- [ ] Record task, room, device, operator, condition start/end, and approved age-appropriate self-report after every block.
+- [ ] Predefine `label_uncertain`, exclusion, motion, non-wear, insufficient-audio, and aborted-session rules.
+- [ ] Perform a pilot sensitivity/power analysis and describe the study as feasibility/pilot when the available participant count cannot support a population claim.
+- [ ] Copy every row from the bias table in this plan into the live register with an owner and measurement artifact.
 
-- Known tones and fixture recordings produce expected duration, frequency, level, and deterministic features.
-- A four-hour session processes asynchronously while ingest continues, with reported backlog and latency.
-- Silence, clipping, very noisy audio, and insufficient speech abstain rather than create a usable feature window.
-- Wrist logs contain continuous real samples with detectable contact and loss states.
+Expected: no student is recruited or recorded until the gate fields are signed and versioned.
 
-## Week 4 — Identify the wearer
+### Task 10: Audio attribution worker
 
-**Goal:** Stop surrounding speech from entering the wearer model.
+**Files:** Create `worker/requirements.txt`; create `worker/psycon_worker/audio/`; create `tests/worker/test_audio_quality.py`; create `tests/worker/test_attribution_gate.py`.
 
-### Arjun
+- [ ] Pin one compatible Python/PyTorch/torchaudio/Silero/pyannote/SpeechBrain set after a clean environment install.
+- [ ] Add deterministic decode, clipping/level/noise checks, VAD intervals, diarization turns, enrollment embeddings, and wearer similarity scores.
+- [ ] Return accepted wearer, other speaker, overlap, or unknown; only accepted ranges reach acoustic feature extraction.
+- [ ] Store model identifiers, thresholds, enrollment version, source sample ranges, and decision scores.
+- [ ] Test quiet speech, other speakers, overlap, TV/music, low level, clipping, walking, and fabric noise recorded through the actual INMP441 placement.
 
-1. Add pyannote diarization over sensible multi-chunk segments and map turns back to exact sample ranges.
-2. Add the SpeechBrain ECAPA enrollment and verification service with versioned templates and cosine scores.
-3. Implement the decision policy: accepted wearer, other speaker, overlap, or unknown; only accepted wearer ranges reach the feature aggregator.
-4. Build an evaluation notebook/script reporting VAD metrics, diarization error, false acceptance/rejection, coverage, and errors by condition.
-5. Add tests proving unknown and other-speaker segments cannot leak into an accepted feature window.
+Run:
 
-### Saksham
+```powershell
+python -m pip install -r worker/requirements.txt
+python -m pytest tests/worker -q
+```
 
-1. Record consented engineering fixtures using the final placement: wearer plus at least three other speakers, speaker turns, overlap, television, music, several distances, walking, and fabric noise.
-2. Record at least three enrollment sessions on different takes rather than copying one clip.
-3. Compare at least two feasible placements and document the wearer-to-background level difference and usability.
-4. Add and verify the microphone-active indicator and physical mute behavior.
+Expected: unknown/other/overlap samples cannot contribute to an accepted wearer feature window.
 
-### Exit gate
+### Task 11: Hardware-compatible features and ablation runner
 
-- The evaluation set has no train/test clip overlap and includes all listed background conditions.
-- A threshold is selected from measured false-acceptance/false-rejection tradeoffs, not intuition.
-- Overlap and uncertain turns are rejected.
-- If false acceptance remains unacceptable, narrow the claim and record the required microphone revision instead of weakening the threshold to increase coverage.
+**Files:** Create `ml/src/hardware_features.py`; create `ml/src/ablation.py`; create `tests/ml/test_ablation.py`; modify `ml/src/models/train.py` only where shared evaluation code is needed.
 
-## Week 5 — Align wrist and audio, then test the claim
+- [ ] Build 60-second, 10-second-hop wrist and audio windows from sample indices and gap masks.
+- [ ] Preserve missing features and quality; do not convert a missing sensor or absent speech to zero.
+- [ ] Split by participant/session before fitting transforms, thresholds, feature selection, or models.
+- [ ] Implement runs A-H with one stored split manifest and a fixed primary logistic-regression configuration.
+- [ ] Export metrics, confidence intervals, per-participant rows, coverage, missingness, and model/package versions.
 
-**Goal:** Produce the first valid modality ablation on one synchronized timeline.
+Run:
 
-### Arjun
+```powershell
+python -m pytest tests/ml/test_ablation.py -q
+python -m pytest tests/ml/test_wesad_pipeline.py -q
+```
 
-1. Convert wrist logs into hardware-compatible feature windows and remove dependencies on sensors the device does not have.
-2. Align wrist and acoustic windows using session, boot, timestamp, sample index, and gap masks; quantify residual drift.
-3. Train/evaluate wrist-only, audio-only, and quality-aware late-fusion baselines using identical subject/session splits.
-4. Separate cold-start from per-user-baseline evaluation and prevent calibration samples from appearing in test windows.
-5. Generate one report with balanced accuracy, macro-F1, false-positive rate, calibration, per-subject results, missingness, accepted-audio coverage, and modality ablation.
+Expected: synthetic leakage tests fail if a participant/session crosses a split, and WESAD regression tests still pass.
 
-### Saksham
+### Week 4 exit gate
 
-1. Assemble the stable wearable form with fixed wiring, placement, strain relief, controls, indicators, and battery mounting.
-2. Run scripted calm, speech, movement, and non-wear engineering sessions that expose motion and contact confounders without making clinical claims.
-3. Measure whether Wi-Fi, microSD, enclosure, or audio placement changes PPG/GSR quality.
-4. Update the final BOM and wiring diagram to match the tested physical build.
+- The study gate is complete or student recording remains blocked without blocking bench/adult engineering work.
+- Wearer attribution has measured false-acceptance/false-rejection tradeoffs on actual microphone fixtures.
+- All packages have a named role and compatible pinned environment.
+- Core ablations A-C run from a synthetic or adult-developer synchronized fixture.
+- Mechanical talking and every other listed bias has a measurement/mitigation entry.
 
-### Exit gate
+## Week 5 - Pilot the full procedure and collect approved data
 
-- An eight-hour integrated session replays to identical window features and results.
-- Missing audio falls back to the wrist; missing or bad wrist data produces a documented result rather than silent imputation.
-- The report shows all three modality variants and does not claim improvement unless the comparison supports it.
-- The integrated power measurement is sufficient to plan Week 6's powered and untethered tests.
+**Goal:** Prove that one complete session produces usable, synchronized, correctly labeled data before scaling collection.
 
-## Week 6 — Prove 24-hour service and measure battery truth
+### Task 12: Adult/developer dry run
 
-**Goal:** Find the failures that only appear after hours of continuous operation.
+- [ ] Run the exact approved procedure with consenting adult developers first.
+- [ ] Verify device fit, recording indicator, physical mute, labels, self-report timing, Wi-Fi status, and stop/delete actions.
+- [ ] Replay the session and inspect PPG, motion, EDA availability, temperature, light, wearer-speech acceptance, and time alignment.
+- [ ] Correct protocol or implementation failures and increment the version before student collection.
 
-### Test A: 24-hour powered engineering soak
+### Task 13: Approved school-student sessions
 
-Use the reviewed power arrangement, continuous PCM engineering mode, all wrist sensors, server processing, and complete instrumentation. Inject one ten-minute Wi-Fi outage, one server restart, one access-point restart, and one device reconnect. Do not inject failures while nobody is observing battery or thermal behavior.
+- [ ] Confirm the signed gate for each session before device placement.
+- [ ] Record pseudonymous participant ID, consent/assent status, protocol version, device ID, room, operator, task order, and start/end events.
+- [ ] Monitor distress, device temperature, fit, signal quality, and recording state; stop immediately under the protocol rule.
+- [ ] Confirm upload completeness, withdrawal/delete status, and session notes before the participant leaves.
+- [ ] Never alter a label after seeing model predictions; corrections require a documented source-event error.
 
-Record expected/received samples, sequence gaps, retries, duplicate attempts, queue high-water marks, filesystem use, database growth, upload bandwidth, processing latency, clock drift, memory, resets, battery/rail voltage, current, and temperature.
+### Task 14: Pilot checkpoint
 
-### Test B: untethered discharge
+- [ ] Generate a blinded data-quality report after the first small batch without evaluating the final claim.
+- [ ] Report valid wrist coverage, valid audio coverage, attribution errors, label uncertainty, motion, dropouts, and reasons for exclusions by participant.
+- [ ] Continue collection only if the protocol and sensors are producing interpretable data; otherwise fix the measured failure and version the change.
 
-Run the final batteries from full charge to controlled shutdown under the chosen operating mode. Record the discharge curve and actual runtime. If it is below 24 hours, calculate the required capacity or duty-cycle change and report that result; do not rename a powered test as battery life.
+### Week 5 exit gate
 
-### Arjun
+- At least one approved end-to-end session replays deterministically.
+- Every data row traces to participant/session, protocol, device boot, chunk range, label event, and code version.
+- No model result has influenced labeling or participant exclusion.
 
-1. Automate a soak summary from manifests, device status, database records, and server logs.
-2. Implement and verify raw-audio retention/deletion jobs.
-3. Compare continuous PCM with candidate speech-active upload; evaluate power, bytes, wearer-feature coverage, and feature differences.
-4. Profile storage and compute per device-day and set practical queue/disk alerts.
+## Week 6 - Complete data, ablations, and reliability tests
 
-### Saksham
+**Goal:** Finish the evidence needed for the claim and quantify system runtime/recovery.
 
-1. Own current, voltage, temperature, charging/power-path, battery condition, and physical inspections during both tests.
-2. Verify low-battery flush/shutdown, restart, microSD recovery, and safe transition to/from the reviewed external supply.
-3. Inspect sensor contact, connectors, enclosure, acoustic port, and battery for changes after the test.
-4. Produce the final measured power budget and the concrete hardware revision if 24-hour untethered use fails.
+### Task 15: Freeze and run the modality experiments
 
-### Exit gate
+- [ ] Freeze the participant/session split manifest before comparing models.
+- [ ] Run wrist-only A, audio-only B, and combined C with the same source windows and primary model.
+- [ ] Run diagnostic D-H where the hardware and sample size support them.
+- [ ] Produce participant-level bootstrap intervals, per-participant metrics, coverage, missingness, calibration, and error tables.
+- [ ] Analyze mechanical talking within comparable speaking tasks and state whether performance changes when task identity is controlled.
+- [ ] Report the negative result if combined does not improve over wrist-only; do not retune the test set.
 
-- The powered system completes 24 hours with quantified availability and data completeness.
-- Every injected failure is visible and recovery is explained by logs, not memory.
-- Actual untethered runtime, average/peak current, storage/day, bandwidth/day, drift, and temperatures are reported.
-- No uncontrolled charging, overheating, silent queue loss, or unrecoverable storage corruption remains.
+Run:
 
-## Week 7 — Freeze, reproduce, and present
+```powershell
+python -m ml.src.ablation --manifest data/manifests/frozen_split.json --output reports/ablations
+```
 
-**Goal:** Turn the tested build into evidence. New features are forbidden this week.
+Expected: one generated report contains all mandatory runs, the exact same outer split, and explicit omitted-run reasons.
 
-### Arjun
+### Task 16: 24-hour powered engineering soak
 
-1. Fix only Week 6 failures and freeze protocol, server, extractor, model, dataset, and configuration versions.
-2. Add a clean setup path plus commands for server startup, simulated upload, saved-session replay, WESAD experiments, evaluation, and soak-summary generation.
-3. Update the paper and README with measured results, failure cases, privacy limits, and an architecture that matches the code.
-4. Export the final ablation tables, attribution metrics, power/reliability tables, and plots from scripts rather than editing numbers manually.
+- [ ] Use the reviewed external-power arrangement, not a worn charging setup.
+- [ ] Run every available sensor, continuous engineering-mode audio, cloud ingest, and worker backlog instrumentation for 24 hours.
+- [ ] Inject a Wi-Fi outage, API redeploy/restart, access-point restart, and device reconnect.
+- [ ] Record expected/received samples, sequence gaps, retries, queue high-water marks, bytes/day, storage growth, latency, drift, memory, resets, current, voltage, and temperatures.
 
-### Saksham
+### Task 17: Untethered 500 mAh discharge
 
-1. Freeze the BOM, wiring, power path, battery, enclosure, sample rates, firmware configuration, placement, and controls.
-2. Produce labeled photographs, final schematics, calibration notes, power measurements, runtime plots, and recovery instructions.
-3. Prepare a tested spare power source/cable and a physical demo checklist without silently swapping hardware from the documented build.
+- [ ] Charge the disconnected cell under the documented procedure.
+- [ ] Run the final operating mode from full charge to controlled shutdown while recording current/voltage and actual runtime.
+- [ ] Calculate the capacity required for 24 hours from measured average current and report the hardware/duty-cycle revision.
+
+### Week 6 exit gate
+
+- All mandatory ablations and coverage/error analyses are generated from frozen splits.
+- The powered service has a measured 24-hour completeness/recovery report.
+- The 500 mAh cell has an honest measured runtime, even when far below 24 hours.
+- Every bias register row has a result or explicitly measured residual limitation.
+
+## Week 7 - Reproduce, freeze, and present
+
+**Goal:** Make a third party able to reproduce the build and distinguish evidence from claims.
+
+### Task 18: Clean-checkout reproduction
+
+**Files:** Modify `README.md`; add `server/README.md`; add `worker/README.md`; generate `reports/reproducibility.md`.
+
+- [ ] Install root, server, worker, protocol, and firmware dependencies from documented files in a clean environment.
+- [ ] Run unit tests, local API, simulated upload, saved-session replay, WESAD regression, and frozen ablation report.
+- [ ] Record exact OS, Python, Node, PlatformIO, package, model, firmware, protocol, and schema versions.
+
+Run:
+
+```powershell
+python -m pytest
+cd protocol
+npm test
+npm run typecheck
+cd ..
+platformio run -d firmware/ear
+platformio run -d firmware/wrist
+```
+
+Expected: every applicable command passes from documented inputs; the selected one-board build uses its documented PlatformIO command instead.
+
+### Task 19: Final documentation and paper
+
+**Files:** Modify `README.md`; modify `paper/main.tex`; generate files under `reports/`.
+
+- [ ] Replace planned statements with measured sample rates, coverage, attribution, ablation, runtime, power, and failure results.
+- [ ] Include the school-study approvals/protocol version without publishing participant identities or private forms.
+- [ ] State that mechanical speech, selected school population, omnidirectional audio, task leakage, sensor bias, small sample, and non-clinical labels limit generalization.
+- [ ] Export tables and figures from scripts; do not type metric values manually into the report.
 
 ### Joint exit gate
 
-- A third person can start the server, power the devices, create a session, observe capture/upload/processing, interrupt Wi-Fi, see recovery, stop the session, and replay it from the documentation.
-- The release includes exact versions, raw-to-result lineage, attribution metrics, modality ablations, and the 24-hour report.
-- The presentation clearly separates measured results, current limitations, and future ideas.
-
-## Weekly operating rule
-
-Only two tracks stay active: Arjun's server/data/ML track and Saksham's device/power track. Interfaces freeze on Monday, each owner builds against fixtures through Thursday, integration happens Friday, failures are measured Saturday, and Sunday is for blockers and the next gate. A failed gate moves unfinished work forward and removes optional work; it does not cause seven new parallel tasks.
-
-Every daily update answers four questions:
-
-1. What became demonstrably true today?
-2. What artifact or measurement proves it?
-3. What failed or remains blocked, and who owns the next action?
-4. Did an interface, part, assumption, or claim change?
+- A third person can build the selected firmware, start or access the server, simulate/device-upload a session, inspect gaps, replay data, and regenerate the ablation report.
+- The release contains exact hardware, data lineage, package versions, attribution metrics, modality ablations, bias register, and power/reliability results.
+- Claims are limited to the observed protocol, participants, hardware, and coverage.
 
 ## Stop conditions and fallbacks
 
-- If direct Wi-Fi cannot sustain capture within the power budget by the Week 2 gate, retain the packet/server contract and test a phone or dedicated gateway. Do not redesign both paths in parallel.
-- If microSD cannot be integrated reliably, reduce the promised outage tolerance to the measured RAM capacity and keep the loss visible.
-- If wearer false acceptance remains high, return uncertain speech as unknown and narrow the audio claim; never trade privacy and validity for more accepted minutes.
-- If audio does not improve the wrist-only model, report the negative ablation result and the conditions under which it failed.
-- If the battery does not last 24 hours, report actual untethered runtime while retaining the separately proven 24-hour powered-service result.
-- If ethics approval is not available, finish transport, public-data modeling, fixture evaluation, and developer engineering soaks; do not run a human stress study.
+- If only one controller/power set exists, complete the combined benchtop prototype and describe the two-module wearable as unbuilt.
+- If the safe GSR front-end is unavailable, omit EDA acquisition and run/report the remaining wrist ablations; never attach bare ADC inputs to participants.
+- If direct Wi-Fi cannot sustain capture, keep the packet/server contract and test a dedicated gateway only after documenting the failure.
+- If RAM buffering cannot survive the required outage, report the measured limit or add microSD as a separately documented hardware revision.
+- If wearer false acceptance is unacceptable, return uncertain speech as unknown and narrow the claim; do not weaken the threshold for coverage.
+- If student-study approval is incomplete, finish adult-developer/bench transport, attribution, power, and replay tests without collecting student data.
+- If audio does not improve wrist-only classification, publish the negative ablation result and coverage/attribution conditions.
+- If the 500 mAh cell does not last 24 hours, report its measured runtime and the required capacity; do not call a powered soak battery life.
 
-## References used for the design
+## Self-review checklist
 
-- [Stress-Predict wearable pilot study](https://pmc.ncbi.nlm.nih.gov/articles/PMC9654418/)
-- [Frontiers systematic review of wearable stress detection](https://www.frontiersin.org/journals/computer-science/articles/10.3389/fcomp.2024.1478851/full)
-- [Espressif HTTP client documentation](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/protocols/esp_http_client.html)
-- [Espressif I2S documentation](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/i2s.html)
-- [openSMILE Python documentation](https://audeering.github.io/opensmile-python/)
+- [ ] Every supplied hardware part appears with a role and an electrical/measurement constraint.
+- [ ] GSR, regulator, microSD, and second-module quantity gaps are explicit.
+- [ ] FastAPI Cloud, Supabase durable storage, secrets, and separate worker boundaries are explicit.
+- [ ] Current and planned packages are tied to specific processing stages.
+- [ ] Labels come from the protocol and self-report, not a library prediction.
+- [ ] Wrist-only, audio-only, and combined runs are mandatory and split identically.
+- [ ] Mechanical talking and the broader bias register are measured and reported.
+- [ ] School-student experiments remain behind the ethics/school/guardian/assent gate.
+- [ ] The 500 mAh battery and TP4056 constraints prevent an unsupported 24-hour or worn-charging claim.
+
+## References
+
+- [FastAPI Cloud quick start](https://fastapicloud.com/docs/getting-started/)
+- [FastAPI Cloud deployment behavior](https://fastapicloud.com/docs/builds-and-deployments/how-it-works/)
+- [FastAPI Cloud Supabase integration](https://fastapicloud.com/docs/integrations/supabase-integration/)
+- [FastAPI Cloud environment variables and secrets](https://fastapicloud.com/docs/builds-and-deployments/environment-variables/)
+- [Supabase Storage](https://supabase.com/docs/guides/storage)
+- [Supabase PostgreSQL connections](https://supabase.com/docs/guides/database/connecting-to-postgres)
+- [TP4056 module supplied](https://robocraze.com/products/tp4056-battery-charger-c-type-module-with-protection-1)
+- [500 mAh LiPo supplied](https://robocraze.com/products/witty-fox-500mah-rechargeable-3-7v-lithium-polymer-battery)
+- [MAX30102 module supplied](https://robocraze.com/products/max30102-pulse-oximeter-heart-rate-sensor-module)
+- [MPU6050 module supplied](https://robocraze.com/products/mpu-6050-triple-axis-accelerometer-gyroscope-module)
+- [ADS1115 module supplied](https://robocraze.com/products/16-bit-i2c-4-channel-ads1115-module)
+- [INMP441 module supplied](https://robocraze.com/products/inmp441-mems-high-precision-omnidirectional-microphone-module-i2s)
+- [MCP9808 module supplied](https://robocraze.com/products/7semi-mcp9808-i2c-temperature-sensor-breakout)
+- [TEMT6000 module supplied](https://robocraze.com/products/smartelex-temt6000-ambient-light-sensor-breakout)
+- [Espressif HTTP client](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/protocols/esp_http_client.html)
+- [Espressif I2S](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/i2s.html)
+- [openSMILE Python](https://audeering.github.io/opensmile-python/)
 - [Silero VAD](https://github.com/snakers4/silero-vad)
 - [pyannote.audio](https://github.com/pyannote/pyannote-audio)
-- [SpeechBrain ECAPA speaker verification model](https://huggingface.co/speechbrain/spkrec-ecapa-voxceleb)
-- [ESP32-WROOM-32E datasheet](https://documentation.espressif.com/esp32-wroom-32e_esp32-wroom-32ue_datasheet_en.html)
-- [INMP441 datasheet](https://invensense.tdk.com/wp-content/uploads/2015/02/INMP441.pdf)
-- [BQ24074 power-path charger documentation](https://www.ti.com/product/BQ24074)
+- [SpeechBrain ECAPA model](https://huggingface.co/speechbrain/spkrec-ecapa-voxceleb)
