@@ -1,6 +1,6 @@
 # PSYCON Seven-Week Build Plan
 
-**Owners:** Arjun Vijay Prakash — software; Saksham Yadav — hardware and device firmware
+**Owners:** Arjun Vijay Prakash — software; Saksham Yadav — software, hardware and device firmware
 
 **Build target:** A continuously logging wrist module and a continuously capturing audio module whose server can isolate likely wearer speech, calculate acoustic features, align both modalities, and compare wrist-only, audio-only, and late-fusion acute-stress models.
 
