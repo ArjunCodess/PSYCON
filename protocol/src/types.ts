@@ -49,3 +49,40 @@ export type ModelArtifact = {
   trainingMetadata?: Record<string, unknown>;
 };
 
+export type ChunkStreamType = "audio_pcm" | "wrist_batch";
+
+export type ChunkV2Header = {
+  protocolVersion: 2;
+  headerLength: 40;
+  streamType: ChunkStreamType;
+  flags: 0;
+  deviceId: number;
+  sequence: number;
+  deviceTimestampUs: bigint;
+  sampleCount: number;
+  samplePeriodUs: number;
+  payloadLength: number;
+  crc32: number;
+};
+
+export type AudioChunkV2 = {
+  streamType: "audio_pcm";
+  header: ChunkV2Header & { streamType: "audio_pcm" };
+  samples: number[];
+};
+
+export type WristSampleV2 = {
+  sampleIndex: number;
+  ppgRed: number;
+  ppgIr: number;
+  edaAdc: number;
+  temperatureCentiC: number;
+};
+
+export type WristChunkV2 = {
+  streamType: "wrist_batch";
+  header: ChunkV2Header & { streamType: "wrist_batch" };
+  samples: WristSampleV2[];
+};
+
+export type ChunkV2 = AudioChunkV2 | WristChunkV2;
