@@ -70,7 +70,7 @@
 | `docs/study/PROTOCOL.md` | Approved task order, labels, consent/assent, stopping and deletion procedures |
 | `docs/study/BIAS_REGISTER.md` | Bias, detection method, mitigation, residual limitation, and owner |
 | `firmware/combined/` | One-controller benchtop build when two complete controller/power sets are unavailable |
-| `protocol/spec/chunk-v2.md` | Binary packet fields, byte order, CRC, idempotency, and response semantics |
+| `protocol/spec/chunk.md` | Binary packet fields, byte order, CRC, idempotency, and response semantics |
 | `protocol/fixtures/` | Golden audio and wrist packets shared across C++, Python, and TypeScript |
 | `server/requirements.txt` | FastAPI Cloud compatible API dependencies |
 | `server/app/main.py` | FastAPI application and health route |
@@ -295,7 +295,7 @@ Expected: both existing starters compile and static tests pass before topology-s
 
 ### Task 2: Protocol v2 fixtures
 
-**Files:** Create `protocol/spec/chunk-v2.md`; create binary files in `protocol/fixtures/`; modify `protocol/src/types.ts`; add `protocol/tests/chunk-v2.test.ts`; add `tests/protocol/test_chunk_v2.py`.
+**Files:** Create `protocol/spec/chunk.md`; create binary files in `protocol/fixtures/`; modify `protocol/src/types.ts`; add `protocol/tests/chunk.test.ts`; add `tests/protocol/test_chunk.py`.
 
 - [ ] Specify every header field, width, signedness, unit, byte order, CRC coverage, maximum payload, idempotency rule, and error response.
 - [ ] Produce one audio chunk and one wrist batch whose decoded values and checksums are written in the spec.
