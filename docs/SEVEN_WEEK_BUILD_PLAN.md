@@ -297,9 +297,9 @@ Expected: both existing starters compile and static tests pass before topology-s
 
 **Files:** Create `protocol/spec/chunk.md`; create binary files in `protocol/fixtures/`; modify `protocol/src/types.ts`; add `protocol/tests/chunk.test.ts`; add `tests/protocol/test_chunk.py`.
 
-- [ ] Specify every header field, width, signedness, unit, byte order, CRC coverage, maximum payload, idempotency rule, and error response.
-- [ ] Produce one audio chunk and one wrist batch whose decoded values and checksums are written in the spec.
-- [ ] Decode the same fixture in TypeScript and Python; firmware emits the same bytes in Week 3.
+- [x] Specify every header field, width, signedness, unit, byte order, CRC coverage, maximum payload, idempotency rule, and error response.
+- [x] Produce one audio chunk and one wrist batch whose decoded values and checksums are written in the spec.
+- [x] Decode the same fixture in TypeScript and Python; firmware emits the same bytes in Week 3.
 
 Run:
 
@@ -315,10 +315,10 @@ Expected: both decoders agree exactly on all fixture fields and CRC values.
 
 ### Week 1 exit gate
 
-- The build has a real parts/quantity record and one selected topology.
-- No unsafe or assumed GSR connection exists.
-- The charger, cell, regulator path, and logic levels are documented.
-- Protocol fixtures decode identically in Python and TypeScript.
+- [ ] The build has a real parts/quantity record and one selected topology.
+- [ ] No unsafe or assumed GSR connection exists.
+- [ ] The charger, cell, regulator path, and logic levels are documented.
+- [x] Protocol fixtures decode identically in Python and TypeScript.
 
 ## Week 2 - Build and deploy the FastAPI ingest path
 
