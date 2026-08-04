@@ -64,6 +64,11 @@ def test_decodes_wrist_fixture_exactly() -> None:
     ]
 
 
+def test_rejects_canonical_invalid_crc_fixture() -> None:
+    with pytest.raises(ChunkV2DecodeError, match="CRC mismatch"):
+        decode_chunk_v2(fixture("invalid_crc.bin"))
+
+
 @pytest.mark.parametrize(
     ("packet", "message"),
     [

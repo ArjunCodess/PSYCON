@@ -92,7 +92,7 @@ Clients may retry network failures and `500` responses with identical bytes. The
 
 ## Canonical fixtures
 
-The files under `protocol/fixtures/` are contract artifacts. `protocol/tools/generate_fixtures.py` deterministically regenerates them and validates each result through the Python decoder.
+The files under `protocol/fixtures/` are contract artifacts. `protocol/tools/generate_fixtures.py` deterministically regenerates them. `audio.bin` and `wrist.bin` must decode successfully; `invalid_crc.bin` is the audio fixture with its final payload bit flipped and must fail CRC validation in every implementation.
 
 ### `audio.bin`
 

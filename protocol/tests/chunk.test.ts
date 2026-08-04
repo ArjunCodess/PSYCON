@@ -79,4 +79,8 @@ describe("Protocol v2 chunks", () => {
     view.setUint32(36, crc32ChunkV2(packet), true);
     expect(() => decodeChunkV2(packet)).toThrow("audio payload");
   });
+
+  it("rejects the canonical invalid CRC fixture", () => {
+    expect(() => decodeChunkV2(fixture("invalid_crc.bin"))).toThrow("CRC mismatch");
+  });
 });

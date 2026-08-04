@@ -60,8 +60,12 @@ def main() -> None:
 
     (FIXTURES / "audio.bin").write_bytes(audio)
     (FIXTURES / "wrist.bin").write_bytes(wrist)
+    invalid_crc = bytearray(audio)
+    invalid_crc[-1] ^= 0x01
+    (FIXTURES / "invalid_crc.bin").write_bytes(invalid_crc)
     print(f"audio.bin: {len(audio)} bytes, crc32=0x{int.from_bytes(audio[36:40], 'little'):08x}")
     print(f"wrist.bin: {len(wrist)} bytes, crc32=0x{int.from_bytes(wrist[36:40], 'little'):08x}")
+    print(f"invalid_crc.bin: {len(invalid_crc)} bytes, intentionally corrupt")
 
 
 if __name__ == "__main__":
