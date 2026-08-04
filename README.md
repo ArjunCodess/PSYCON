@@ -109,6 +109,8 @@ PSYCON/
 
 ## Reproduce and verify
 
+The clean-checkout expectations are maintained in [`docs/REPRODUCIBILITY.md`](docs/REPRODUCIBILITY.md).
+
 ```powershell
 python -m pip install -r requirements.txt
 python -m pytest
