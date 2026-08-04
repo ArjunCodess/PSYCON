@@ -30,6 +30,16 @@ paper/*.fls
 paper/*.log
 paper/*.out
 paper/*.synctex.gz
+docs/engineering_prd/*.aux
+docs/engineering_prd/*.bbl
+docs/engineering_prd/*.bcf
+docs/engineering_prd/*.blg
+docs/engineering_prd/*.fdb_latexmk
+docs/engineering_prd/*.fls
+docs/engineering_prd/*.log
+docs/engineering_prd/*.out
+docs/engineering_prd/*.run.xml
+docs/engineering_prd/*.synctex.gz
 
 # OS/editor
 .DS_Store
