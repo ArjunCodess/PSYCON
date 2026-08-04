@@ -16,8 +16,8 @@ def fixture_batch() -> WristBatch:
         battery_mv=3850,
         samples=(
             WristSample(100, 50000, 60000, 1200, 3150, 0, 0, 1000, 0, 0, 0),
-            WristSample(101, 50010, 60020, 1210, 3160, 100, 0, 1000, 10, 0, 0, int(WristQuality.CONTACT_LOST)),
-            WristSample(103, 50020, 60040, 1220, 3170, 200, 0, 1000, 20, 0, 0),
+            WristSample(101, 50010, 60020, 1210, 3160, 100, 0, 1000, 10, 0, 0, int(WristQuality.CONTACT_LOST | WristQuality.PPG_SATURATED)),
+            WristSample(103, 50020, 60040, 1220, 3170, 200, 0, 1000, 20, 0, 0, int(WristQuality.EDA_SATURATED | WristQuality.SENSOR_DISCONNECTED)),
         ),
     )
 
@@ -35,4 +35,7 @@ def test_extracts_hardware_compatible_features_and_quality() -> None:
     assert features["eda_adc_range"] == pytest.approx(20)
     assert features["sample_completeness"] == pytest.approx(0.75)
     assert features["contact_lost_fraction"] == pytest.approx(1 / 3)
+    assert features["ppg_saturated_fraction"] == pytest.approx(1 / 3)
+    assert features["eda_saturated_fraction"] == pytest.approx(1 / 3)
+    assert features["sensor_disconnected_fraction"] == pytest.approx(1 / 3)
     assert features["battery_mv"] == 3850
