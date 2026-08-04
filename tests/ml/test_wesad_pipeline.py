@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from ml.src.features import add_subject_baseline_features, extract_windows, feature_columns
 from ml.src.models.baseline import RuleBaseline
@@ -13,14 +14,19 @@ from ml.src.preprocess import subject_to_frame
 from ml.src.wesad import discover_subjects, load_subject, map_wesad_label
 
 
-def test_discover_subjects_finds_local_wesad_data() -> None:
+def require_wesad_subject():
     subjects = discover_subjects()
-    assert len(subjects) >= 1
-    assert subjects[0].path.exists()
+    if not subjects:
+        pytest.skip("raw WESAD files are external; see README.md for data/raw/wesad layout")
+    return subjects[0]
+
+
+def test_discover_subjects_finds_local_wesad_data() -> None:
+    assert require_wesad_subject().path.exists()
 
 
 def test_loader_reads_one_subject() -> None:
-    subject = discover_subjects()[0]
+    subject = require_wesad_subject()
     data = load_subject(subject)
     assert "signal" in data
     assert "wrist" in data["signal"]
@@ -76,7 +82,7 @@ def test_subject_baseline_features_add_personalized_deltas() -> None:
 
 
 def test_subject_preprocess_smoke_uses_wrist_signals() -> None:
-    subject = discover_subjects()[0]
+    subject = require_wesad_subject()
     frame = subject_to_frame(subject.subject_id, load_subject(subject))
     assert {"acc_x", "acc_y", "acc_z", "bvp", "eda", "temp", "wesad_label"}.issubset(frame.columns)
     assert len(frame) > 100
