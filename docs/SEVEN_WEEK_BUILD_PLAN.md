@@ -4,7 +4,7 @@
 
 **Owners:** Arjun Vijay Prakash, software and research; Saksham Yadav, hardware and device firmware
 
-**Starting completion:** 40% overall; approximately 15% of end-to-end functional acceptance demonstrated
+**Current completion:** 44% overall; approximately 18% of end-to-end functional acceptance demonstrated
 
 This plan implements the 34-chapter engineering design in `docs/engineering_prd/`. It covers the complete Wrist Module, Audio Module, shared protocol, backend, multimodal study, electrical validation, safety, documentation, and competition demonstration.
 
@@ -21,7 +21,7 @@ Documentation proves documentation only. A diagram of a driver, backend, calibra
 
 | Area | State | Evidence |
 | --- | --- | --- |
-| Engineering paper | Mostly complete design | 34 TeX chapters and 36-page PDF; placeholder references and stale PDF email remain |
+| Engineering PRD | Tracked and reproducible | 34 TeX chapters and a current 36-page PDF; placeholder bibliography entries remain release blockers |
 | Hardware | Partial reported bring-up | BOM, GPIO, wiring, and power design; no integrated or measured evidence in repository |
 | Wrist firmware | Scaffold | Compiles and scans I2C; sensor samples are placeholders |
 | Audio firmware | Scaffold | Compiles and initializes 16 kHz I2S; capture is discontinuous and TEMT6000 is absent |
@@ -29,6 +29,21 @@ Documentation proves documentation only. A diagram of a driver, backend, calibra
 | Backend | Designed | No API, authentication, validator, synchronizer, database, dashboard, or export |
 | ML | Wrist baseline | WESAD models/artifacts exist; no speech or fusion evaluation |
 | Validation | Procedures only | No calibration, integrated logs, runtime, discharge, thermal, or demo evidence |
+
+## Questions for Saksham
+
+These answers are required before the software contracts can be mapped to real firmware. Record the exact part/revision, measurement or datasheet evidence, chosen value, and consequence for each answer.
+
+1. What exact ESP32, MAX30102, MPU6050, MCP9808, ADS1115, INMP441, TEMT6000, TP4056, battery, and regulator board revisions are physically present?
+2. Which final sample rates and ranges will firmware use for MAX30102 RED/IR, MPU6050 acceleration/gyroscope, MCP9808, ADS1115/GSR, TEMT6000, and INMP441?
+3. Can the MAX30102 reliably expose raw RED/IR samples at the chosen rate, and what observed values define contact loss, saturation, FIFO overflow, or sensor disconnect?
+4. Which MPU6050 axis orientation, accelerometer range, gyroscope range, and conversion factors map to the normalized `mg` and `0.1 °/s` software fields?
+5. What ADS1115 gain/data rate and GSR analog front end will be used, what excitation current is measured, and what ADC values define open electrodes, saturation, or unsafe contact?
+6. How will battery millivolts be measured on each ESP32 without exceeding an ADC pin limit, and which measured thresholds define warning and controlled shutdown?
+7. Does each device have a monotonic microsecond clock stable enough for the protocol timestamp, and what reset/persistence behavior should software expect for sample indices and sequence numbers?
+8. Will acceleration, gyroscope, battery, and quality fields travel in an expanded binary wrist record or a synchronized companion-status packet? Software currently normalizes both behind `WristBatch`, but firmware must choose and document one mapping.
+9. What exact charger/load-sharing behavior is present, and is charge-while-operating physically prevented until reviewed?
+10. Provide saved I2C/I2S logs, one real sample batch per sensor, rail/current measurements, and photographs of the as-built wiring so fixture values can be replaced with hardware evidence.
 
 ## Definition of done
 
@@ -56,11 +71,13 @@ Audio + light -> Audio ESP32 ----+                      -> validation/sync
                                                         -> visualization/export
 ```
 
-Week 1 must decide whether consented research sessions transmit raw audio, on-device acoustic features, or both in separate modes. The shared packet contract must include protocol version, module/device/session IDs, sequence, acquisition timestamp/common epoch, battery, status/quality, checksum, and the paper-defined modality payload.
+The Week 1 transport decision is frozen: consented engineering mode uses protocol-v2 raw PCM so capture and feature correctness can be audited; a later research mode may transmit derived features only after equivalence tests pass. The normalized software contract carries session, battery, status, quality, and error context alongside the binary audio/wrist chunks.
 
 ## Week 1: Reproducible and electrically safe baseline
 
 **Goal:** Reconcile the paper, code, compiled artifacts, hardware variants, and test environment.
+
+**Software status: complete.** Clean-checkout tests, dependency audit, three-language protocol fixtures, documentation reconciliation, and the PRD build pass. The remaining Week 1 exit items are the hardware evidence listed under “Questions for Saksham.”
 
 ### Arjun
 
@@ -91,6 +108,8 @@ Week 1 must decide whether consented research sessions transmit raw audio, on-de
 ## Week 2: Complete the Wrist Module
 
 **Goal:** Replace all placeholder values with real, timestamped, quality-aware acquisition.
+
+**Software status: complete.** Python and TypeScript schemas cover session, batch, quality, error, battery, and calibration data; fixtures/tests cover gaps and quality failures; the device-to-feature converter and hardware-compatible feature surface are implemented. Real firmware fields and sensor evidence remain with Saksham.
 
 ### Arjun
 
@@ -264,7 +283,7 @@ Every update states what became true, its evidence, the acceptance criterion adv
 
 ## Completion calculation
 
-The 40% baseline is recomputed with fixed weights:
+The 44% score is recomputed with fixed weights:
 
 | Workstream | Weight | Completion rule |
 | --- | ---: | --- |

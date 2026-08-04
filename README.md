@@ -6,19 +6,19 @@ PSYCON is a research and screening prototype, not a medical device. It must not 
 
 ## Current completion
 
-**Overall project completion: 40% as of 4 August 2026.** This weighted estimate measures progress toward the paper's competition-ready integrated prototype. It does not count a completed documentation chapter as completed hardware.
+**Overall project completion: 44% as of 4 August 2026.** This weighted estimate measures progress toward the PRD's competition-ready integrated prototype. It does not count a completed documentation chapter as completed hardware.
 
 | Workstream | Weight | Completion | Contribution | Evidence and remaining gap |
 | --- | ---: | ---: | ---: | --- |
-| Requirements and engineering documentation | 15% | 90% | 13.5% | The 34 chapters cover the SRS, architecture, BOM, wiring, risks, methods, ethics, tests, maintenance, and demonstration. Verified references, completed records, and a current PDF remain open. |
+| Requirements and engineering documentation | 15% | 93% | 14.0% | The tracked 34-chapter PRD, current 36-page PDF, reproducibility matrix, protocol specification, and device-feature contract are present. Verified bibliography sources and completed physical records remain open. |
 | Hardware, electrical, and mechanical | 20% | 35% | 7.0% | Components and wiring are documented and reported as individually checked. There is no repository evidence of an integrated wearable, calibrated GSR front end, measured rails/current/temperature, enclosure, or runtime test. |
 | Device firmware and acquisition | 20% | 30% | 6.0% | Both firmware targets compile. Audio I2S/BLE and wrist I2C/BLE bring-up exist, but wrist values are placeholders and continuous sensing, quality, storage, recovery, power, and watchdog behavior are absent. |
-| Protocol, backend, and synchronization | 15% | 20% | 3.0% | TypeScript validation/inference tests pass. The API, authentication, database, synchronizer, durable sessions, dashboard, export, and shared byte-level device contract do not exist. |
-| Data science and research pipeline | 15% | 55% | 8.25% | WESAD processing, grouped evaluation, model artifacts, metrics, and charts exist. Speech, hardware data, fusion, repeated validation, confidence intervals, and external validation do not. |
-| Verification, safety, and release evidence | 15% | 15% | 2.25% | Procedures are documented, but there are no integrated test logs, calibration records, runtime/discharge/thermal reports, safety approval, or completed demonstration. |
-| **Total** | **100%** |  | **40.0%** | The strongest assets are the design package and wrist-only baseline; the critical path is physical integration and measured validation. |
+| Protocol, backend, and synchronization | 15% | 32% | 4.8% | Protocol v2 has shared fixtures and Python, TypeScript, and C++ conformance tests; normalized wrist/session/quality/calibration schemas are implemented. The backend and synchronization service remain absent. |
+| Data science and research pipeline | 15% | 60% | 9.0% | WESAD processing/results and a hardware-compatible wrist batch converter/feature surface exist. Speech, hardware data, fusion, repeated validation, confidence intervals, and external validation remain. |
+| Verification, safety, and release evidence | 15% | 20% | 3.0% | Clean-checkout checks, dependency audit, fixture conformance, firmware builds, and PRD compilation pass. Physical calibration, runtime, safety, and demonstration evidence remain. |
+| **Total** | **100%** |  | **43.8% ≈ 44%** | Week 1 and Week 2 software are complete; the critical path is physical sensor integration followed by backend work. |
 
-The narrower end-to-end functional prototype is roughly **15% complete** because only the documentation and safety portions of the paper's ten SRS acceptance criteria are supported. The 40% overall figure gives reusable credit to the specification, firmware scaffolds, protocol library, WESAD pipeline, and generated results.
+The narrower end-to-end functional prototype is roughly **18% complete** because real sensor acquisition, synchronized backend sessions, power evidence, and multimodal validation are still absent. The 44% overall figure gives reusable credit to the specification, verified software contracts, firmware scaffolds, WESAD pipeline, device converter, and generated results.
 
 ## Source of truth
 
@@ -116,7 +116,7 @@ python -m pip install -r requirements.txt
 python -m pytest
 ```
 
-Python currently reports **8 passed and 3 failed**. The three failures require missing `data/raw/wesad/S*/S*.pkl`. After obtaining WESAD under its terms, place the files there and rerun `python main.py` and the tests.
+Python currently passes all repository-safe tests. Three raw-WESAD integration tests skip when `data/raw/wesad/S*/S*.pkl` is absent; after obtaining WESAD under its terms, place the files there and rerun `python main.py` and the tests.
 
 ```powershell
 cd protocol
@@ -126,7 +126,7 @@ npm run typecheck
 cd ..
 ```
 
-The protocol passes **4/4 tests** and type-checking. `npm audit` reports four development-dependency advisories: one low, two high, and one critical. Update the lockfile before release.
+The protocol passes its TypeScript tests and type-checking with zero `npm audit` vulnerabilities. Python, TypeScript, and C++ consume the same protocol-v2 audio, wrist, and corrupt-CRC fixtures.
 
 ```powershell
 python -m pip install platformio
