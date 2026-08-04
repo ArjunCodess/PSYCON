@@ -1,258 +1,152 @@
-# PSYCON: Psychophysiological Condition Observation Network
+# PSYCON: Psychological Condition Monitoring System
 
-PSYCON is a research prototype for testing one narrow question: **does wearer-attributed speech acoustics improve short-term stress classification over wrist sensing alone?** The intended experiment compares wrist-only, audio-only, and quality-aware combined models on the same participant and session splits.
+PSYCON is a two-module wearable research prototype for studying whether synchronized physiological, environmental, and speech-derived signals can estimate indicators associated with psychological well-being. The Wrist Module measures PPG, EDA/GSR, temperature, and motion; the Audio Module captures speech and ambient light. The intended experiment compares physiology-only, speech-only, and combined multimodal inference.
 
-PSYCON is not a medical device. It does not diagnose a stress disorder or any mental-health, developmental, or neurological condition.
+PSYCON is a research and screening prototype, not a medical device. It must not be presented as diagnosing depression, anxiety, PTSD, ADHD, autism, stress disorders, or any other clinical condition.
 
-## Current repository state
+## Current completion
 
-The repository contains a working WESAD preprocessing and classical machine-learning pipeline, model artifacts, a TypeScript protocol package, and starter ESP32 firmware. It does not yet contain the production FastAPI server, real wrist sensor drivers, continuous audio upload, synchronized study data, or a validated combined model.
+**Overall project completion: 40% as of 4 August 2026.** This weighted estimate measures progress toward the paper's competition-ready integrated prototype. It does not count a completed documentation chapter as completed hardware.
 
-| Area | What works now | What still has to be built |
+| Workstream | Weight | Completion | Contribution | Evidence and remaining gap |
+| --- | ---: | ---: | ---: | --- |
+| Requirements and engineering documentation | 15% | 90% | 13.5% | The 34 chapters cover the SRS, architecture, BOM, wiring, risks, methods, ethics, tests, maintenance, and demonstration. Verified references, completed records, and a current PDF remain open. |
+| Hardware, electrical, and mechanical | 20% | 35% | 7.0% | Components and wiring are documented and reported as individually checked. There is no repository evidence of an integrated wearable, calibrated GSR front end, measured rails/current/temperature, enclosure, or runtime test. |
+| Device firmware and acquisition | 20% | 30% | 6.0% | Both firmware targets compile. Audio I2S/BLE and wrist I2C/BLE bring-up exist, but wrist values are placeholders and continuous sensing, quality, storage, recovery, power, and watchdog behavior are absent. |
+| Protocol, backend, and synchronization | 15% | 20% | 3.0% | TypeScript validation/inference tests pass. The API, authentication, database, synchronizer, durable sessions, dashboard, export, and shared byte-level device contract do not exist. |
+| Data science and research pipeline | 15% | 55% | 8.25% | WESAD processing, grouped evaluation, model artifacts, metrics, and charts exist. Speech, hardware data, fusion, repeated validation, confidence intervals, and external validation do not. |
+| Verification, safety, and release evidence | 15% | 15% | 2.25% | Procedures are documented, but there are no integrated test logs, calibration records, runtime/discharge/thermal reports, safety approval, or completed demonstration. |
+| **Total** | **100%** |  | **40.0%** | The strongest assets are the design package and wrist-only baseline; the critical path is physical integration and measured validation. |
+
+The narrower end-to-end functional prototype is roughly **15% complete** because only the documentation and safety portions of the paper's ten SRS acceptance criteria are supported. The 40% overall figure gives reusable credit to the specification, firmware scaffolds, protocol library, WESAD pipeline, and generated results.
+
+## Source of truth
+
+The authoritative engineering specification is [`psycon_paper/`](psycon_paper/):
+
+- [`main.tex`](psycon_paper/main.tex) includes all 34 chapters across five volumes.
+- [`chapters/`](psycon_paper/chapters/) contains the SRS, engineering designs, integration plan, research method, ethics, test procedures, and final checklist.
+- [`main.pdf`](psycon_paper/main.pdf) is a 36-page artifact, but it is stale: it contains `TODO@example.com` while the TeX source contains the project email. Treat the TeX source as authoritative until the PDF is rebuilt.
+- [`references.bib`](psycon_paper/references.bib) contains TODO placeholders, so the package is not yet a submission-ready academic paper.
+
+Chapter-level “completed” labels mean that a topic has been documented. Implementation completion is controlled by Chapter 2's acceptance criteria, Chapter 8's integration gates, Chapter 28's test procedures, and Chapter 33's final checklist.
+
+## System design
+
+| Module | Controller and sensors | Intended output |
 | --- | --- | --- |
-| Wrist ML | WESAD loading, windowing, feature extraction, grouped split, and classical classifiers | Features from the actual MAX30102, ADS1115/GSR, MPU6050, MCP9808, and TEMT6000 build |
-| Audio firmware | INMP441 I2S starter and simple RMS/energy/ZCR calculation | Continuous capture, Wi-Fi upload, queueing, checksums, and overrun accounting |
-| Wrist firmware | I2C scan and placeholder BLE packets | Real sensor drivers, calibrated units, quality flags, and continuous batching |
-| Protocol | TypeScript inference and validation tests | A binary device-to-server chunk contract shared with Python and firmware |
-| Server | Not implemented | FastAPI ingest API, database/storage adapters, session status, and replay worker |
-| Human study | Not started | Approved protocol, consent/assent, labels, synchronized recordings, and ablations |
+| Wrist | ESP32, MAX30102, ADS1115 plus GSR electrodes, MCP9808, MPU6050 | Heart rate, raw PPG, EDA/GSR, temperature, acceleration/orientation, battery, and signal quality |
+| Audio | ESP32, INMP441, TEMT6000 | Audio or acoustic features, ambient light, battery, and capture status |
 
-The implementation sequence is in [docs/SEVEN_WEEK_BUILD_PLAN.md](docs/SEVEN_WEEK_BUILD_PLAN.md).
+The Wrist I2C bus uses `GPIO21` for SDA and `GPIO22` for SCL. Expected addresses are MAX30102 `0x57`, MPU6050 `0x68`, MCP9808 `0x18`, and ADS1115 `0x48`; GSR enters ADS1115 A0.
 
-## Simplest working architecture
+| INMP441 | ESP32 |
+| --- | --- |
+| VCC | 3.3 V |
+| GND | GND |
+| WS | GPIO25 |
+| SCK | GPIO26 |
+| SD | GPIO33 |
+| L/R | GND |
 
-The most practical first version is:
+The paper uses protected LiPo cells and TP4056 USB-C charger modules but explicitly leaves runtime, charge-while-operating behavior, rail stability, thermal behavior, controlled shutdown, and the final GSR excitation/front end for validation. Charging while worn or with GSR electrodes attached is prohibited until the exact power path passes review.
+
+## What exists today
+
+### Firmware
+
+[`firmware/ear/src/main.cpp`](firmware/ear/src/main.cpp) configures 16 kHz I2S, calculates RMS, mean absolute energy, and zero-crossing rate, and publishes a version-1 BLE feature packet. It reads only 256 samples before a 250 ms delay, does not read TEMT6000, and lacks continuous buffering, storage, reconnect, quality, battery, watchdog, and recovery behavior.
+
+[`firmware/wrist/src/main.cpp`](firmware/wrist/src/main.cpp) initializes I2C, scans addresses, and publishes a version-1 BLE packet. Its BVP, EDA, and acceleration values are placeholders; the real MAX30102, ADS1115/GSR, MPU6050, and MCP9808 drivers are not integrated.
+
+Both PlatformIO targets compile. Compilation proves source/toolchain compatibility, not physical sensor behavior.
+
+### Protocol
+
+[`protocol/`](protocol/) contains version-1 TypeScript types, validation, and logistic-regression inference. Four Vitest tests and `tsc --noEmit` pass. The TypeScript objects and packed C++ structs are not yet one byte-for-byte shared protocol; widths, units, endianness, timestamps, checksums, quality flags, and error behavior must be frozen before backend integration.
+
+### WESAD baseline
+
+[`main.py`](main.py) runs WESAD loading, resampling, overlapping 10-second windows, wrist feature extraction, subject-group train/test splitting, five model families, and artifact generation.
+
+The checked-in processed table contains **13,698 windows from 15 subjects**: 8,760 calm and 4,938 high-stress. The best recorded accuracy is 0.932 for EDA XGBoost; the exported multimodal-wrist logistic run records 0.915 accuracy, 0.895 F1, 0.995 recall, and 0.130 false-positive rate on one grouped holdout. These are WESAD development results, not PSYCON hardware or clinical validation.
+
+There is no audio pipeline, synchronized device dataset, physiology/audio/fusion ablation, repeated group validation, confidence interval, or external validation. Raw WESAD pickles are absent, so preprocessing cannot be reproduced from a clean checkout without separately obtaining WESAD.
+
+## Paper requirements versus implementation
+
+| Requirement | Evidence | Status |
+| --- | --- | --- |
+| FR-1 physiological monitoring | Hardware/interfaces documented; firmware data are placeholders | Partial |
+| FR-2 audio monitoring | Short-buffer I2S and three basic features compile | Partial |
+| FR-3 ambient light | TEMT6000 documented; no driver | Planned |
+| FR-4 synchronization | Timestamp fields designed; no common epoch or drift correction | Planned |
+| FR-5 communication | BLE notifications exist in both starters | Partial |
+| FR-6 local processing | Basic audio features exist; failure isolation/logging do not | Partial |
+| FR-7 independent modules | Separate projects exist; physical independence is untested | Partial |
+| FR-8 expandability | Modular architecture is documented | Designed |
+| Six-hour minimum runtime | No current, discharge, thermal, or continuous-run record | Not demonstrated |
+| Backend and research export | Architecture only; no `server/` implementation | Not implemented |
+| Multimodal comparison | Wrist-only WESAD baseline; no speech or fusion result | Partial |
+| Competition demonstration | Written plan only | Not demonstrated |
+
+## Repository layout
 
 ```text
-ESP32 sensor stream(s)
-  -> HTTPS POST of small numbered chunks
-  -> FastAPI Cloud ingest API
-  -> private Supabase Storage for raw chunks
-  -> Supabase PostgreSQL for metadata and labels
-  -> separate local/batch Python worker for audio and ML
-  -> wrist-only / audio-only / combined evaluation report
+PSYCON/
+  main.py                         # WESAD experiment entrypoint
+  ml/src/                         # Loading, preprocessing, features, models
+  data/processed/                 # Checked-in feature table
+  results/                        # Metrics, model exports, charts
+  firmware/wrist/                 # Compiling wrist scaffold with placeholders
+  firmware/ear/                   # Compiling I2S/BLE audio scaffold
+  protocol/                       # TypeScript protocol and inference tests
+  tests/                          # Python ML and firmware static tests
+  paper/                          # Earlier short LaTeX scaffold
+  psycon_paper/                   # Authoritative 34-chapter design package
+  docs/SEVEN_WEEK_BUILD_PLAN.md   # Evidence-gated implementation plan
 ```
 
-FastAPI Cloud is the recommended deployment target for the API. A local app that runs with `fastapi dev` can be deployed with `fastapi deploy`, and FastAPI Cloud can inject encrypted secrets. It should not be treated as the durable audio disk or as the first home for the PyTorch-based diarization and speaker models: cloud instances autoscale and may scale to zero, while the documented default is 0.5 vCPU and 500 MB memory. Keep requests short, write each accepted audio object to private durable storage, commit its metadata, and acknowledge only after both operations succeed.
-
-For the seven-week prototype:
-
-- Deploy the HTTP API to FastAPI Cloud.
-- Connect a Supabase project for PostgreSQL and a private `audio-chunks` storage bucket.
-- Store `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and per-device API-key hashes as secrets, never in Git or firmware source.
-- Run VAD, diarization, speaker verification, openSMILE, and model experiments as a separate reproducible batch worker on the development computer. Move that worker to dedicated compute only after its resource use is measured.
-- Keep a local storage adapter for offline bench testing. Student recordings must use only storage and regions approved by the study's data-protection review.
-
-This is easier and more reliable than running FastAPI, raw files, PostgreSQL, and heavy audio models in one process.
-
-## Hardware actually listed
-
-The following table reflects the supplied part list. Quantities and exact breakout revisions still need to be recorded from the physical parts; the links establish the part type, not the exact board schematic.
-
-| Part | Intended use | Interface / important constraint |
-| --- | --- | --- |
-| Generic 30-pin ESP32 development board | Sampling, timestamping, buffering, Wi-Fi | Exact module and regulator are unverified; the PlatformIO target is currently generic `esp32dev` |
-| [TP4056 Type-C charger with protection](https://robocraze.com/products/tp4056-battery-charger-c-type-module-with-protection-1) | Charge one 1S cell | Saksham identifies DW01A + FS8205A protection and no true load sharing. The likely 1 A charge current assumes a 1.2 kOhm PROG resistor and must be verified on the board. The load remains off while charging |
-| [Witty Fox 500 mAh 3.7 V LiPo](https://robocraze.com/products/witty-fox-500mah-rechargeable-3-7v-lithium-polymer-battery) | Prototype power | 1S, 500 mAh per module, JST 2-pin, 3.7 V nominal and 4.2 V full. Verify polarity and maximum discharge current; inspect for swelling/damage before every charge |
-| [MAX30102](https://robocraze.com/products/max30102-pulse-oximeter-heart-rate-sensor-module) | Raw reflective PPG and pulse features | I2C; the linked listing warns that this revision may use 1.8 V logic. Inspect the board before connection and never pull an ESP32 I2C line up to 5 V |
-| [MPU6050](https://robocraze.com/products/mpu-6050-triple-axis-accelerometer-gyroscope-module) | Motion and artifact context | I2C; accelerometer and gyroscope must be calibrated in the final orientation |
-| [ADS1115](https://robocraze.com/products/16-bit-i2c-4-channel-ads1115-module) | External analog conversion | I2C, four single-ended channels, up to 860 samples/s; it is an ADC, not a GSR sensor by itself |
-| [INMP441](https://robocraze.com/products/inmp441-mems-high-precision-omnidirectional-microphone-module-i2s) | 16 kHz speech capture | I2S, 24-bit data in 32-bit slots, 1.8-3.3 V, omnidirectional and bottom-ported |
-| [MCP9808](https://robocraze.com/products/7semi-mcp9808-i2c-temperature-sensor-breakout) | Skin-adjacent or enclosure temperature | I2C; it measures local sensor temperature, not core body temperature |
-| [TEMT6000](https://robocraze.com/products/smartelex-temt6000-ambient-light-sensor-breakout) | Ambient-light/contact context | Analog output to an ADS1115 channel; treat it as a quality/context signal, not direct evidence of stress |
-
-### Missing or unresolved hardware
-
-- **GSR/EDA front-end and electrodes:** ADS1115 alone must not be connected to skin. The build needs a documented low-voltage, current-limited excitation/front-end and Ag/AgCl electrodes with fixed spacing/pressure before electrical review and human use.
-- **Power regulation:** a protected charger is not a regulated ESP32 supply or a true power-path charger. Record how the ESP32 is powered across the LiPo discharge range.
-- **Offline storage:** no microSD module appears in the supplied list. The first build therefore uses a bounded RAM retry queue and reports gaps. If outage tolerance requires it, add a 16-32 GB FAT32 SPI microSD, use append-only files with periodic flushes, and test recovery after forced power loss.
-- **Physical quantities:** two physical modules require two ESP32 boards, two safe supply paths, and normally two cells. If only one of each exists, build a combined benchtop prototype first and treat wrist/audio as logical modalities. Do not claim a two-module wearable until the quantities are verified.
-- **Human controls:** the recording LED and physical microphone mute switch are currently absent and must be added before participant recording.
-
-### Status from Saksham's hardware review
-
-Resolved decisions:
-
-- Use power-off charging for the MVP; the device never operates or is worn while charging.
-- Treat the TP4056 board as charger/protection only, not a power-path supply.
-- Mount the microphone 10-20 cm from the mouth as the first placement and measure wearer level against another speaker one metre away.
-- Timestamp every sensor batch at acquisition, before buffering or Wi-Fi transport, and attach sequence numbers.
-- Use raw PPG plus contact, saturation, motion, and FIFO-overflow flags.
-
-Still unmeasured or unimplemented:
-
-- Battery maximum discharge current, exact charge current, ESP32 low-voltage cutoff, brownout/recovery, and real light/heavy-load runtime.
-- Audio-only, BLE, Wi-Fi, upload/retry, sensor-only, and combined current draw.
-- ESP32, charger, battery, and regulator temperature during charge, upload, and long runs.
-- INMP441 sample rate/bit alignment/channel/gain/clipping/DC offset, DMA loss, queue overflow, and enclosure/clothing noise.
-- Low-battery warning, queue flush, graceful shutdown, recording LED, and physical mute.
-
-## Proposed pin map
-
-This map matches the starter firmware and avoids known input-only/boot-strap pins. Confirm labels on the exact 30-pin board before wiring.
-
-| Bus / signal | ESP32 pin | Connected part |
-| --- | --- | --- |
-| I2C SDA | GPIO21 | MAX30102, MPU6050, ADS1115, MCP9808 |
-| I2C SCL | GPIO22 | MAX30102, MPU6050, ADS1115, MCP9808 |
-| I2S WS | GPIO25 | INMP441 WS |
-| I2S BCLK | GPIO26 | INMP441 SCK |
-| I2S data in | GPIO33 | INMP441 SD |
-| ADS1115 A0 | External analog only | Approved GSR front-end output |
-| ADS1115 A1 | External analog only | TEMT6000 output |
-
-Typical default I2C addresses are expected to be distinct (`MAX30102 0x57`, `MPU6050 0x68`, `ADS1115 0x48`, `MCP9808 0x18`), but firmware must scan and record the addresses found on the physical build. Power every bus pull-up from a logic-safe rail.
-
-### Starting acquisition settings
-
-These are Saksham's initial settings and must be validated on the integrated build:
-
-| Stream | Starting configuration |
-| --- | --- |
-| MAX30102 | 100 Hz raw red/IR PPG |
-| MPU6050 | 100 Hz accelerometer and gyroscope |
-| Reviewed GSR front-end through ADS1115 | 128 samples/s, +/-4.096 V gain initially; reduce the range only after measuring circuit output |
-| MCP9808 | 1 Hz |
-| TEMT6000 through ADS1115 | 10 Hz |
-| INMP441 | 16 kHz mono; verify I2S bit alignment before PCM16 conversion |
-
-For the LiPo, 500 mAh at an assumed 80% usable capacity permits only about 16.7 mA average for 24 hours. Saksham's preliminary, unmeasured estimates are roughly 5-7 hours at light load and 2-4 hours under heavy Wi-Fi use; only a logged discharge test may be reported as runtime.
-
-## Device and server data path
-
-Audio is captured at 16 kHz mono. One second of PCM16 is 32,000 bytes, or about 2.76 GB/day before protocol overhead if uploaded continuously. Engineering mode sends continuous PCM so completeness and feature fidelity can be measured. A later research mode may send speech-active segments plus explicit silence/gap records, but only after comparison with the continuous reference.
-
-Each device packet needs at least:
-
-```text
-protocol_version, device_id, session_id, boot_id, sequence,
-first_sample_index, captured_at_unix_us, stream_type,
-sample_rate, sample_format, sample_count, payload_bytes, crc32,
-battery_mv, queue_depth, quality_flags, error_counters
-```
-
-The idempotency key is `(device_id, session_id, boot_id, stream_type, sequence)`. A retry of the same bytes returns `already_present`; the same key with different bytes is a conflict. Capture, chunking, and upload run independently so a slow network cannot block I2S or sensor reads.
-
-## Libraries and what they do
-
-Libraries provide implementations; they do not create valid stress labels or prove that a classifier works on students. Labels must come from the approved study protocol, task timing, and participant self-report. Training and evaluation must keep every participant out of either train or test, never both.
-
-### Already used in this repository
-
-| Package | Current role |
-| --- | --- |
-| NumPy, pandas, SciPy | Signal tables, resampling, numerical features, peak detection |
-| scikit-learn | Grouped splitting, scaling, logistic regression, random forest, metrics |
-| XGBoost, LightGBM | Optional gradient-boosted classifiers |
-| joblib | Saved scikit-learn pipeline |
-| matplotlib, seaborn | Reproducible charts and confusion matrices |
-| pytest | Python and static firmware tests |
-| TypeScript, Vitest | Shared protocol validation and inference tests |
-| PlatformIO, Arduino framework, NimBLE-Arduino | Current ESP32 builds and BLE starter code |
-
-The current code trains a rule baseline, logistic regression, random forest, XGBoost, and LightGBM on WESAD wrist features. WESAD results are development baselines only; they are not results from this hardware or the school-student population.
-
-### Planned server and audio packages
-
-| Package | Planned role |
-| --- | --- |
-| `fastapi[standard]`, Pydantic | HTTP API, validation, local server, FastAPI Cloud CLI |
-| SQLAlchemy/SQLModel, Alembic, psycopg | PostgreSQL models, migrations, and connections |
-| Supabase Python client | Private object storage and service access |
-| HTTPX | API and simulated-device integration tests |
-| librosa, openSMILE | Auditable audio features and eGeMAPSv02 functionals |
-| PyTorch/torchaudio, Silero VAD | Local voice-activity detection |
-| pyannote.audio | Speaker-turn diarization |
-| SpeechBrain | Enrollment embeddings and wearer verification |
-
-Versions will be pinned after the first working install because PyTorch, torchaudio, pyannote, and SpeechBrain must be tested as one compatible set.
-
-## Experiment and mandatory ablations
-
-The primary analysis uses identical windows, labels, participant groups, and evaluation metrics for all variants:
-
-1. **Wrist only:** PPG-derived pulse features, approved EDA features, motion, and quality/context signals.
-2. **Audio only:** wearer-accepted acoustic features. Windows without enough accepted speech return `insufficient_audio`; they are not silently dropped from coverage reporting.
-3. **Combined:** quality-aware late fusion. It uses both streams when valid and falls back to wrist-only when audio is absent.
-
-Diagnostic ablations should include PPG-only, EDA-only, wrist physiology with/without motion context, combined fusion with/without quality gating, and population versus participant-baseline features. Report balanced accuracy, macro-F1, sensitivity, specificity/false-positive rate, calibration, confidence intervals, per-participant results, accepted-speech coverage, and missingness.
-
-The outcome label is not “whatever a library predicts.” The study must predefine calm/stressor segments and collect an approved age-appropriate self-report. Windows with contradictory or missing ground truth remain uncertain or are analyzed separately.
-
-## Biases and limitations to record
-
-- **Mechanical or instructed talking:** a participant may speak unnaturally because the protocol asks them to talk. This cannot be removed after collection. Use the same speaking task in calm and stress conditions where possible, record task identity, compare within speaking task, and state that natural conversation is not validated.
-- **Speech-availability bias:** quiet participants and silent stress periods produce fewer audio windows. Report coverage for every participant and never evaluate audio only on an unexplained easy subset.
-- **Age, puberty, sex, language, accent, and speaking style:** these affect voice features and may be spuriously predictive in a small school sample. Use participant-grouped splits and report the sample composition without treating demographics as stress signals.
-- **Skin tone, fit, perfusion, movement, and ambient light:** these affect wrist PPG. Record contact quality and motion, use TEMT6000 as context, and stratify signal failure rather than hiding it.
-- **Motion/task leakage:** timed arithmetic, speaking, and movement can identify the experimental task. Balance or model task and motion; do not claim the model has isolated stress if it only recognizes the protocol.
-- **Speaker-attribution error:** an omnidirectional microphone records bystanders. Reject overlap and uncertainty, report false acceptance/rejection, and keep the raw bucket private.
-- **Room and device bias:** classroom noise, temperature, Wi-Fi behavior, microphone placement, and device unit can leak session identity. Randomize order where approved and keep device/session groups out of both train and test.
-- **Overlapping windows:** adjacent windows are highly correlated. Split by participant/session before windowing or group every derived window with its source session.
-- **Small and selected sample:** one school cannot support population-wide or clinical claims. Report confidence intervals and negative results.
-- **Observer and consent effects:** being recorded or evaluated can alter behavior. Include this as a study limitation.
-
-## Run the existing code
-
-Python 3.11 or newer is required.
+## Reproduce and verify
 
 ```powershell
 python -m pip install -r requirements.txt
 python -m pytest
-python main.py --limit-subjects 1
 ```
 
-The WESAD command requires raw subject pickle files under `data/raw/wesad/`. The repository currently contains processed features but may not contain the raw licensed dataset in a clean checkout.
-
-Run the TypeScript protocol tests:
+Python currently reports **8 passed and 3 failed**. The three failures require missing `data/raw/wesad/S*/S*.pkl`. After obtaining WESAD under its terms, place the files there and rerun `python main.py` and the tests.
 
 ```powershell
 cd protocol
-npm install
+npm ci
 npm test
 npm run typecheck
 cd ..
 ```
 
-Build both current firmware starters:
+The protocol passes **4/4 tests** and type-checking. `npm audit` reports four development-dependency advisories: one low, two high, and one critical. Update the lockfile before release.
 
 ```powershell
 python -m pip install platformio
-platformio run -d firmware/ear
-platformio run -d firmware/wrist
+python -m platformio run --project-dir firmware/ear
+python -m platformio run --project-dir firmware/wrist
 ```
 
-## Study gate for school students
+Both builds pass; flashing, serial logs, real readings, recordings, and duration tests remain physical work.
 
-Because participants are school students and may be minors, the team doing the experiments does not remove the need for independent approval. Before recruitment or recording, obtain the applicable institutional ethics decision, school authorization, parental/guardian permission, participant assent, a withdrawal and deletion process, a distress/stop procedure, approved task limits, secure pseudonymous IDs, an audio retention period, and a bystander-recording procedure.
+## Safety, privacy, and study gate
 
-No participant should wear the unit while it is charging. Bench and voluntary adult-developer recordings can validate electronics, transport, and signal processing before the study gate is complete.
+Human recording requires the applicable ethics/school review, informed consent or guardian permission, withdrawal and deletion procedures, and a policy for bystander speech. Data handling must define pseudonymous IDs, access control, encryption, retention, deletion verification, backups, and version lineage.
 
-## Repository layout
+Before worn use, verify battery polarity/protection, LiPo condition, rails, GSR excitation, insulation, strain relief, charging, brownout, component temperatures, and controlled shutdown. Do not charge while worn or while electrodes are attached until an electrical review approves the exact build.
 
-```text
-main.py                         Existing WESAD experiment entry point
-ml/src/                         Current preprocessing, features, and classifiers
-firmware/wrist/                 Current wrist firmware starter
-firmware/ear/                   Current audio firmware starter
-protocol/                       Current TypeScript contracts and tests
-tests/                          Current Python and firmware-static tests
-results/                        Existing WESAD-derived artifacts
-paper/                          LaTeX paper scaffold
-docs/SEVEN_WEEK_BUILD_PLAN.md   Active implementation plan
-```
+## Next milestone and team
 
-The plan adds `server/`, `worker/`, hardware-compatible feature code, packet fixtures, study manifests, and evaluation reports. They are future paths until implemented.
+The evidence-gated implementation sequence is in [`docs/SEVEN_WEEK_BUILD_PLAN.md`](docs/SEVEN_WEEK_BUILD_PLAN.md).
 
-## References
+| Member | Primary ownership |
+| --- | --- |
+| Arjun Vijay Prakash | Protocol, backend, synchronization, data management, ML evaluation, reproducibility, and software documentation |
+| Saksham Yadav | Hardware, electrical safety, sensor integration, firmware, calibration, power/runtime, enclosure, and physical evidence |
 
-- [FastAPI Cloud quick start](https://fastapicloud.com/docs/getting-started/)
-- [FastAPI Cloud deployment behavior](https://fastapicloud.com/docs/builds-and-deployments/how-it-works/)
-- [FastAPI Cloud Supabase integration](https://fastapicloud.com/docs/integrations/supabase-integration/)
-- [FastAPI Cloud secrets](https://fastapicloud.com/docs/builds-and-deployments/environment-variables/)
-- [Supabase Storage](https://supabase.com/docs/guides/storage)
-- [Espressif I2S documentation](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/i2s.html)
-- [openSMILE Python documentation](https://audeering.github.io/opensmile-python/)
-- [Silero VAD](https://github.com/snakers4/silero-vad)
-- [pyannote.audio](https://github.com/pyannote/pyannote-audio)
-- [SpeechBrain ECAPA speaker verification model](https://huggingface.co/speechbrain/spkrec-ecapa-voxceleb)
+An item is complete only when a repeatable test, measurement, log, dataset, or generated artifact proves it.
