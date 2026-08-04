@@ -1,0 +1,89 @@
+% ============================================================
+% Chapter 10 — Complete Bill of Materials (BOM)
+% Source: PSYCON Engineering Design Document, Vol. 3, Ch. 10
+% ============================================================
+\section{Complete Bill of Materials}
+\label{sec:complete-bom}
+
+\subsection{Wrist Module BOM}
+\label{sec:wrist-bom}
+
+\Cref{tab:wrist-bom} lists the complete bill of materials for the Wrist Module.
+
+\begin{table*}[t]
+\centering
+\caption{Wrist Module bill of materials.}
+\label{tab:wrist-bom}
+\small
+\begin{tabularx}{\textwidth}{@{}l Y Y@{}}
+\toprule
+\textbf{Qty.} & \textbf{Component} & \textbf{Purpose} \\
+\midrule
+1 & ESP32 DevKit V1 (30-pin) & Main controller \\
+1 & MAX30102 & Heart rate \& PPG \\
+1 & ADS1115 & 16-bit ADC for GSR \\
+1 & MPU6050 & Motion sensing \\
+1 & MCP9808 & Temperature sensing \\
+1 pair & GSR electrodes & Skin conductance measurement \\
+1 & TP4056 USB-C charger (protected) & Battery charging \\
+2 & 500\,mAh LiPo cells (parallel) & Power source \\
+1 & Power switch & Main power \\
+1 & JST connector & Battery connection \\
+Several & Male/female headers & Module connections \\
+Several & Hook-up wires & Wiring \\
+1 & Wrist enclosure & Housing \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\subsection{Audio Module BOM}
+\label{sec:audio-bom}
+
+\Cref{tab:audio-bom} lists the complete bill of materials for the Audio Module.
+
+\begin{table*}[t]
+\centering
+\caption{Audio Module bill of materials.}
+\label{tab:audio-bom}
+\small
+\begin{tabularx}{\textwidth}{@{}l Y Y@{}}
+\toprule
+\textbf{Qty.} & \textbf{Component} & \textbf{Purpose} \\
+\midrule
+1 & ESP32 DevKit V1 (30-pin) & Main controller \\
+1 & INMP441 & I\textsuperscript{2}S microphone \\
+1 & TEMT6000 & Ambient light sensor \\
+1 & TP4056 USB-C charger (protected) & Battery charging \\
+1 & 500\,mAh LiPo cell & Power source \\
+1 & Power switch & Main power \\
+1 & JST connector & Battery connection \\
+Several & Hook-up wires & Wiring \\
+1 & Enclosure & Housing \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\subsection{Shared Tools}
+\label{sec:shared-tools}
+
+\begin{itemize}
+    \item Breadboard
+    \item Soldering iron
+    \item Solder wire
+    \item Flux
+    \item Heat-shrink tubing
+    \item USB-C cable
+    \item ESP32 programming cable
+    \item Small screwdrivers
+    \item Tweezers
+    \item Hot glue/Kapton tape for strain relief
+\end{itemize}
+
+\subsection{Electrical Specifications}
+\label{sec:bom-electrical-specs}
+
+\textbf{Logic voltage.} ESP32 GPIO: 3.3\,V. All digital interfaces: 3.3\,V.
+
+\textbf{Battery.} Nominal: 3.7\,V. Fully charged: 4.2\,V. Recommended cutoff: $\approx$3.2--3.3\,V under light load.
+
+\textbf{Communication.} I\textsuperscript{2}C; I\textsuperscript{2}S; Wi-Fi; BLE.

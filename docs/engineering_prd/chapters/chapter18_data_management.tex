@@ -1,0 +1,51 @@
+% ============================================================
+% Chapter 18 — Data Management
+% Source: PSYCON Engineering Design Document, Vol. 4, Ch. 18
+% ============================================================
+\section{Data Management}
+\label{sec:data-management}
+
+\subsection{Storage}
+\label{sec:data-storage}
+
+The following should be maintained:
+\begin{itemize}
+    \item Raw sensor files
+    \item Processed feature files
+    \item Metadata
+    \item Model outputs
+    \item Logs
+\end{itemize}
+
+\begin{engnote}
+Use regular backups and version control.
+\end{engnote}
+
+\subsection{File Structure}
+\label{sec:data-file-structure}
+
+\Cref{lst:data-file-structure} shows the recommended top-level data repository layout.
+
+\begin{lstlisting}[caption={Recommended PSYCON data repository structure.}, label={lst:data-file-structure}]
+/participants
+/sessions
+  /raw
+  /features
+/models
+/results
+/docs
+/firmware
+\end{lstlisting}
+
+\subsection{Version Control}
+\label{sec:data-version-control}
+
+The following should be tracked:
+\begin{itemize}
+    \item Firmware version
+    \item Hardware revision
+    \item PCB revision
+    \item Dataset version
+    \item Model version
+    \item Documentation revision
+\end{itemize}

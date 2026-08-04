@@ -6,7 +6,7 @@
 
 **Starting completion:** 40% overall; approximately 15% of end-to-end functional acceptance demonstrated
 
-This plan implements the 34-chapter engineering design in `psycon_paper/`. It covers the complete Wrist Module, Audio Module, shared protocol, backend, multimodal study, electrical validation, safety, documentation, and competition demonstration.
+This plan implements the 34-chapter engineering design in `docs/engineering_prd/`. It covers the complete Wrist Module, Audio Module, shared protocol, backend, multimodal study, electrical validation, safety, documentation, and competition demonstration.
 
 ## Status and evidence rules
 
@@ -68,7 +68,7 @@ Week 1 must decide whether consented research sessions transmit raw audio, on-de
 2. Resolve or explicitly fixture/mark the three raw-WESAD-dependent Python tests.
 3. Upgrade vulnerable protocol test dependencies and regenerate the lockfile.
 4. Freeze protocol v2 and add valid wrist, valid audio, and invalid-checksum fixtures decoded by Python, TypeScript, and C++.
-5. Resolve the project-name, `paper/` versus `psycon_paper/`, stale PDF email, and bibliography TODO inconsistencies.
+5. Resolve the legacy `paper/` scaffold, rebuild the Engineering PRD PDF, and track bibliography TODOs as release blockers.
 6. Freeze the research endpoint as physiology/speech/combined estimation of non-clinical experimental indicators.
 
 ### Saksham

@@ -1,0 +1,369 @@
+% ============================================================
+% Chapter 7 — AI Pipeline, Backend Architecture & Machine Learning Design
+% Source: PSYCON Engineering Design Document, Vol. 1, Ch. 7
+% ============================================================
+\section{AI Pipeline, Backend Architecture \& Machine Learning Design}
+\label{sec:ai-pipeline-design}
+
+\subsection{AI System Overview}
+\label{sec:ai-system-overview}
+
+PSYCON consists of two synchronized AI pipelines whose feature sets are fused into a final inference engine.
+
+\textbf{Physiological AI Pipeline.} Heart rate; heart rate variability (HRV); blood-oxygen trends (SpO\textsubscript{2}, if used); galvanic skin response (GSR/EDA); body temperature; motion/activity.
+
+\textbf{Speech AI Pipeline.} Voice recording; speech characteristics; language features; conversation analysis; acoustic features.
+
+\subsection{Overall Architecture}
+\label{sec:ai-overall-architecture}
+
+\Cref{fig:ai-overall-architecture} shows how physiological features from the Wrist Module and speech features from the Audio Module converge in the AI fusion engine.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\small,
+    stage/.style={draw, rounded corners=3pt, minimum width=3.2cm, minimum height=0.75cm, align=center, line width=0.6pt},
+    mod/.style={stage, fill=blue!8},
+    feat/.style={stage, fill=gray!8},
+    fuse/.style={stage, fill=violet!10, minimum width=3.2cm, minimum height=1.2cm},
+    arrow/.style={-{Stealth[length=2.2mm]}, line width=0.6pt}
+]
+\node[mod] (wrist) at (0,4.6) {Wrist Module};
+\node[feat, below=8mm of wrist] (physfeat) {Physiological Features};
+
+\node[mod] (audio) at (0,0) {Audio Module};
+\node[feat, above=8mm of audio] (speechfeat) {Speech Features};
+
+\node[fuse] (fusion) at (4.6,2.3) {AI Fusion Engine};
+
+\draw[arrow] (wrist.south) -- (physfeat.north);
+\draw[arrow] (audio.north) -- (speechfeat.south);
+\draw[arrow] (physfeat.east) -| (fusion.north);
+\draw[arrow] (speechfeat.east) -| (fusion.south);
+\end{tikzpicture}
+\caption{Overall AI architecture: physiological features from the Wrist Module and speech features from the Audio Module converge in the AI fusion engine.}
+\label{fig:ai-overall-architecture}
+\end{figure}
+
+\subsection{Data Acquisition}
+\label{sec:data-acquisition-ai}
+
+\textbf{Physiological.} Heart rate, HRV, GSR, temperature, and motion are collected continuously. Every sample receives a timestamp, sensor ID, quality flag, and battery status.
+
+\textbf{Speech.} Speech is collected continuously. \Cref{fig:speech-pipeline} shows the speech acquisition pipeline.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\small,
+    node distance=0mm,
+    field/.style={draw, rounded corners=2pt, fill=orange!8, minimum width=4.2cm, minimum height=0.65cm, align=center, line width=0.5pt}
+]
+\node[field] (mic) {Microphone};
+\node[field, below=5mm of mic] (pcm) {PCM Audio};
+\node[field, below=5mm of pcm] (buf) {Buffer};
+\node[field, below=5mm of buf] (feat) {Feature Extraction};
+\node[field, below=5mm of feat] (inf) {Inference};
+
+\foreach \a/\b in {mic/pcm, pcm/buf, buf/feat, feat/inf}
+  \draw[-{Stealth[length=2mm]}, line width=0.6pt] (\a.south) -- (\b.north);
+\end{tikzpicture}
+\caption{Speech acquisition pipeline: microphone $\rightarrow$ PCM audio $\rightarrow$ buffer $\rightarrow$ feature extraction $\rightarrow$ inference.}
+\label{fig:speech-pipeline}
+\end{figure}
+
+\subsection{Feature Engineering}
+\label{sec:feature-engineering}
+
+\Cref{tab:feature-engineering} summarizes candidate features under consideration for each signal modality.
+
+\begin{table*}[t]
+\centering
+\caption{Candidate features by signal modality.}
+\label{tab:feature-engineering}
+\small
+\begin{tabularx}{\textwidth}{@{}l Y@{}}
+\toprule
+\textbf{Modality} & \textbf{Candidate Features} \\
+\midrule
+Heart & Mean HR; HR variability; resting trend; peak frequency; recovery trend \\
+Motion & Activity level; tremor; stability; walking; rest periods \\
+Temperature & Mean; drift; sudden changes; long-term baseline \\
+GSR & Baseline conductance; slow tonic changes; rapid phasic responses; peak count; recovery slope \\
+Speech (acoustic) & Speaking rate; pause duration; pitch statistics; energy/loudness; voice stability; spectral features (e.g., MFCCs) \\
+Speech (language) & Vocabulary diversity; sentence length; sentiment; emotion-related language; topic transitions \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\begin{researchnote}
+The feature lists above represent candidate features under consideration. Final feature selection should be informed by empirical validation on collected data.
+\end{researchnote}
+
+\subsection{Data Fusion}
+\label{sec:data-fusion-ai}
+
+The backend aligns sensor and speech data using timestamps. \Cref{fig:data-fusion} shows the fusion process from sensor and speech features to a combined feature vector and the inference engine.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\small,
+    stage/.style={draw, rounded corners=3pt, minimum width=3.6cm, minimum height=0.7cm, align=center, line width=0.6pt},
+    src/.style={stage, fill=blue!8},
+    vec/.style={stage, fill=gray!8},
+    inf/.style={stage, fill=green!10},
+    arrow/.style={-{Stealth[length=2.2mm]}, line width=0.6pt}
+]
+\node[src] (sf) at (0,2.4) {Sensor Features};
+\node[src] (spf) at (0,1.2) {Speech Features};
+\node[vec] (fv) at (0,-0.2) {Feature Vector};
+\node[inf] (ie) at (0,-1.4) {Inference Engine};
+
+\draw[arrow] (sf.south) -- ++(0,-4mm) -| (fv.north);
+\draw[arrow] (spf.south) -- (fv.north);
+\draw[arrow] (fv.south) -- (ie.north);
+\end{tikzpicture}
+\caption{Data fusion: timestamp-aligned sensor and speech features are combined into a single feature vector for the inference engine.}
+\label{fig:data-fusion}
+\end{figure}
+
+\subsection{Backend Components}
+\label{sec:backend-components}
+
+\Cref{fig:backend-pipeline} shows the end-to-end backend pipeline, from device data ingestion to the user-facing dashboard.
+
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}[
+    font=\scriptsize,
+    stage/.style={draw, rounded corners=3pt, text width=1.6cm, minimum height=1.1cm, align=center, line width=0.6pt, fill=teal!8, inner sep=2pt},
+    arrow/.style={-{Stealth[length=2mm]}, line width=0.6pt},
+    node distance=2.5mm
+]
+\node[stage] (s1) {ESP32};
+\node[stage, right=of s1] (s2) {API};
+\node[stage, right=of s2] (s3) {Database};
+\node[stage, right=of s3] (s4) {Feature Extraction};
+\node[stage, right=of s4] (s5) {ML Model};
+\node[stage, right=of s5] (s6) {Results};
+\node[stage, right=of s6] (s7) {Dashboard};
+
+\foreach \i/\j in {s1/s2, s2/s3, s3/s4, s4/s5, s5/s6, s6/s7}
+  \draw[arrow] (\i.east) -- (\j.west);
+\end{tikzpicture}
+\caption{End-to-end backend pipeline, from ESP32 device data through the API and database, feature extraction, ML model inference, and results, to the user-facing dashboard.}
+\label{fig:backend-pipeline}
+\end{figure*}
+
+\subsection{Database Structure}
+\label{sec:database-structure}
+
+\Cref{tab:database-structure} lists the fields stored for each session.
+
+\begin{table}[H]
+\centering
+\caption{Fields stored per session.}
+\label{tab:database-structure}
+\small
+\begin{tabularx}{\columnwidth}{@{}Y@{}}
+\toprule
+\textbf{Field} \\
+\midrule
+User ID \\
+Session ID \\
+Timestamp \\
+Sensor data \\
+Audio metadata \\
+Extracted features \\
+Model output \\
+Confidence score \\
+Logs \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{warningbox}
+For privacy, avoid storing raw audio longer than necessary unless explicit user consent and a clear research need are established.
+\end{warningbox}
+
+\subsection{Machine Learning Workflow}
+\label{sec:ml-workflow}
+
+\Cref{fig:ml-workflow} shows the end-to-end machine learning workflow, from raw data collection through to inference.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\small,
+    node distance=0mm,
+    field/.style={draw, rounded corners=2pt, fill=blue!6, minimum width=4.2cm, minimum height=0.55cm, align=center, line width=0.5pt}
+]
+\node[field] (collect) {Collect Data};
+\node[field, below=3.5mm of collect] (clean) {Clean Data};
+\node[field, below=3.5mm of clean] (sync) {Synchronize};
+\node[field, below=3.5mm of sync] (extract) {Extract Features};
+\node[field, below=3.5mm of extract] (norm) {Normalize};
+\node[field, below=3.5mm of norm] (train) {Train Model};
+\node[field, below=3.5mm of train] (val) {Validate};
+\node[field, below=3.5mm of val] (deploy) {Deploy};
+\node[field, below=3.5mm of deploy, fill=green!8] (infer) {Inference};
+
+\foreach \a/\b in {collect/clean, clean/sync, sync/extract, extract/norm, norm/train, train/val, val/deploy, deploy/infer}
+  \draw[-{Stealth[length=2mm]}, line width=0.6pt] (\a.south) -- (\b.north);
+\end{tikzpicture}
+\caption{End-to-end machine learning workflow, from data collection and cleaning through synchronization, feature extraction, normalization, training, validation, and deployment, to inference.}
+\label{fig:ml-workflow}
+\end{figure}
+
+\subsection{Model Development}
+\label{sec:model-development}
+
+\Cref{fig:model-development} shows the typical model-development workflow.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\small,
+    node distance=0mm,
+    field/.style={draw, rounded corners=2pt, fill=orange!8, minimum width=4.2cm, minimum height=0.55cm, align=center, line width=0.5pt}
+]
+\node[field] (train) {Training Set};
+\node[field, below=4mm of train] (valset) {Validation Set};
+\node[field, below=4mm of valset] (test) {Testing Set};
+\node[field, below=4mm of test] (perf) {Performance Evaluation};
+\node[field, below=4mm of perf] (sel) {Model Selection};
+\node[field, below=4mm of sel, fill=green!8] (dep) {Deployment};
+
+\foreach \a/\b in {train/valset, valset/test, test/perf, perf/sel, sel/dep}
+  \draw[-{Stealth[length=2mm]}, line width=0.6pt] (\a.south) -- (\b.north);
+\end{tikzpicture}
+\caption{Typical model-development workflow, from training, validation, and testing splits through performance evaluation and model selection to deployment.}
+\label{fig:model-development}
+\end{figure}
+
+\begin{engnote}
+Participant-level separation should be maintained between training and testing sets to reduce data leakage.
+\end{engnote}
+
+\subsection{Performance Metrics}
+\label{sec:performance-metrics}
+
+Models should be evaluated using metrics appropriate to the task, such as: accuracy; precision; recall; F1 score; ROC-AUC (for classification); and the confusion matrix.
+
+\begin{requirementbox}
+Confidence intervals should be reported where possible.
+\end{requirementbox}
+
+\subsection{Prediction Output}
+\label{sec:prediction-output}
+
+The system should output: a predicted class or score; a confidence estimate; and data-quality indicators.
+
+\begin{warningbox}
+Predictions must not be presented as medical diagnoses.
+\end{warningbox}
+
+\subsection{Safety \& Clinical Scope}
+\label{sec:safety-clinical-scope}
+
+\begin{warningbox}
+PSYCON should be described as: a research prototype; a screening/research support tool; \textbf{not} a diagnostic device; and \textbf{not} a replacement for licensed mental health professionals. This distinction is important for research competitions and ethical review.
+\end{warningbox}
+
+\subsection{Privacy}
+\label{sec:privacy-ch7}
+
+Recommended practices: encrypt transmitted data; use anonymized participant IDs; restrict access to research data; and obtain informed consent before collecting physiological or audio data.
+
+\subsection{Model Updating}
+\label{sec:model-updating}
+
+\Cref{fig:model-updating} shows the recommended model-update lifecycle.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\small,
+    node distance=0mm,
+    field/.style={draw, rounded corners=2pt, fill=violet!6, minimum width=4.2cm, minimum height=0.6cm, align=center, line width=0.5pt}
+]
+\node[field] (new) {Collect New Data};
+\node[field, below=4mm of new] (review) {Review Quality};
+\node[field, below=4mm of review] (retrain) {Retrain};
+\node[field, below=4mm of retrain] (validate) {Validate};
+\node[field, below=4mm of validate, fill=green!8] (release) {Version Release};
+
+\foreach \a/\b in {new/review, review/retrain, retrain/validate, validate/release}
+  \draw[-{Stealth[length=2mm]}, line width=0.6pt] (\a.south) -- (\b.north);
+\end{tikzpicture}
+\caption{Recommended model-update lifecycle: collect new data, review quality, retrain, validate, and release a new version.}
+\label{fig:model-updating}
+\end{figure}
+
+\begin{designnote}
+Version numbers should be maintained for both datasets and models.
+\end{designnote}
+
+\subsection{AI Validation Checklist}
+\label{sec:ai-validation-checklist}
+
+\begin{requirementbox}
+\textbf{Before deployment, the following must be verified:}
+\begin{itemize}
+    \item Sensor synchronization verified.
+    \item Audio synchronization verified.
+    \item Missing-data handling implemented.
+    \item Feature extraction validated.
+    \item Model evaluated on unseen data.
+    \item Confidence outputs verified.
+    \item False-positive/false-negative analysis completed.
+    \item Documentation completed.
+\end{itemize}
+\end{requirementbox}
+
+\subsection{Risks}
+\label{sec:risks-ch7}
+
+\begin{observationbox}
+\textbf{Potential technical risks:}
+\begin{itemize}
+    \item Motion artifacts affecting physiological signals.
+    \item Environmental noise degrading speech quality.
+    \item Missing packets.
+    \item Sensor contact loss.
+    \item Battery-related interruptions.
+    \item Dataset imbalance.
+    \item Model overfitting.
+    \item Domain shift between training and real-world users.
+\end{itemize}
+\end{observationbox}
+
+\begin{futureworkbox}
+How each risk is mitigated should be documented as part of the AI system's risk register.
+\end{futureworkbox}
+
+\subsection{Deliverables}
+\label{sec:deliverables-ch7}
+
+The final AI package should include: a data collection protocol; a dataset description; feature documentation; the model architecture; the training procedure; the validation methodology; performance metrics; version history; ethical considerations; and user documentation.
+
+\subsection{Chapter Status}
+\label{sec:ch7-status}
+
+\begin{validationbox}
+\textbf{Completed for this chapter:}
+\begin{itemize}
+    \item AI architecture
+    \item Data pipeline
+    \item Feature engineering overview
+    \item Backend workflow
+    \item Database design
+    \item Model development process
+    \item Validation strategy
+    \item Privacy and ethics
+    \item Risk assessment
+    \item Deliverables
+\end{itemize}
+\end{validationbox}

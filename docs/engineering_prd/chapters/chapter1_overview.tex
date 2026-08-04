@@ -1,0 +1,263 @@
+% ============================================================
+% Chapter 1 — Project Overview
+% Source: PSYCON Engineering Design Document, Vol. 1, Ch. 1
+% ============================================================
+\section{Project Overview}
+\label{sec:project-overview}
+
+\subsection{Project Identification}
+\label{sec:project-identification}
+
+The system described in this document is named \textbf{PSYCON} (Psychological Condition Monitoring System). PSYCON is defined as a multimodal wearable system designed to continuously monitor physiological, environmental, and speech-derived indicators in order to assist in the early identification of changes associated with psychological well-being.
+
+\subsection{Executive Summary}
+\label{sec:executive-summary}
+
+PSYCON is a two-module wearable research prototype that combines physiological sensing, environmental monitoring, and speech analysis into a unified platform for continuous mental health assessment. Rather than relying on a single biomarker or questionnaire, the system captures multiple complementary signals---including cardiovascular activity, electrodermal activity, body temperature, motion, ambient light, and speech---to provide a richer understanding of a user's psychological state. The platform is intended as an assistive screening and monitoring tool for research and educational purposes, and it is designed to support long-term data collection, personalized analysis, and future integration with AI-driven mental health technologies.
+
+\subsection{Project Objective}
+\label{sec:project-objective}
+
+The objective of the project is to develop a wearable system capable of continuously collecting multimodal data that may help identify patterns associated with psychological conditions, while remaining portable, modular, low-cost, and suitable for research and science-competition demonstrations.
+
+\subsection{Primary Goals}
+\label{sec:primary-goals}
+
+\begin{itemize}
+    \item Develop a wearable prototype using commercially available components.
+    \item Acquire synchronized physiological, environmental, and audio data.
+    \item Support continuous monitoring over extended periods.
+    \item Enable future AI-based analysis of multimodal signals.
+    \item Maintain a modular architecture that allows independent development and testing of subsystems.
+    \item Keep the design scalable for future PCB integration.
+\end{itemize}
+
+\subsection{Intended Applications}
+\label{sec:intended-applications}
+
+\begin{itemize}
+    \item Research in multimodal mental health monitoring.
+    \item Longitudinal wellness tracking.
+    \item Educational demonstrations.
+    \item AI dataset collection.
+    \item Human--computer interaction research.
+    \item Science fair and engineering competitions.
+\end{itemize}
+
+\subsection{High-Level Architecture}
+\label{sec:high-level-architecture}
+
+PSYCON consists of two independent wearable modules: a \textit{Wrist Module}, responsible for physiological data acquisition, and an \textit{Audio Module}, responsible for speech acquisition and environmental sensing. \Cref{fig:system-architecture} presents the overall system architecture, including sensor allocation, controller assignment, power subsystems, and the wireless data path to the host/analysis layer.
+
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}[
+    font=\small,
+    module/.style={draw, rounded corners=3pt, fill=blue!6, minimum width=4.6cm, minimum height=1cm, align=center, line width=0.6pt},
+    sensor/.style={draw, rounded corners=2pt, fill=gray!8, minimum width=3.6cm, minimum height=0.8cm, align=center, line width=0.5pt, font=\scriptsize},
+    ctrl/.style={draw, rounded corners=2pt, fill=orange!12, minimum width=3.6cm, minimum height=0.8cm, align=center, line width=0.6pt, font=\scriptsize\bfseries},
+    pwr/.style={draw, rounded corners=2pt, fill=green!10, minimum width=3.6cm, minimum height=0.8cm, align=center, line width=0.5pt, font=\scriptsize},
+    host/.style={draw, rounded corners=3pt, fill=violet!8, minimum width=4.2cm, minimum height=1.2cm, align=center, line width=0.7pt},
+    arrow/.style={-{Stealth[length=2.2mm]}, line width=0.6pt},
+    dashedbox/.style={draw, dashed, rounded corners=4pt, inner sep=10pt, line width=0.5pt}
+]
+
+% ---- Wrist Module cluster ----
+\node[sensor] (gsr) at (0,6.4) {GSR Electrodes\\(via ADS1115)};
+\node[sensor] (max30102) at (0,5.4) {MAX30102\\PPG / Heart Rate};
+\node[sensor] (mpu6050) at (0,4.4) {MPU6050\\IMU (Motion)};
+\node[sensor] (mcp9808) at (0,3.4) {MCP9808\\Temperature};
+\node[ctrl] (esp32wrist) at (0,2.2) {ESP32 DevKit\\(Wrist Controller)};
+\node[pwr] (pwrwrist) at (0,1.0) {2$\times$500\,mAh LiPo (parallel)\\+ TP4056 USB-C Charger};
+
+\node[dashedbox, fit=(gsr)(max30102)(mpu6050)(mcp9808)(esp32wrist)(pwrwrist), label={[font=\bfseries\small]above:Wrist Module}] (wristbox) {};
+
+% ---- Audio Module cluster ----
+\node[sensor] (mic) at (8.6,5.4) {INMP441\\I\textsuperscript{2}S MEMS Microphone};
+\node[sensor] (light) at (8.6,4.4) {TEMT6000\\Ambient Light Sensor};
+\node[ctrl] (esp32audio) at (8.6,3.2) {ESP32 DevKit\\(Audio Controller)};
+\node[pwr] (pwraudio) at (8.6,2.0) {1$\times$500\,mAh LiPo\\+ TP4056 USB-C Charger};
+
+\node[dashedbox, fit=(mic)(light)(esp32audio)(pwraudio), label={[font=\bfseries\small]above:Audio Module}] (audiobox) {};
+
+% ---- Host / analysis layer ----
+\node[host] (host) at (4.3,-0.6) {Host / Analysis Layer\\(Data Logging, Storage,\\Future AI-Based Analysis)};
+
+% ---- Internal connections: Wrist Module ----
+\draw[arrow] (gsr.south) -- (max30102.north);
+\draw[arrow] (max30102.south) -- (mpu6050.north);
+\draw[arrow] (mpu6050.south) -- (mcp9808.north);
+\draw[arrow] (mcp9808.south) -- (esp32wrist.north);
+\draw[arrow] (pwrwrist.north) -- (esp32wrist.south);
+
+% ---- Internal connections: Audio Module ----
+\draw[arrow] (mic.south) -- (esp32audio.north);
+\draw[arrow] (light.south) -- (esp32audio.north);
+\draw[arrow] (pwraudio.north) -- (esp32audio.south);
+
+% ---- Wireless links to host ----
+\draw[arrow, dashed] (esp32wrist.south) to[out=-70,in=160] node[pos=0.55, above, sloped, font=\scriptsize]{Wi-Fi / BLE} (host.west);
+\draw[arrow, dashed] (esp32audio.south) to[out=-110,in=20] node[pos=0.55, above, sloped, font=\scriptsize]{Wi-Fi / BLE} (host.east);
+
+\end{tikzpicture}
+\caption{High-level system architecture of PSYCON, showing the Wrist Module (physiological sensing) and Audio Module (speech and environmental sensing) as independently powered ESP32-based subsystems that communicate wirelessly with a host/analysis layer.}
+\label{fig:system-architecture}
+\end{figure*}
+
+\subsubsection{Wrist Module}
+\label{sec:wrist-module}
+
+\textbf{Purpose.} Physiological data acquisition.
+
+\textbf{Sensors.}
+\begin{itemize}
+    \item GSR electrodes (via ADS1115)
+    \item MAX30102 pulse oximeter / heart-rate sensor
+    \item MPU6050 inertial measurement unit
+    \item MCP9808 digital temperature sensor
+\end{itemize}
+
+\textbf{Controller.} ESP32 DevKit (30-pin).
+
+\textbf{Power.} Two 500\,mAh LiPo batteries connected in parallel ($\approx$1000\,mAh total capacity), charged and protected via a TP4056 USB-C charging module.
+
+\subsubsection{Audio Module}
+\label{sec:audio-module}
+
+\textbf{Purpose.} Speech acquisition and environmental sensing.
+
+\textbf{Sensors.}
+\begin{itemize}
+    \item INMP441 I\textsuperscript{2}S MEMS microphone
+    \item TEMT6000 ambient light sensor
+\end{itemize}
+
+\textbf{Controller.} ESP32 DevKit (30-pin).
+
+\textbf{Power.} One 500\,mAh LiPo battery, charged and protected via a TP4056 USB-C charging module.
+
+\subsection{Data Collected}
+\label{sec:data-collected}
+
+\Cref{tab:data-collected} summarizes the categories of data acquired by PSYCON across its two modules.
+
+\begin{table}[H]
+\centering
+\caption{Data modalities collected by PSYCON.}
+\label{tab:data-collected}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{Category} & \textbf{Signals / Data} \\
+\midrule
+Physiological & Heart rate; pulse waveform (PPG); skin conductance (EDA/GSR); skin temperature; motion and orientation \\
+Environmental & Ambient light level \\
+Audio & Speech recordings for future AI feature extraction \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Design Philosophy}
+\label{sec:design-philosophy}
+
+The system follows five core engineering principles:
+
+\begin{itemize}
+    \item \textbf{Modularity} --- each subsystem can operate and be tested independently.
+    \item \textbf{Scalability} --- prototype hardware should transition cleanly to a custom PCB.
+    \item \textbf{Maintainability} --- use widely available, well-documented modules.
+    \item \textbf{Low Cost} --- balance performance with affordability.
+    \item \textbf{Research Focus} --- prioritize data quality and documentation over product miniaturization.
+\end{itemize}
+
+\subsection{Current Hardware Configuration}
+\label{sec:current-hardware-configuration}
+
+\Cref{tab:hardware-config} summarizes the current bill-of-materials-level hardware configuration for the PSYCON prototype, organized by controllers, power components, and sensors.
+
+\begin{table}[H]
+\centering
+\caption{Current hardware configuration of the PSYCON prototype.}
+\label{tab:hardware-config}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y c@{}}
+\toprule
+\textbf{Category} & \textbf{Component} & \textbf{Qty.} \\
+\midrule
+Controllers & ESP32 DevKit (30-pin) & 2 \\
+\midrule
+\multirow{2}{*}{Power} & TP4056 USB-C charger module (protected) & 2 \\
+ & 500\,mAh 3.7\,V LiPo battery (HLCY 651735P) & 3 \\
+\midrule
+\multirow{6}{*}{Sensors} & MAX30102 pulse oximeter / heart-rate sensor & 1 \\
+ & ADS1115 16-bit ADC & 1 \\
+ & MPU6050 IMU & 1 \\
+ & MCP9808 temperature sensor & 1 \\
+ & TEMT6000 ambient light sensor & 1 \\
+ & INMP441 I\textsuperscript{2}S MEMS microphone & 1 \\
+ & GSR electrodes (analog front end TBD) & 1 set \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Communication Interfaces}
+\label{sec:communication-interfaces}
+
+\Cref{tab:comm-interfaces} lists the communication interfaces used to connect each sensor to its respective ESP32 controller.
+
+\begin{table}[H]
+\centering
+\caption{Communication interfaces by sensor.}
+\label{tab:comm-interfaces}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{Interface} & \textbf{Connected Devices} \\
+\midrule
+I\textsuperscript{2}C & MAX30102, MPU6050, ADS1115, MCP9808 \\
+I\textsuperscript{2}S & INMP441 \\
+Analog & TEMT6000; GSR electrodes (through ADS1115) \\
+Wi-Fi / BLE & ESP32 wireless communication (both modules) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Engineering Status}
+\label{sec:engineering-status}
+
+\begin{validationbox}
+\textbf{Confirmed:}
+\begin{itemize}
+    \item Component selection
+    \item Module compatibility
+    \item I\textsuperscript{2}C address compatibility
+    \item Overall system architecture
+    \item Power subsystem concept
+    \item Sensor allocation between modules
+\end{itemize}
+\end{validationbox}
+
+\begin{requirementbox}
+\textbf{Pending validation:}
+\begin{itemize}
+    \item Final GSR analog front end
+    \item Full firmware integration
+    \item Electrical characterization (current, runtime, thermal)
+    \item Long-duration testing
+\end{itemize}
+\end{requirementbox}
+
+\subsection{Assumptions and Scope}
+\label{sec:assumptions-scope}
+
+This document distinguishes between three categories of technical claims:
+
+\begin{itemize}
+    \item \textbf{Confirmed information} --- derived from hardware, datasheets, and documented design decisions.
+    \item \textbf{Engineering assumptions} --- based on standard module implementations.
+    \item \textbf{Experimental items} --- items that require physical testing before they can be claimed as verified.
+\end{itemize}
+
+\begin{assumptionbox}
+The distinction above is maintained throughout this document to preserve technical accuracy suitable for engineering documentation and science-competition review. Where a claim has not yet been experimentally validated, it is explicitly flagged rather than presented as a confirmed result.
+\end{assumptionbox}

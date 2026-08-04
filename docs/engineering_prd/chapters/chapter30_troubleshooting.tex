@@ -1,0 +1,26 @@
+% ============================================================
+% Chapter 30 — Troubleshooting Guide
+% Source: PSYCON Engineering Design Document, Vol. 5, Ch. 30
+% ============================================================
+\section{Troubleshooting Guide}
+\label{sec:troubleshooting-guide}
+
+\Cref{tab:troubleshooting-guide} lists common symptoms, together with the possible causes or checks to perform.
+
+\begin{table*}[t]
+\centering
+\caption{Troubleshooting guide: symptoms and possible causes or checks.}
+\label{tab:troubleshooting-guide}
+\small
+\begin{tabularx}{\textwidth}{@{}l Y@{}}
+\toprule
+\textbf{Symptom} & \textbf{Possible Causes / Checks} \\
+\midrule
+Device does not boot & Battery discharged; incorrect polarity; loose connector; faulty regulator; firmware corruption \\
+Sensor not detected & SDA; SCL; pull-ups; address conflicts; power supply; ground continuity \\
+No audio & I\textsuperscript{2}S wiring; pin assignments; gain settings; DMA configuration; buffer overflow \\
+Poor GSR signal & Electrode contact; motion artifacts; wiring; ADC configuration; analog front end \\
+Random ESP32 reset & Brownout; insufficient power; memory exhaustion; watchdog timeout; software crash \\
+\bottomrule
+\end{tabularx}
+\end{table*}

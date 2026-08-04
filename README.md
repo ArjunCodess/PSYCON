@@ -22,12 +22,12 @@ The narrower end-to-end functional prototype is roughly **15% complete** because
 
 ## Source of truth
 
-The authoritative engineering specification is [`psycon_paper/`](psycon_paper/):
+The authoritative product requirements and engineering specification is [`docs/engineering_prd/`](docs/engineering_prd/):
 
-- [`main.tex`](psycon_paper/main.tex) includes all 34 chapters across five volumes.
-- [`chapters/`](psycon_paper/chapters/) contains the SRS, engineering designs, integration plan, research method, ethics, test procedures, and final checklist.
-- [`main.pdf`](psycon_paper/main.pdf) is a 36-page artifact, but it is stale: it contains `TODO@example.com` while the TeX source contains the project email. Treat the TeX source as authoritative until the PDF is rebuilt.
-- [`references.bib`](psycon_paper/references.bib) contains TODO placeholders, so the package is not yet a submission-ready academic paper.
+- [`main.tex`](docs/engineering_prd/main.tex) includes all 34 chapters across five volumes.
+- [`chapters/`](docs/engineering_prd/chapters/) contains the SRS, engineering designs, integration plan, research method, ethics, test procedures, and final checklist.
+- [`main.pdf`](docs/engineering_prd/main.pdf) is the compiled engineering PRD.
+- [`references.bib`](docs/engineering_prd/references.bib) contains TODO placeholders, so the package is not yet a submission-ready academic paper.
 
 Chapter-level “completed” labels mean that a topic has been documented. Implementation completion is controlled by Chapter 2's acceptance criteria, Chapter 8's integration gates, Chapter 28's test procedures, and Chapter 33's final checklist.
 
@@ -103,7 +103,7 @@ PSYCON/
   protocol/                       # TypeScript protocol and inference tests
   tests/                          # Python ML and firmware static tests
   paper/                          # Earlier short LaTeX scaffold
-  psycon_paper/                   # Authoritative 34-chapter design package
+  docs/engineering_prd/           # Authoritative 34-chapter engineering PRD
   docs/SEVEN_WEEK_BUILD_PLAN.md   # Evidence-gated implementation plan
 ```
 

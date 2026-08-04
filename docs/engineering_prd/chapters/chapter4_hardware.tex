@@ -1,0 +1,389 @@
+% ============================================================
+% Chapter 4 — Complete Hardware Design
+% Source: PSYCON Engineering Design Document, Vol. 1, Ch. 4
+% ============================================================
+\section{Complete Hardware Design}
+\label{sec:hardware-design}
+
+\subsection{Hardware Design Philosophy}
+\label{sec:hardware-design-philosophy}
+
+The hardware platform was designed with the following priorities:
+\begin{itemize}
+    \item Research-grade sensor selection within a student budget.
+    \item Modular architecture for independent testing.
+    \item Commercially available components.
+    \item Easy replacement and maintenance.
+    \item Future migration to a custom PCB.
+    \item Low-voltage battery-powered operation.
+    \item Standard communication protocols (I\textsuperscript{2}C, I\textsuperscript{2}S, ADC).
+\end{itemize}
+
+\subsection{Complete Bill of Hardware}
+\label{sec:bill-of-hardware}
+
+\Cref{tab:bill-of-hardware} lists the complete hardware inventory for the PSYCON prototype, including quantity, module assignment, and function of each component.
+
+\begin{table*}[t]
+\centering
+\caption{Complete bill of hardware for the PSYCON prototype.}
+\label{tab:bill-of-hardware}
+\small
+\begin{tabularx}{\textwidth}{@{}Y c l Y@{}}
+\toprule
+\textbf{Component} & \textbf{Qty.} & \textbf{Module} & \textbf{Function} \\
+\midrule
+ESP32 DevKit (30-pin) & 2 & Both & Main controller \\
+TP4056 USB-C charger (HW-373 V1.2.1, protected) & 2 & Both & Battery charging and protection \\
+500\,mAh 3.7\,V LiPo (HLCY 651735P) & 3 & Both & Power source \\
+MAX30102 & 1 & Wrist & Heart rate \& PPG \\
+ADS1115 & 1 & Wrist & 16-bit ADC \\
+GSR electrodes & 1 pair & Wrist & Skin conductance \\
+MPU6050 & 1 & Wrist & Motion sensing \\
+MCP9808 & 1 & Wrist & Temperature \\
+INMP441 & 1 & Audio & Digital microphone \\
+TEMT6000 & 1 & Audio & Ambient light \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\subsection{ESP32 DevKit (30-pin)}
+\label{sec:esp32-devkit}
+
+\textbf{Role.} Primary microcontroller responsible for sensor acquisition, data processing, wireless communication, timestamp generation, power management, and firmware execution.
+
+\Cref{tab:esp32-specs} lists the key specifications of the ESP32 DevKit.
+
+\begin{table}[H]
+\centering
+\caption{Key specifications of the ESP32 DevKit (30-pin).}
+\label{tab:esp32-specs}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+MCU & ESP32-WROOM-32 \\
+CPU & Dual-core Xtensa LX6 \\
+Clock & Up to 240\,MHz \\
+SRAM & 520\,KB \\
+Flash & Typically 4\,MB \\
+Logic voltage & 3.3\,V \\
+Wi-Fi & 802.11 b/g/n \\
+Bluetooth & Classic + BLE \\
+ADC & 12-bit (used sparingly) \\
+DAC & 2 channels \\
+GPIO & Up to 34 usable \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Why it was selected.} Integrated Wi-Fi and BLE; large community support; mature software ecosystem; multiple communication interfaces; sufficient processing capability; excellent cost-to-performance ratio.
+
+\textbf{Interfaces used.}
+\begin{itemize}
+    \item I\textsuperscript{2}C --- MAX30102, MPU6050, ADS1115, MCP9808
+    \item I\textsuperscript{2}S --- INMP441
+    \item Analog --- optional TEMT6000 input; battery monitoring (future)
+\end{itemize}
+
+\begin{engnote}
+The ESP32 operates at 3.3\,V logic and its GPIOs are not 5\,V tolerant. The internal ADC is adequate for basic measurements, but the ADS1115 is preferred for precision analog sensing.
+\end{engnote}
+
+\subsection{MAX30102}
+\label{sec:max30102}
+
+\textbf{Function.} Photoplethysmography (PPG) sensor for cardiovascular monitoring.
+
+\textbf{Measurements.} Heart rate; pulse waveform; SpO\textsubscript{2} capability (not currently a primary feature).
+
+\textbf{Interface.} I\textsuperscript{2}C. \textbf{Default address:} \texttt{0x57}.
+
+\Cref{tab:max30102-elec} lists the electrical characteristics of the MAX30102.
+
+\begin{table}[H]
+\centering
+\caption{Electrical characteristics of the MAX30102.}
+\label{tab:max30102-elec}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Supply & 3.3--5\,V (module) \\
+Logic & 3.3\,V \\
+LEDs & Red + IR \\
+Internal ADC & Yes \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Selection rationale.} Widely used and documented; integrated optics and analog front end; compact and wearable-friendly.
+
+\textbf{Integration notes.} Must sit flush against the skin; minimize ambient light leakage; reduce motion artifacts through mechanical design.
+
+\subsection{ADS1115}
+\label{sec:ads1115}
+
+\textbf{Function.} High-resolution external ADC. \textbf{Purpose in PSYCON:} primary interface for GSR measurement.
+
+\Cref{tab:ads1115-specs} lists the key specifications of the ADS1115.
+
+\begin{table}[H]
+\centering
+\caption{Key specifications of the ADS1115.}
+\label{tab:ads1115-specs}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Resolution & 16-bit \\
+Channels & 4 \\
+Interface & I\textsuperscript{2}C \\
+Supply & 2.0--5.5\,V \\
+PGA & Yes \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Default address.} \texttt{0x48}, configurable up to \texttt{0x49}, \texttt{0x4A}, \texttt{0x4B}.
+
+\textbf{Why it was selected.} Better linearity and effective resolution than the ESP32 ADC; programmable gain supports low-level analog signals; well supported by existing libraries.
+
+\begin{designnote}
+The ADS1115 is intended for the GSR analog front end. Its additional channels remain available for future analog sensors.
+\end{designnote}
+
+\subsection{GSR Subsystem}
+\label{sec:gsr-subsystem}
+
+\textbf{Purpose.} Measure electrodermal activity (skin conductance).
+
+\textbf{Current hardware.} ADS1115; electrodes.
+
+\begin{requirementbox}
+\textbf{Current status:} prototype-level implementation.
+\end{requirementbox}
+
+\begin{futureworkbox}
+\textbf{Planned improvements:}
+\begin{itemize}
+    \item Constant-current excitation source.
+    \item Patient-protection resistor(s).
+    \item RC low-pass filtering.
+    \item Improved analog conditioning.
+    \item Stable reference.
+    \item Shielded wiring if necessary.
+\end{itemize}
+\end{futureworkbox}
+
+\begin{engnote}
+The quality of GSR measurements depends primarily on the analog front end rather than the ADC alone. A documented and validated front end will be important for research-quality data.
+\end{engnote}
+
+\subsection{MPU6050}
+\label{sec:mpu6050}
+
+\textbf{Function.} Six-axis inertial measurement unit.
+
+\textbf{Measurements.} 3-axis acceleration; 3-axis angular velocity.
+
+\textbf{Interface.} I\textsuperscript{2}C. \textbf{Address:} default \texttt{0x68}, alternate \texttt{0x69}.
+
+\textbf{Uses in PSYCON.} Motion detection; activity recognition; identifying motion artifacts in physiological signals.
+
+\textbf{Why it was selected.} Mature and inexpensive; widely supported; adequate performance for wearable motion sensing.
+
+\subsection{MCP9808}
+\label{sec:mcp9808}
+
+\textbf{Function.} Digital temperature sensor. \textbf{Measurement:} skin temperature.
+
+\textbf{Interface.} I\textsuperscript{2}C. \textbf{Default address:} \texttt{0x18}, configurable through address pins.
+
+\Cref{tab:mcp9808-specs} lists the key specifications of the MCP9808.
+
+\begin{table}[H]
+\centering
+\caption{Key specifications of the MCP9808.}
+\label{tab:mcp9808-specs}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Accuracy & $\pm$\SI{0.25}{\celsius} (typical) \\
+Supply & 2.7--5.5\,V \\
+Resolution & Up to \SI{0.0625}{\celsius} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Selection rationale.} Chosen for higher accuracy and stability compared with lower-cost digital temperature sensors.
+
+\subsection{INMP441}
+\label{sec:inmp441}
+
+\textbf{Function.} Digital MEMS microphone. \textbf{Interface:} I\textsuperscript{2}S. \textbf{Measurements:} digital audio for speech analysis.
+
+\Cref{tab:inmp441-specs} lists the specifications of the INMP441.
+
+\begin{table}[H]
+\centering
+\caption{Specifications of the INMP441 digital microphone.}
+\label{tab:inmp441-specs}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Supply & 1.8--3.3\,V \\
+Output & 24-bit I\textsuperscript{2}S \\
+Directivity & Omnidirectional \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Selection rationale.} Native I\textsuperscript{2}S interface; low noise; good compatibility with the ESP32.
+
+\textbf{Integration notes.} Keep away from switching power circuitry; ensure the acoustic port is unobstructed; verify gain, clipping margin, and DMA stability in firmware.
+
+\subsection{TEMT6000}
+\label{sec:temt6000}
+
+\textbf{Function.} Ambient light sensor. \textbf{Output:} analog voltage proportional to light intensity. \textbf{Purpose:} provide environmental context (e.g., lighting conditions) for data interpretation.
+
+\Cref{tab:temt6000-elec} lists the electrical characteristics of the TEMT6000.
+
+\begin{table}[H]
+\centering
+\caption{Electrical characteristics of the TEMT6000.}
+\label{tab:temt6000-elec}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Supply & 3.3--5\,V \\
+Output & Analog \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{designnote}
+For higher precision, the TEMT6000 output may be routed through the ADS1115 rather than the ESP32's internal ADC.
+\end{designnote}
+
+\subsection{TP4056 USB-C Charger (HW-373 V1.2.1)}
+\label{sec:tp4056}
+
+\textbf{Function.} Single-cell Li-ion/LiPo charging module with battery protection.
+
+\textbf{Confirmed features.} USB-C input; battery protection; overcharge protection; over-discharge protection; over-current protection; short-circuit protection.
+
+\textbf{Expected components.} TP4056 charger IC; DW01A protection IC; FS8205A dual MOSFET. IC markings should be verified from the physical board.
+
+\begin{warningbox}
+\textbf{Limitations:}
+\begin{itemize}
+    \item No true power-path / load-sharing.
+    \item Not recommended to operate the wearable while charging.
+    \item Reverse-polarity protection is not guaranteed.
+\end{itemize}
+\end{warningbox}
+
+\subsection{LiPo Battery}
+\label{sec:lipo-battery}
+
+\textbf{Model.} HLCY 651735P. \Cref{tab:lipo-specs} lists its specifications.
+
+\begin{table}[H]
+\centering
+\caption{Specifications of the HLCY 651735P LiPo battery.}
+\label{tab:lipo-specs}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{Parameter} & \textbf{Value} \\
+\midrule
+Chemistry & Lithium polymer \\
+Nominal voltage & 3.7\,V \\
+Fully charged & 4.2\,V \\
+Capacity & 500\,mAh \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Configuration.} Wrist Module: 2 $\times$ 500\,mAh in parallel, total nominal capacity $\approx$1000\,mAh. Audio Module: 1 $\times$ 500\,mAh.
+
+\begin{warningbox}
+\textbf{Safety notes:}
+\begin{itemize}
+    \item Never connect the wrist batteries in series.
+    \item Inspect for swelling, punctures, or damaged insulation before use.
+    \item Disconnect charging before attaching GSR electrodes to a participant.
+\end{itemize}
+\end{warningbox}
+
+\subsection{Hardware Compatibility Summary}
+\label{sec:hardware-compatibility}
+
+\Cref{tab:hardware-compatibility} summarizes pairwise compatibility between the ESP32 controller and each connected sensor, together with bus-level conflict checks.
+
+\begin{table*}[t]
+\centering
+\caption{Hardware compatibility summary.}
+\label{tab:hardware-compatibility}
+\small
+\begin{tabularx}{\textwidth}{@{}Y c@{}}
+\toprule
+\textbf{Component Pair / Check} & \textbf{Status} \\
+\midrule
+ESP32 $\leftrightarrow$ MAX30102 & \compatTag \\
+ESP32 $\leftrightarrow$ MPU6050 & \compatTag \\
+ESP32 $\leftrightarrow$ ADS1115 & \compatTag \\
+ESP32 $\leftrightarrow$ MCP9808 & \compatTag \\
+ESP32 $\leftrightarrow$ INMP441 & \compatTag \\
+ESP32 $\leftrightarrow$ TEMT6000 & \compatTag \\
+I\textsuperscript{2}C address conflicts & \noneTag \\
+Logic-level conflicts & \noneTag\ (3.3\,V operation) \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\subsection{Remaining Hardware Validation}
+\label{sec:remaining-hardware-validation}
+
+\begin{requirementbox}
+\textbf{The following still require experimental verification before final sign-off:}
+\begin{itemize}
+    \item ESP32 board revision and regulator identification.
+    \item TP4056 PROG resistor value and actual charge current.
+    \item Battery discharge characteristics under load.
+    \item GSR analog front-end implementation and calibration.
+    \item Current consumption in all operating modes.
+    \item Thermal performance during charging and continuous operation.
+    \item Brownout behavior and low-battery handling.
+    \item Final wiring verification after assembly.
+\end{itemize}
+\end{requirementbox}
+
+\subsection{Chapter Status}
+\label{sec:ch4-status}
+
+\begin{validationbox}
+\textbf{Completed for this chapter:}
+\begin{itemize}
+    \item Full hardware inventory
+    \item Detailed description of every module
+    \item Electrical specifications
+    \item Selection rationale
+    \item Integration notes
+    \item Power subsystem
+    \item Safety considerations
+    \item Compatibility review
+    \item Remaining validation tasks
+\end{itemize}
+\end{validationbox}

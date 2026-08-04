@@ -1,0 +1,212 @@
+% ============================================================
+% PSYCON — Preamble
+% Professional double-column research-paper style
+% (PubMed / IEEE-Transactions / biomedical-engineering journal look)
+% ============================================================
+
+% ---------- Page geometry ----------
+\usepackage[a4paper,
+            top=20mm,
+            bottom=22mm,
+            left=15mm,
+            right=15mm,
+            columnsep=6mm]{geometry}
+
+% ---------- Fonts & typography ----------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{textcomp}
+
+% ---------- Math ----------
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{siunitx}
+
+% ---------- Graphics & figures ----------
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning,fit,backgrounds,calc,decorations.pathreplacing}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\captionsetup{font=small,labelfont=bf,justification=raggedright,singlelinecheck=false}
+
+% ---------- Tables ----------
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{longtable}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+% ---------- Algorithms & code ----------
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue!70!black}\bfseries,
+  commentstyle=\color{green!40!black}\itshape,
+  stringstyle=\color{orange!70!black},
+  breaklines=true,
+  frame=single,
+  rulecolor=\color{gray!50},
+  backgroundcolor=\color{gray!5},
+  captionpos=b,
+  tabsize=2
+}
+
+% ---------- Color & boxes ----------
+\usepackage[table]{xcolor}
+\usepackage[most]{tcolorbox}
+\tcbuselibrary{skins,breakable}
+
+% ---------- Lists ----------
+\usepackage{enumitem}
+\setlist{nosep, itemsep=2pt, topsep=3pt, leftmargin=*}
+\newlist{checklist}{itemize}{1}
+\setlist[checklist]{label=$\square$, nosep, itemsep=2pt, topsep=3pt, leftmargin=*}
+\newlist{donelist}{itemize}{1}
+\setlist[donelist]{label=\textcolor{green!40!black}{\checkmark}, nosep, itemsep=2pt, topsep=3pt, leftmargin=*}
+
+% ---------- Quotations ----------
+\usepackage{csquotes}
+
+% ---------- Section styling ----------
+\usepackage{titlesec}
+\titleformat{\section}
+  {\normalfont\large\bfseries}{\thesection}{0.7em}{}
+\titleformat{\subsection}
+  {\normalfont\normalsize\bfseries}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\itshape\bfseries}{\thesubsubsection}{0.5em}{}
+\titlespacing*{\section}{0pt}{2.2ex plus 1ex minus .2ex}{1.2ex plus .2ex}
+\titlespacing*{\subsection}{0pt}{1.8ex plus .8ex minus .2ex}{1ex plus .2ex}
+
+% ---------- Headers / footers ----------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[L]{\footnotesize\itshape PSYCON: Multimodal Wearable Psychological Condition Monitoring System}
+\fancyhead[R]{\footnotesize\itshape Engineering Design Document}
+\fancyfoot[C]{\footnotesize\thepage}
+
+% ---------- Bibliography ----------
+\usepackage[backend=biber,style=numeric-comp,sorting=none,maxbibnames=6]{biblatex}
+\addbibresource{references.bib}
+
+% ---------- Hyperlinks & cross-references ----------
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!55!black,
+  citecolor=green!35!black,
+  urlcolor=blue!55!black,
+  pdftitle={PSYCON: A Multimodal Wearable System for Psychological Condition Monitoring},
+  pdfauthor={PSYCON Project Team}
+}
+\usepackage[capitalise,noabbrev]{cleveref}
+
+% ============================================================
+% CUSTOM ACADEMIC/ENGINEERING CALLOUT ENVIRONMENTS
+% ============================================================
+\newtcolorbox{engnote}{
+  breakable, enhanced, colback=blue!4, colframe=blue!45!black,
+  boxrule=0.6pt, arc=1.5pt, left=6pt, right=6pt, top=4pt, bottom=4pt,
+  fonttitle=\bfseries\small, title=Engineering Note,
+  attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={colback=blue!45!black, sharp corners, boxrule=0pt},
+  coltitle=white
+}
+\newtcolorbox{warningbox}{
+  breakable, enhanced, colback=red!4, colframe=red!55!black,
+  boxrule=0.6pt, arc=1.5pt, left=6pt, right=6pt, top=4pt, bottom=4pt,
+  fonttitle=\bfseries\small, title=Warning,
+  attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={colback=red!55!black, sharp corners, boxrule=0pt},
+  coltitle=white
+}
+\newtcolorbox{researchnote}{
+  breakable, enhanced, colback=violet!4, colframe=violet!50!black,
+  boxrule=0.6pt, arc=1.5pt, left=6pt, right=6pt, top=4pt, bottom=4pt,
+  fonttitle=\bfseries\small, title=Research Note,
+  attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={colback=violet!50!black, sharp corners, boxrule=0pt},
+  coltitle=white
+}
+\newtcolorbox{designnote}{
+  breakable, enhanced, colback=teal!4, colframe=teal!50!black,
+  boxrule=0.6pt, arc=1.5pt, left=6pt, right=6pt, top=4pt, bottom=4pt,
+  fonttitle=\bfseries\small, title=Design Note,
+  attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={colback=teal!50!black, sharp corners, boxrule=0pt},
+  coltitle=white
+}
+\newtcolorbox{assumptionbox}{
+  breakable, enhanced, colback=yellow!8, colframe=yellow!45!black,
+  boxrule=0.6pt, arc=1.5pt, left=6pt, right=6pt, top=4pt, bottom=4pt,
+  fonttitle=\bfseries\small, title=Assumption,
+  attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={colback=yellow!45!black, sharp corners, boxrule=0pt},
+  coltitle=black
+}
+\newtcolorbox{validationbox}{
+  breakable, enhanced, colback=green!4, colframe=green!35!black,
+  boxrule=0.6pt, arc=1.5pt, left=6pt, right=6pt, top=4pt, bottom=4pt,
+  fonttitle=\bfseries\small, title=Validation,
+  attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={colback=green!35!black, sharp corners, boxrule=0pt},
+  coltitle=white
+}
+\newtcolorbox{requirementbox}{
+  breakable, enhanced, colback=orange!5, colframe=orange!60!black,
+  boxrule=0.6pt, arc=1.5pt, left=6pt, right=6pt, top=4pt, bottom=4pt,
+  fonttitle=\bfseries\small, title=Requirement,
+  attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={colback=orange!60!black, sharp corners, boxrule=0pt},
+  coltitle=white
+}
+\newtcolorbox{futureworkbox}{
+  breakable, enhanced, colback=cyan!4, colframe=cyan!50!black,
+  boxrule=0.6pt, arc=1.5pt, left=6pt, right=6pt, top=4pt, bottom=4pt,
+  fonttitle=\bfseries\small, title=Future Work,
+  attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={colback=cyan!50!black, sharp corners, boxrule=0pt},
+  coltitle=white
+}
+\newtcolorbox{observationbox}{
+  breakable, enhanced, colback=gray!6, colframe=gray!50!black,
+  boxrule=0.6pt, arc=1.5pt, left=6pt, right=6pt, top=4pt, bottom=4pt,
+  fonttitle=\bfseries\small, title=Observation,
+  attach boxed title to top left={yshift=-2mm, xshift=4mm},
+  boxed title style={colback=gray!50!black, sharp corners, boxrule=0pt},
+  coltitle=white
+}
+
+% ============================================================
+% STATUS / PRIORITY BADGE COMMANDS
+% (used in requirements, risk, and status tables/lists)
+% ============================================================
+\newcommand{\statustag}[2]{\textcolor{white}{\colorbox{#1}{\scriptsize\bfseries\,#2\,}}}
+\newcommand{\doneTag}{\statustag{green!45!black}{CONFIRMED}}
+\newcommand{\pendingTag}{\statustag{orange!65!black}{PENDING}}
+\newcommand{\futureTag}{\statustag{cyan!55!black}{FUTURE}}
+\newcommand{\highriskTag}{\statustag{red!60!black}{HIGH}}
+\newcommand{\medriskTag}{\statustag{orange!65!black}{MEDIUM}}
+\newcommand{\lowriskTag}{\statustag{green!45!black}{LOW}}
+\newcommand{\compatTag}{\statustag{green!45!black}{COMPATIBLE}}
+\newcommand{\noneTag}{\statustag{green!45!black}{NONE EXPECTED}}
+
+% ---------- Misc ----------
+\setlength{\parindent}{1em}
+\setlength{\parskip}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\emergencystretch=2em

@@ -1,0 +1,424 @@
+% ============================================================
+% Chapter 5 — Electrical Design & Complete Wiring
+% Source: PSYCON Engineering Design Document, Vol. 1, Ch. 5
+% ============================================================
+\section{Electrical Design \& Complete Wiring}
+\label{sec:electrical-design}
+
+\subsection{Electrical Design Philosophy}
+\label{sec:electrical-design-philosophy}
+
+The electrical system is designed around two independent ESP32-based modules: the \textbf{Wrist Module} (physiological sensing) and the \textbf{Audio Module} (speech sensing). Each module has an independent battery, independent charger, independent ESP32, and independent firmware. This separation minimizes cross-module interference, improves fault tolerance, and simplifies debugging.
+
+\subsection{Power Architecture}
+\label{sec:power-architecture-ch5}
+
+\Cref{fig:power-architecture-detailed} shows the complete power chain for both modules, from battery cells through regulation to the connected sensor loads.
+
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}[
+    font=\small,
+    pwrstage/.style={draw, rounded corners=3pt, minimum width=5.4cm, minimum height=0.85cm, align=center, line width=0.6pt, fill=green!8},
+    ctrlstage/.style={draw, rounded corners=3pt, minimum width=5.4cm, minimum height=0.85cm, align=center, line width=0.6pt, fill=orange!10},
+    loadstage/.style={draw, rounded corners=3pt, minimum width=5.4cm, minimum height=1.0cm, align=center, line width=0.6pt, fill=blue!8},
+    arrow/.style={-{Stealth[length=2.2mm]}, line width=0.6pt}
+]
+
+% Wrist Module power chain
+\node[pwrstage] (w1) at (0,5.2) {2$\times$500\,mAh LiPo (parallel)};
+\node[pwrstage, below=5mm of w1] (w2) {TP4056 Charger + Protection};
+\node[ctrlstage, below=5mm of w2] (w3) {ESP32 VIN / 5\,V Input\textsuperscript{*}};
+\node[ctrlstage, below=5mm of w3] (w4) {3.3\,V Regulator};
+\node[loadstage, below=5mm of w4] (w5) {MAX30102 \textbar\ MPU6050 \textbar\ MCP9808 \textbar\ ADS1115 \textbar\ GSR Front-End};
+
+\draw[arrow] (w1.south) -- (w2.north);
+\draw[arrow] (w2.south) -- (w3.north);
+\draw[arrow] (w3.south) -- (w4.north);
+\draw[arrow] (w4.south) -- (w5.north);
+
+\node[above=2mm of w1, font=\bfseries\small] {Wrist Module};
+
+% Audio Module power chain
+\node[pwrstage] (a1) at (7.8,5.2) {500\,mAh LiPo};
+\node[pwrstage, below=5mm of a1] (a2) {TP4056 Charger + Protection};
+\node[ctrlstage, below=5mm of a2] (a3) {ESP32};
+\node[loadstage, below=17.7mm of a3] (a4) {INMP441 \textbar\ TEMT6000};
+
+\draw[arrow] (a1.south) -- (a2.north);
+\draw[arrow] (a2.south) -- (a3.north);
+\draw[arrow] (a3.south) -- (a4.north);
+
+\node[above=2mm of a1, font=\bfseries\small] {Audio Module};
+
+\end{tikzpicture}
+\caption{Complete power distribution for the Wrist Module and Audio Module, from LiPo cells through the TP4056 charger/protection stage, ESP32 power input, regulation, and final sensor loads. \textsuperscript{*}Final power wiring depends on the exact ESP32 board; see the note below.}
+\label{fig:power-architecture-detailed}
+\end{figure*}
+
+\begin{warningbox}
+Many ESP32 DevKit boards expect a regulated 5\,V on \texttt{VIN} or USB, not a raw LiPo voltage. If powering directly from a LiPo cell, an appropriate regulator or a board designed for single-cell LiPo input is required. This must be verified on the specific board used.
+\end{warningbox}
+
+\subsection{Wrist Module GPIO Assignment}
+\label{sec:wrist-gpio-assignment}
+
+\Cref{tab:wrist-gpio} lists the GPIO assignment for the Wrist Module.
+
+\begin{table}[H]
+\centering
+\caption{Wrist Module ESP32 GPIO assignment.}
+\label{tab:wrist-gpio}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{ESP32 GPIO} & \textbf{Device / Function} \\
+\midrule
+GPIO21 & I\textsuperscript{2}C SDA --- MAX30102, MPU6050, ADS1115, MCP9808 \\
+GPIO22 & I\textsuperscript{2}C SCL --- MAX30102, MPU6050, ADS1115, MCP9808 \\
+GPIO34 & ADS1115 \texttt{ALERT} (optional interrupt) \\
+GPIO35 & Reserved \\
+GPIO32 & Future battery monitor \\
+GPIO33 & Future interrupt \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Power.} All Wrist Module sensors (MAX30102, ADS1115, MCP9808, MPU6050) are supplied from the 3.3\,V rail.
+
+\textbf{Ground.} A common ground is shared by every module.
+
+\subsection{Audio Module GPIO Assignment}
+\label{sec:audio-gpio-assignment}
+
+\Cref{tab:audio-gpio} lists the GPIO assignment for the Audio Module.
+
+\begin{table}[H]
+\centering
+\caption{Audio Module ESP32 GPIO assignment.}
+\label{tab:audio-gpio}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{ESP32 GPIO} & \textbf{Device / Function} \\
+\midrule
+GPIO26 & I\textsuperscript{2}S BCLK \\
+GPIO25 & I\textsuperscript{2}S LRCLK (WS) \\
+GPIO33 & I\textsuperscript{2}S DATA \\
+GPIO32 & TEMT6000 analog output \\
+3.3\,V & Sensor VCC \\
+GND & Common ground \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{I\texorpdfstring{\textsuperscript{2}}{2}C Bus}
+\label{sec:i2c-bus-ch5}
+
+\Cref{fig:i2c-topology} shows the shared I\textsuperscript{2}C bus topology on the Wrist Module. \Cref{tab:i2c-addresses-ch5} lists the expected device addresses; no address conflicts are expected.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\small,
+    ctrl/.style={draw, rounded corners=3pt, minimum width=2.4cm, minimum height=0.8cm, align=center, line width=0.6pt, fill=orange!10},
+    dev/.style={draw, rounded corners=3pt, minimum width=2.4cm, minimum height=0.7cm, align=center, line width=0.6pt, fill=gray!8},
+    arrow/.style={-{Stealth[length=2mm]}, line width=0.5pt}
+]
+\node[ctrl] (esp) at (0,0) {ESP32\\ GPIO21 (SDA) / GPIO22 (SCL)};
+
+\node[dev] (max) at (3.4,1.6) {MAX30102};
+\node[dev] (ads) at (3.4,0.55) {ADS1115};
+\node[dev] (mcp) at (3.4,-0.55) {MCP9808};
+\node[dev] (mpu) at (3.4,-1.6) {MPU6050};
+
+\draw[arrow] (esp.east) -- (max.west);
+\draw[arrow] (esp.east) -- (ads.west);
+\draw[arrow] (esp.east) -- (mcp.west);
+\draw[arrow] (esp.east) -- (mpu.west);
+\end{tikzpicture}
+\caption{Shared I\textsuperscript{2}C bus topology on the Wrist Module: the ESP32 (GPIO21/SDA, GPIO22/SCL) drives MAX30102, ADS1115, MCP9808, and MPU6050 on a single bus.}
+\label{fig:i2c-topology}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Expected I\textsuperscript{2}C device addresses on the Wrist Module bus.}
+\label{tab:i2c-addresses-ch5}
+\small
+\begin{tabularx}{\columnwidth}{@{}Y l@{}}
+\toprule
+\textbf{Device} & \textbf{Address} \\
+\midrule
+MCP9808 & \texttt{0x18} \\
+ADS1115 & \texttt{0x48} \\
+MAX30102 & \texttt{0x57} \\
+MPU6050 & \texttt{0x68} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{I\texorpdfstring{\textsuperscript{2}}{2}S Bus}
+\label{sec:i2s-bus-ch5}
+
+The Audio Module I\textsuperscript{2}S bus connects the ESP32 to the INMP441 digital microphone as follows: GPIO26 $\rightarrow$ BCLK, GPIO25 $\rightarrow$ WS, GPIO33 $\rightarrow$ SD, 3.3\,V $\rightarrow$ VDD, GND $\rightarrow$ GND. The INMP441 L/R select pin is connected to GND, selecting the default left channel.
+
+\subsection{ADS1115 Connections}
+\label{sec:ads1115-connections}
+
+\Cref{tab:ads1115-wiring} lists the complete ADS1115 wiring.
+
+\begin{table}[H]
+\centering
+\caption{ADS1115 pin connections.}
+\label{tab:ads1115-wiring}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{ADS1115 Pin} & \textbf{Connection} \\
+\midrule
+VDD & 3.3\,V \\
+GND & GND \\
+SDA & GPIO21 \\
+SCL & GPIO22 \\
+ADDR & GND (address \texttt{0x48}) \\
+ALRT & Optional, GPIO34 \\
+A0 & GSR front end \\
+A1--A3 & Reserved \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{MAX30102 Connections}
+\label{sec:max30102-connections}
+
+\Cref{tab:max30102-wiring} lists the complete MAX30102 wiring.
+
+\begin{table}[H]
+\centering
+\caption{MAX30102 pin connections.}
+\label{tab:max30102-wiring}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{Sensor Pin} & \textbf{ESP32 Connection} \\
+\midrule
+VIN & 3.3\,V \\
+GND & GND \\
+SDA & GPIO21 \\
+SCL & GPIO22 \\
+INT & Optional, GPIO27 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{MPU6050 Connections}
+\label{sec:mpu6050-connections}
+
+\Cref{tab:mpu6050-wiring} lists the complete MPU6050 wiring. The device address is \texttt{0x68}.
+
+\begin{table}[H]
+\centering
+\caption{MPU6050 pin connections.}
+\label{tab:mpu6050-wiring}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{Pin} & \textbf{ESP32 Connection} \\
+\midrule
+VCC & 3.3\,V \\
+GND & GND \\
+SDA & GPIO21 \\
+SCL & GPIO22 \\
+INT & Optional, GPIO14 \\
+AD0 & GND \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{MCP9808 Connections}
+\label{sec:mcp9808-connections}
+
+\Cref{tab:mcp9808-wiring} lists the complete MCP9808 wiring. The device address is \texttt{0x18}.
+
+\begin{table}[H]
+\centering
+\caption{MCP9808 pin connections.}
+\label{tab:mcp9808-wiring}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{Pin} & \textbf{ESP32 Connection} \\
+\midrule
+VIN & 3.3\,V \\
+GND & GND \\
+SDA & GPIO21 \\
+SCL & GPIO22 \\
+ALERT & Optional, GPIO13 \\
+A0--A2 & GND \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{TEMT6000 Connections}
+\label{sec:temt6000-connections}
+
+\Cref{tab:temt6000-wiring} lists the complete TEMT6000 wiring.
+
+\begin{table}[H]
+\centering
+\caption{TEMT6000 pin connections.}
+\label{tab:temt6000-wiring}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{Pin} & \textbf{ESP32 Connection} \\
+\midrule
+VCC & 3.3\,V \\
+GND & GND \\
+SIG & GPIO32 (ADC) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{GSR Front End (Current Prototype)}
+\label{sec:gsr-frontend-ch5}
+
+\Cref{fig:gsr-frontend-block} shows the current prototype signal chain for electrodermal activity acquisition.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\small,
+    node distance=0mm,
+    field/.style={draw, rounded corners=2pt, fill=blue!6, minimum width=3.2cm, minimum height=0.65cm, align=center, line width=0.5pt}
+]
+\node[field] (elec) {Electrode};
+\node[field, below=6mm of elec] (cond) {Signal Conditioning};
+\node[field, below=6mm of cond] (ads) {ADS1115 (A0)};
+\node[field, below=6mm of ads] (esp) {ESP32};
+
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (elec.south) -- (cond.north);
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (cond.south) -- (ads.north);
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (ads.south) -- (esp.north);
+\end{tikzpicture}
+\caption{Current prototype GSR signal chain: electrode $\rightarrow$ signal conditioning $\rightarrow$ ADS1115 channel A0 $\rightarrow$ ESP32.}
+\label{fig:gsr-frontend-block}
+\end{figure}
+
+\begin{requirementbox}
+\textbf{Current status:} prototype implementation.
+\end{requirementbox}
+
+\begin{futureworkbox}
+\textbf{Planned improvements:}
+\begin{itemize}
+    \item Constant-current source.
+    \item RC filter.
+    \item Patient protection resistor.
+    \item Shielding.
+    \item Calibration procedure.
+\end{itemize}
+\end{futureworkbox}
+
+\subsection{Grounding Strategy}
+\label{sec:grounding-strategy}
+
+\begin{engnote}
+Each module shall use a single common ground. Ground loops should be avoided, analog return paths kept short, and the microphone return path kept away from high-current power traces where possible.
+\end{engnote}
+
+\subsection{Decoupling}
+\label{sec:decoupling}
+
+\begin{designnote}
+A 0.1\,\textmu F ceramic capacitor is recommended close to each sensor supply, together with a 10\,\textmu F bulk capacitor near the ESP32 power input. Additional bulk capacitance should be added if Wi-Fi brownouts are observed. Some breakout boards already include these components.
+\end{designnote}
+
+\subsection{Wiring Recommendations}
+\label{sec:wiring-recommendations}
+
+\begin{itemize}
+    \item Use 26--28\,AWG stranded wire for power.
+    \item Use 28--30\,AWG stranded wire for signal wiring.
+    \item Keep I\textsuperscript{2}C runs short.
+    \item Use twisted-pair or closely routed GSR leads if cable length increases.
+    \item Provide secure strain relief for battery and sensor connections.
+\end{itemize}
+
+\subsection{Electrical Safety}
+\label{sec:electrical-safety}
+
+\begin{warningbox}
+\begin{itemize}
+    \item Never apply 5\,V directly to ESP32 GPIO pins.
+    \item Verify battery polarity before connecting.
+    \item Do not charge the module while connected to GSR electrodes.
+    \item Insulate all exposed battery terminals.
+    \item Disconnect power before rewiring.
+    \item Inspect LiPo cells before every test.
+\end{itemize}
+\end{warningbox}
+
+\subsection{Estimated Current Budget}
+\label{sec:current-budget}
+
+\Cref{tab:current-budget} lists the estimated per-device current draw for both modules. The Wrist Module total is estimated at $\approx$90--210+\,mA, and the Audio Module total at $\approx$85--205+\,mA.
+
+\begin{table}[H]
+\centering
+\caption{Estimated current budget by module and device.}
+\label{tab:current-budget}
+\small
+\begin{tabularx}{\columnwidth}{@{}l l Y@{}}
+\toprule
+\textbf{Module} & \textbf{Device} & \textbf{Approx. Current} \\
+\midrule
+Wrist & ESP32 & 80--200\,mA (Wi-Fi/CPU dependent) \\
+Wrist & MAX30102 & 1--5\,mA \\
+Wrist & MPU6050 & 3--5\,mA \\
+Wrist & ADS1115 & \textless 1\,mA \\
+Wrist & MCP9808 & \textless 1\,mA \\
+Wrist & GSR front end & Depends on final circuit \\
+\midrule
+Audio & ESP32 & 80--200\,mA \\
+Audio & INMP441 & 1--2\,mA \\
+Audio & TEMT6000 & \textless 1\,mA \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Remaining Electrical Validation}
+\label{sec:remaining-electrical-validation}
+
+\begin{requirementbox}
+\textbf{The following must still be verified on the assembled hardware:}
+\begin{itemize}
+    \item Exact ESP32 power input path and acceptable VIN range.
+    \item 3.3\,V rail stability under Wi-Fi load.
+    \item Battery runtime under continuous operation.
+    \item Charge current of the TP4056 (PROG resistor).
+    \item Brownout threshold.
+    \item Peak current during wireless transmission.
+    \item Thermal performance during charging.
+    \item Final GPIO validation with firmware.
+\end{itemize}
+\end{requirementbox}
+
+\subsection{Chapter Status}
+\label{sec:ch5-status}
+
+\begin{validationbox}
+\textbf{Completed for this chapter:}
+\begin{itemize}
+    \item Complete wiring architecture
+    \item GPIO assignments
+    \item I\textsuperscript{2}C wiring
+    \item I\textsuperscript{2}S wiring
+    \item Power distribution
+    \item Grounding strategy
+    \item Current budget
+    \item Electrical safety
+    \item Integration notes
+\end{itemize}
+\end{validationbox}

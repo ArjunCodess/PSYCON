@@ -1,0 +1,250 @@
+% ============================================================
+% Chapter 2 — System Requirements Specification (SRS)
+% Source: PSYCON Engineering Design Document, Vol. 1, Ch. 2
+% ============================================================
+\section{System Requirements Specification}
+\label{sec:srs}
+
+\subsection{Purpose}
+\label{sec:srs-purpose}
+
+This section defines exactly what PSYCON is expected to do from an engineering perspective. The requirements stated here act as the baseline against which the prototype will be evaluated.
+
+\subsection{Design Objectives}
+\label{sec:design-objectives}
+
+The system shall:
+\begin{itemize}
+    \item Continuously collect physiological data.
+    \item Continuously collect speech samples.
+    \item Continuously monitor environmental conditions.
+    \item Synchronize all collected data.
+    \item Operate as a wearable prototype.
+    \item Be modular.
+    \item Be expandable.
+    \item Be low-cost.
+    \item Be reproducible using commercially available components.
+    \item Support future AI-based analysis.
+\end{itemize}
+
+\subsection{Functional Requirements}
+\label{sec:functional-requirements}
+
+\subsubsection{FR-1: Physiological Monitoring}
+The wrist module shall measure heart rate, pulse waveform (PPG), skin conductance (EDA/GSR), skin temperature, wrist motion, and wrist orientation.
+
+\noindent\textit{Status:} \doneTag\ Hardware selected \quad \pendingTag\ Integration pending
+
+\subsubsection{FR-2: Audio Monitoring}
+The audio module shall capture speech, digitize audio using I\textsuperscript{2}S, stream or store recordings, and maintain synchronized timestamps.
+
+\noindent\textit{Status:} \doneTag\ Hardware selected \quad \pendingTag\ Firmware pending
+
+\subsubsection{FR-3: Environmental Monitoring}
+The system shall measure ambient light for purposes of context awareness, sleep/environment correlation, and future feature extraction.
+
+\noindent\textit{Status:} \doneTag\ Hardware selected
+
+\subsubsection{FR-4: Data Synchronization}
+The system shall timestamp every sample, preserve acquisition order, and allow synchronization between the wrist and audio modules. This requirement is critical because machine-learning analysis becomes unreliable if physiological and audio events are misaligned in time.
+
+\noindent\textit{Status:} \pendingTag\ Firmware requirement
+
+\subsubsection{FR-5: Wireless Communication}
+Each ESP32 shall support Wi-Fi and BLE (future expansion), enabling data upload, remote monitoring, over-the-air (OTA) firmware updates (future), and local communication.
+
+\noindent\textit{Status:} \doneTag\ Supported by hardware
+
+\subsubsection{FR-6: Local Processing}
+Each module shall read sensors, filter signals, package data, detect sensor failures, and continue operation independently of the other module.
+
+\subsubsection{FR-7: Modular Operation}
+If one module fails, the second module shall continue operating. For example, an audio-module failure shall not stop physiological acquisition, and a physiological-module failure shall not stop audio acquisition.
+
+\subsubsection{FR-8: Expandability}
+Future sensors should be addable without redesigning the architecture. Candidate future sensors include ECG, EEG, EMG, respiration, skin hydration, and air-quality sensing.
+
+\subsection{Non-Functional Requirements}
+\label{sec:non-functional-requirements}
+
+\textbf{Reliability.} The target is continuous operation without crashes. The prototype goal is a minimum continuous runtime of 6\,h, with a stretch goal of 24\,h.
+
+\textbf{Accuracy.} Sensors should operate within manufacturer specifications; no artificial software correction should replace proper calibration.
+
+\textbf{Repeatability.} Repeated measurements under identical conditions should produce similar results, which is especially important for GSR, heart rate, and temperature.
+
+\textbf{Maintainability.} The system should use standard breakout boards, use labeled connectors, allow module replacement, and support firmware updates.
+
+\textbf{Portability.} The system should fit on the body, operate on batteries, and avoid wired external power during use.
+
+\textbf{Scalability.} Future revisions should migrate easily to a custom PCB, smaller ESP32 variants, and improved analog front ends.
+
+\textbf{Cost.} The primary objective is high capability with affordable hardware; the approximate prototype cost target is lower than research-grade commercial systems.
+
+\textbf{Safety.} The wearable shall use protected LiPo batteries, avoid exposed battery terminals, maintain a safe GSR excitation current, avoid charging while connected to GSR electrodes, and use insulated wiring.
+
+\subsection{Performance Targets}
+\label{sec:performance-targets}
+
+\Cref{tab:performance-targets} summarizes the target operating behavior for each monitored parameter.
+
+\begin{table}[H]
+\centering
+\caption{Performance targets by parameter.}
+\label{tab:performance-targets}
+\small
+\begin{tabularx}{\columnwidth}{@{}Y l@{}}
+\toprule
+\textbf{Parameter} & \textbf{Target} \\
+\midrule
+Heart-rate monitoring & Continuous \\
+GSR monitoring & Continuous \\
+Temperature monitoring & Continuous \\
+Motion monitoring & Continuous \\
+Ambient light & Continuous \\
+Speech recording & Continuous or scheduled \\
+Wireless communication & Stable \\
+Battery-powered & Yes \\
+Rechargeable & Yes \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Hardware Constraints}
+\label{sec:hardware-constraints}
+
+\Cref{tab:hardware-constraints} lists the hardware constraints of the finalized design, organized by controllers, power, and sensor allocation between the wrist and audio modules.
+
+\begin{table}[H]
+\centering
+\caption{Hardware constraints of the finalized PSYCON design.}
+\label{tab:hardware-constraints}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{Category} & \textbf{Components} \\
+\midrule
+Controllers & 2 $\times$ ESP32 DevKit (30-pin) \\
+Power & 2 $\times$ TP4056 USB-C charger; 3 $\times$ 500\,mAh LiPo battery \\
+Wrist sensors & MAX30102; ADS1115; MCP9808; MPU6050; GSR electrodes \\
+Audio sensors & INMP441; TEMT6000 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Software Constraints}
+\label{sec:software-constraints}
+
+Firmware should:
+\begin{itemize}
+    \item Support FreeRTOS tasks (recommended).
+    \item Prevent blocking sensor reads.
+    \item Handle communication failures gracefully.
+    \item Log errors.
+    \item Support firmware expansion.
+\end{itemize}
+
+\subsection{Data Requirements}
+\label{sec:data-requirements}
+
+Every record should include a timestamp, module ID, sensor ID, sensor values, battery level (future), and error flags (future). \Cref{fig:data-record-flow} illustrates the logical structure of a single data record as it is composed prior to storage or transmission.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\scriptsize,
+    node distance=0mm,
+    field/.style={draw, rounded corners=2pt, fill=blue!6, minimum width=2.5cm, minimum height=0.65cm, align=center, line width=0.5pt}
+]
+\node[field] (ts) {Timestamp};
+\node[field, below=6mm of ts] (mod) {Module};
+\node[field, below=6mm of mod] (sen) {Sensor};
+\node[field, below=6mm of sen] (meas) {Measurement};
+\node[field, below=6mm of meas] (qf) {Quality Flag};
+
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (ts.south) -- (mod.north);
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (mod.south) -- (sen.north);
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (sen.south) -- (meas.north);
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (meas.south) -- (qf.north);
+\end{tikzpicture}
+\caption{Logical structure of a single PSYCON data record, composed sequentially from acquisition timestamp through to a quality flag.}
+\label{fig:data-record-flow}
+\end{figure}
+
+\subsection{Assumptions}
+\label{sec:srs-assumptions}
+
+\begin{assumptionbox}
+The following are treated as current engineering assumptions until experimentally verified:
+\begin{itemize}
+    \item Standard module revisions.
+    \item Standard operating voltages.
+    \item No I\textsuperscript{2}C address conflicts.
+    \item Proper power distribution.
+    \item Common ground maintained.
+    \item Standard ESP32 DevKit V1 behavior.
+\end{itemize}
+\end{assumptionbox}
+
+\subsection{Risks}
+\label{sec:risks}
+
+\Cref{tab:risks} summarizes known engineering risks by priority level.
+
+\begin{table}[H]
+\centering
+\caption{Known engineering risks by priority.}
+\label{tab:risks}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{Priority} & \textbf{Risk} \\
+\midrule
+\highriskTag & GSR analog front-end quality \\
+\highriskTag & Battery runtime \\
+\highriskTag & Charging while operating \\
+\highriskTag & Long-term stability \\
+\midrule
+\medriskTag & Audio noise \\
+\medriskTag & Motion artifacts \\
+\medriskTag & Synchronization drift \\
+\midrule
+\lowriskTag & I\textsuperscript{2}C conflicts (none expected) \\
+\lowriskTag & GPIO availability \\
+\lowriskTag & Sensor compatibility \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Acceptance Criteria}
+\label{sec:acceptance-criteria}
+
+The prototype is considered functionally complete when:
+\begin{itemize}
+    \item All sensors initialize successfully.
+    \item No I\textsuperscript{2}C address conflicts occur.
+    \item Audio records correctly.
+    \item Physiological data streams continuously.
+    \item Modules operate independently.
+    \item Battery operation is stable.
+    \item Data timestamps remain synchronized.
+    \item Documentation is complete.
+    \item Safety procedures are documented.
+    \item Hardware passes integration testing.
+\end{itemize}
+
+\subsection{Chapter Status}
+\label{sec:ch2-status}
+
+\begin{validationbox}
+\textbf{Completed for this chapter:}
+\begin{itemize}
+    \item Functional requirements
+    \item Non-functional requirements
+    \item Design objectives
+    \item Constraints (hardware and software)
+    \item Acceptance criteria
+    \item Risk overview
+    \item Data requirements
+\end{itemize}
+\end{validationbox}

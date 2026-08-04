@@ -1,0 +1,271 @@
+% ============================================================
+% Chapter 8 — System Integration, Verification, Validation & Deployment
+% Source: PSYCON Engineering Design Document, Vol. 1, Ch. 8
+% ============================================================
+\section{System Integration, Verification, Validation, and Deployment}
+\label{sec:integration-verification}
+
+\subsection{System Integration Strategy}
+\label{sec:integration-strategy}
+
+Integration occurs in five stages, illustrated in \Cref{fig:integration-stages}. Every stage must pass before proceeding to the next.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\scriptsize,
+    node distance=0mm,
+    field/.style={draw, rounded corners=2pt, fill=blue!7, minimum width=3.6cm, minimum height=0.65cm, align=center, line width=0.5pt}
+]
+\node[field] (s1) {Individual Sensor Validation};
+\node[field, below=6mm of s1] (s2) {Subsystem Integration};
+\node[field, below=6mm of s2] (s3) {Complete Hardware Assembly};
+\node[field, below=6mm of s3] (s4) {Backend Integration};
+\node[field, below=6mm of s4] (s5) {End-to-End Validation};
+
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (s1.south) -- (s2.north);
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (s2.south) -- (s3.north);
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (s3.south) -- (s4.north);
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (s4.south) -- (s5.north);
+\end{tikzpicture}
+\caption{Five-stage PSYCON integration strategy, from individual sensor validation through to end-to-end validation.}
+\label{fig:integration-stages}
+\end{figure}
+
+\subsection{Stage 1 --- Individual Sensor Validation}
+\label{sec:stage1-sensor-validation}
+
+Each module is tested independently before integration. \Cref{tab:sensor-validation} summarizes the verification checks and acceptance criteria for each sensor.
+
+\begin{table*}[t]
+\centering
+\caption{Stage 1 individual sensor validation: verification checks and acceptance criteria.}
+\label{tab:sensor-validation}
+\small
+\begin{tabularx}{\textwidth}{@{}l Y Y@{}}
+\toprule
+\textbf{Sensor} & \textbf{Verification Checks} & \textbf{Acceptance Criteria} \\
+\midrule
+MAX30102 & I\textsuperscript{2}C communication; raw RED and IR readings; finger detection; stable waveform; no communication errors & Device detected at \texttt{0x57}; stable signal; no bus failures \\
+MPU6050 & Accelerometer; gyroscope; temperature register; axis orientation & Address \texttt{0x68}; stable readings at rest; motion reflected correctly \\
+MCP9808 & Ambient temperature; stable readings; repeatability & Address \texttt{0x18}; no sudden fluctuations \\
+ADS1115 & Address detection; all four channels readable; stable ADC values & Address \texttt{0x48}; no random saturation \\
+TEMT6000 & Analog response to light; dark vs. bright environments & Smooth output variation \\
+INMP441 & Audio recording; no clipping; correct I\textsuperscript{2}S configuration; acceptable noise floor & Clean recordings; no DMA overruns \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\subsection{Stage 2 --- I\texorpdfstring{\textsuperscript{2}}{2}C Bus Validation}
+\label{sec:stage2-i2c-validation}
+
+An I\textsuperscript{2}C scanner is run across the Wrist Module bus. The expected devices and addresses match those previously listed in \Cref{tab:i2c-addresses}.
+
+\begin{checklist}
+    \item All devices detected.
+    \item No duplicate addresses.
+    \item No intermittent failures.
+\end{checklist}
+
+\subsection{Stage 3 --- Integrated Wrist Module}
+\label{sec:stage3-wrist-integration}
+
+All wrist sensors are run simultaneously while monitoring bus stability, sampling consistency, CPU utilization, memory usage, and timing accuracy.
+
+\begin{checklist}
+    \item Continuous operation without crashes.
+    \item Stable timestamps.
+    \item No sensor starvation.
+\end{checklist}
+
+\subsection{Stage 4 --- Integrated Audio Module}
+\label{sec:stage4-audio-integration}
+
+Verification covers continuous microphone capture, ambient light acquisition, and concurrent wireless communication.
+
+\begin{checklist}
+    \item No dropped audio buffers.
+    \item Stable light sensor readings.
+\end{checklist}
+
+\subsection{Stage 5 --- Full System Integration}
+\label{sec:stage5-full-integration}
+
+Both modules operate together, with verification of time synchronization, data transmission, backend reception, and session management.
+
+\begin{checklist}
+    \item Complete synchronized datasets.
+    \item No packet corruption.
+\end{checklist}
+
+\subsection{Functional Testing}
+\label{sec:functional-testing}
+
+Functional testing confirms that the system can:
+\begin{checklist}
+    \item Boot successfully.
+    \item Detect all sensors.
+    \item Acquire data.
+    \item Timestamp correctly.
+    \item Transmit data.
+    \item Recover from temporary communication loss.
+    \item Shut down safely.
+\end{checklist}
+
+\subsection{Stress Testing}
+\label{sec:stress-testing}
+
+\textbf{Tests conducted.}
+\begin{itemize}
+    \item 1-hour continuous operation.
+    \item Extended operation (target duration based on battery capacity).
+    \item Rapid reboot cycles.
+    \item Repeated connection/disconnection tests.
+    \item Continuous wireless transmission.
+\end{itemize}
+
+\textbf{Monitored quantities.}
+\begin{itemize}
+    \item Temperature.
+    \item Memory usage.
+    \item Packet loss.
+    \item Unexpected resets.
+\end{itemize}
+
+\subsection{Power Validation}
+\label{sec:power-validation}
+
+\textbf{Verification.}
+\begin{itemize}
+    \item Battery charging.
+    \item Battery discharge.
+    \item Low-battery detection.
+    \item Brownout handling.
+    \item Controlled shutdown.
+\end{itemize}
+
+\textbf{Recorded quantities.}
+\begin{itemize}
+    \item Battery voltage.
+    \item Runtime.
+    \item Charging time.
+    \item Device temperature.
+\end{itemize}
+
+\subsection{Sensor Calibration}
+\label{sec:sensor-calibration}
+
+Calibration procedures are documented for MAX30102, GSR, MCP9808, TEMT6000, and MPU6050. Each calibration record should include:
+\begin{itemize}
+    \item Calibration date.
+    \item Firmware version.
+    \item Calibration method.
+    \item Environmental conditions.
+\end{itemize}
+
+\subsection{Software Validation}
+\label{sec:software-validation}
+
+\begin{checklist}
+    \item Firmware boots correctly.
+    \item Sensor drivers initialize.
+    \item Communication stack functions.
+    \item Logging system operates.
+    \item Error recovery works.
+\end{checklist}
+
+\subsection{AI Validation}
+\label{sec:ai-validation-ch8}
+
+\begin{checklist}
+    \item Feature extraction.
+    \item Timestamp synchronization.
+    \item Inference pipeline.
+    \item Model confidence reporting.
+    \item Handling of missing or corrupted data.
+\end{checklist}
+
+\subsection{Documentation Package}
+\label{sec:documentation-package}
+
+The complete documentation package should include:
+\begin{checklist}
+    \item Bill of Materials (BOM).
+    \item Wiring diagrams.
+    \item GPIO map.
+    \item Power tree.
+    \item Firmware architecture.
+    \item AI architecture.
+    \item Testing reports.
+    \item Calibration records.
+    \item Risk assessment.
+    \item User manual.
+    \item Assembly guide.
+    \item Version history.
+\end{checklist}
+
+\subsection{Competition Readiness Checklist}
+\label{sec:competition-readiness}
+
+\begin{requirementbox}
+\textbf{Before submission:}
+\begin{checklist}
+    \item Hardware fully assembled.
+    \item Firmware stable.
+    \item AI pipeline validated.
+    \item Documentation complete.
+    \item Safety review completed.
+    \item Demonstration rehearsed.
+    \item Backup firmware available.
+    \item Backup hardware available (where practical).
+\end{checklist}
+\end{requirementbox}
+
+\subsection{Known Remaining Risks}
+\label{sec:known-remaining-risks-ch8}
+
+\begin{observationbox}
+\textbf{Current engineering risks include:}
+\begin{itemize}
+    \item GSR analog front-end refinement.
+    \item Battery runtime limitations.
+    \item Wireless reliability in congested environments.
+    \item Motion artifacts affecting physiological signals.
+    \item Audio quality in noisy environments.
+    \item Long-term sensor stability.
+\end{itemize}
+Each risk should have a documented mitigation strategy.
+\end{observationbox}
+
+\subsection{Final Deliverables}
+\label{sec:final-deliverables}
+
+The complete PSYCON package should contain:
+\begin{itemize}
+    \item Hardware prototype.
+    \item Embedded firmware.
+    \item AI models.
+    \item Backend software.
+    \item Mobile/web interface (if applicable).
+    \item Technical documentation.
+    \item Validation and testing reports.
+    \item User and maintenance guides.
+    \item Safety and ethics documentation.
+    \item Research report.
+\end{itemize}
+
+\subsection{Volume 1 Summary}
+\label{sec:volume1-summary}
+
+\begin{validationbox}
+\textbf{This concludes the core engineering design document, covering:}
+\begin{itemize}
+    \item Project overview
+    \item Hardware architecture
+    \item Electrical design
+    \item Firmware architecture
+    \item AI pipeline
+    \item System integration
+    \item Verification and validation
+\end{itemize}
+\end{validationbox}

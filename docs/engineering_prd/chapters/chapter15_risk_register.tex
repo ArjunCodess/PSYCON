@@ -1,0 +1,30 @@
+% ============================================================
+% Chapter 15 — Risk Register
+% Source: PSYCON Engineering Design Document, Vol. 3, Ch. 15
+% ============================================================
+\section{Risk Register}
+\label{sec:risk-register}
+
+\Cref{tab:risk-register} consolidates the project's known risks, their impact level, and the corresponding mitigation strategy.
+
+\begin{table*}[t]
+\centering
+\caption{PSYCON risk register.}
+\label{tab:risk-register}
+\small
+\begin{tabularx}{\textwidth}{@{}Y c Y@{}}
+\toprule
+\textbf{Risk} & \textbf{Impact} & \textbf{Mitigation} \\
+\midrule
+Battery depletion & \highriskTag & Low-battery detection \& controlled shutdown \\
+Sensor disconnect & \medriskTag & Startup/self-test \& continuous monitoring \\
+I\textsuperscript{2}C communication failure & \medriskTag & Retry and error logging \\
+Motion artifacts & \highriskTag & Filtering and quality metrics \\
+Audio noise & \medriskTag & Mechanical isolation and preprocessing \\
+GSR electrode contact loss & \highriskTag & Contact-quality checks and proper placement \\
+Firmware crash & \highriskTag & Watchdog timer and restart \\
+Wireless interruption & \medriskTag & Packet buffering and retry \\
+Data corruption & \highriskTag & Checksums and sequence numbers \\
+\bottomrule
+\end{tabularx}
+\end{table*}

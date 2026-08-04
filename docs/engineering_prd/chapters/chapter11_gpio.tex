@@ -1,0 +1,73 @@
+% ============================================================
+% Chapter 11 — Complete GPIO Assignment
+% Source: PSYCON Engineering Design Document, Vol. 3, Ch. 11
+% ============================================================
+\section{Complete GPIO Assignment}
+\label{sec:complete-gpio}
+
+\subsection{Wrist Module}
+\label{sec:complete-gpio-wrist}
+
+\Cref{tab:wrist-gpio-ref} lists the complete GPIO assignment for the Wrist Module, and \Cref{tab:i2c-addresses-ref} lists the corresponding I\textsuperscript{2}C device addresses.
+
+\begin{table}[H]
+\centering
+\caption{Wrist Module GPIO assignment (reference summary).}
+\label{tab:wrist-gpio-ref}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{ESP32 Pin} & \textbf{Device} \\
+\midrule
+GPIO21 & I\textsuperscript{2}C SDA \\
+GPIO22 & I\textsuperscript{2}C SCL \\
+GPIO34 & GSR (ADS1115 input interface) \\
+GPIO35 & Battery monitoring (if used) \\
+3V3 & Sensors \\
+GND & Common ground \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{I\textsuperscript{2}C device addresses (reference summary).}
+\label{tab:i2c-addresses-ref}
+\small
+\begin{tabularx}{\columnwidth}{@{}Y l@{}}
+\toprule
+\textbf{Device} & \textbf{Address} \\
+\midrule
+MCP9808 & \texttt{0x18} \\
+ADS1115 & \texttt{0x48} \\
+MAX30102 & \texttt{0x57} \\
+MPU6050 & \texttt{0x68} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Audio Module}
+\label{sec:complete-gpio-audio}
+
+\Cref{tab:audio-gpio-ref} lists the complete GPIO assignment for the Audio Module.
+
+\begin{table}[H]
+\centering
+\caption{Audio Module GPIO assignment (reference summary).}
+\label{tab:audio-gpio-ref}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{ESP32 Pin} & \textbf{Device} \\
+\midrule
+GPIO21 & I\textsuperscript{2}C SDA (if required) \\
+GPIO22 & I\textsuperscript{2}C SCL (if required) \\
+GPIO25 & I\textsuperscript{2}S WS \\
+GPIO26 & I\textsuperscript{2}S SCK \\
+GPIO33 & I\textsuperscript{2}S SD \\
+GPIO32 & TEMT6000 analog input \\
+3V3 & Sensor power \\
+GND & Ground \\
+\bottomrule
+\end{tabularx}
+\end{table}

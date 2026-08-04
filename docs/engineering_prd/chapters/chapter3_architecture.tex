@@ -1,0 +1,319 @@
+% ============================================================
+% Chapter 3 — Overall System Architecture
+% Source: PSYCON Engineering Design Document, Vol. 1, Ch. 3
+% ============================================================
+\section{Overall System Architecture}
+\label{sec:overall-architecture}
+
+\subsection{System Overview}
+\label{sec:system-overview}
+
+PSYCON is a distributed wearable sensing platform consisting of two independent electronic modules that work together to collect synchronized multimodal data for psychological state analysis. The architecture intentionally separates physiological sensing from speech sensing to reduce electrical noise, improve wearability, simplify mechanical design, and allow each subsystem to operate independently.
+
+\subsection{High-Level Architecture}
+\label{sec:high-level-architecture-ch3}
+
+\Cref{fig:top-level-pipeline} presents the top-level data pipeline of PSYCON, from the two physical modules through synchronization, AI processing, and final psychological-condition assessment.
+
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}[
+    font=\small,
+    stage/.style={draw, rounded corners=3pt, minimum width=3.6cm, minimum height=0.9cm, align=center, line width=0.6pt},
+    top/.style={stage, fill=violet!10},
+    mod/.style={stage, fill=blue!8},
+    data/.style={stage, fill=gray!8},
+    proc/.style={stage, fill=orange!10},
+    result/.style={stage, fill=green!10},
+    arrow/.style={-{Stealth[length=2.2mm]}, line width=0.6pt}
+]
+
+\node[top] (psycon) at (6,9.6) {PSYCON};
+
+\node[mod] (wrist) at (2,7.8) {Wrist Module};
+\node[mod] (audio) at (10,7.8) {Audio Module};
+
+\node[data] (phys) at (2,6.0) {Physiological Data};
+\node[data] (speech) at (10,6.0) {Speech + Environment};
+
+\node[proc] (sync) at (6,3.8) {Data Synchronization};
+\node[proc] (ai) at (6,2.2) {AI Processing Pipeline};
+\node[result] (assess) at (6,0.6) {Psychological Condition Assessment};
+
+\draw[arrow] (psycon.south) -- ++(0,-4mm) -| (wrist.north);
+\draw[arrow] (psycon.south) -- ++(0,-4mm) -| (audio.north);
+\draw[arrow] (wrist.south) -- (phys.north);
+\draw[arrow] (audio.south) -- (speech.north);
+\draw[arrow] (phys.south) -- ++(0,-6mm) -| (sync.north);
+\draw[arrow] (speech.south) -- ++(0,-6mm) -| (sync.north);
+\draw[arrow] (sync.south) -- (ai.north);
+\draw[arrow] (ai.south) -- (assess.north);
+
+\end{tikzpicture}
+\caption{Top-level PSYCON data pipeline: independent acquisition by the Wrist and Audio Modules, followed by data synchronization, AI processing, and psychological-condition assessment.}
+\label{fig:top-level-pipeline}
+\end{figure*}
+
+\subsection{Module Responsibilities}
+\label{sec:module-responsibilities}
+
+\subsubsection{Wrist Module}
+\textbf{Purpose.} Collect physiological signals directly from the user's body.
+
+\textbf{Primary functions.}
+\begin{itemize}
+    \item Heart-rate monitoring
+    \item Pulse waveform acquisition
+    \item Electrodermal activity (GSR)
+    \item Skin temperature
+    \item Motion sensing
+    \item Timestamp generation
+    \item Wireless communication
+\end{itemize}
+
+\subsubsection{Audio Module}
+\textbf{Purpose.} Collect speech and environmental context.
+
+\textbf{Primary functions.}
+\begin{itemize}
+    \item Speech recording
+    \item Ambient light monitoring
+    \item Timestamp generation
+    \item Wireless communication
+\end{itemize}
+
+\subsection{Wrist Module Hardware}
+\label{sec:wrist-module-hardware}
+
+\textbf{Controller.} ESP32 DevKit (30-pin). Responsibilities include reading all sensors, managing I\textsuperscript{2}C communication, processing sensor data, buffering measurements, transmitting data, and managing power state.
+
+\textbf{MAX30102.} Measures heart rate and pulse waveform (PPG) over an I\textsuperscript{2}C interface.
+
+\textbf{ADS1115.} Provides high-resolution analog-to-digital conversion and is connected to the GSR analog front end.
+
+\begin{designnote}
+The ESP32's internal ADC has limited precision and non-linearity. The ADS1115 provides a 16-bit ADC with programmable gain, making it more suitable for low-level analog measurements such as GSR.
+\end{designnote}
+
+\textbf{GSR electrodes.} Measure changes in skin conductance associated with sweat-gland activity.
+
+\begin{requirementbox}
+\textbf{Current status:} electrodes selected; the analog front end is to be finalized and validated before human testing.
+\end{requirementbox}
+
+\textbf{MPU6050.} Measures acceleration and angular velocity, used for motion detection, activity recognition, and motion-artifact identification.
+
+\textbf{MCP9808.} Measures skin temperature.
+
+\begin{designnote}
+The MCP9808 was selected because it provides higher accuracy and stability than common low-cost temperature sensors.
+\end{designnote}
+
+\subsection{Audio Module Hardware}
+\label{sec:audio-module-hardware}
+
+\textbf{Controller.} ESP32 DevKit (30-pin). Responsibilities include reading the microphone, reading the ambient light sensor, timestamping audio, and managing wireless communication.
+
+\textbf{INMP441.} Measures digital audio over an I\textsuperscript{2}S interface and is used for speech feature extraction, voice-quality analysis, and future AI models.
+
+\textbf{TEMT6000.} Measures ambient light intensity and is used for environmental context, sleep and activity correlation, and context-aware analysis.
+
+\subsection{Power Architecture}
+\label{sec:power-architecture}
+
+Each module operates independently, with its own battery, charging/protection circuit, and regulated rail. \Cref{fig:power-architecture} shows the power chain for both modules side by side.
+
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}[
+    font=\small,
+    pwrstage/.style={draw, rounded corners=3pt, minimum width=5.2cm, minimum height=0.85cm, align=center, line width=0.6pt, fill=green!8},
+    ctrlstage/.style={draw, rounded corners=3pt, minimum width=5.2cm, minimum height=0.85cm, align=center, line width=0.6pt, fill=orange!10},
+    loadstage/.style={draw, rounded corners=3pt, minimum width=5.2cm, minimum height=0.85cm, align=center, line width=0.6pt, fill=blue!8},
+    arrow/.style={-{Stealth[length=2.2mm]}, line width=0.6pt}
+]
+
+% Wrist Module power chain
+\node[pwrstage] (w1) at (0,4) {2$\times$500\,mAh LiPo (parallel)};
+\node[pwrstage, below=6mm of w1] (w2) {TP4056 Charger + Protection};
+\node[ctrlstage, below=6mm of w2] (w3) {ESP32 Dev Board};
+\node[ctrlstage, below=6mm of w3] (w4) {3.3\,V Rail};
+\node[loadstage, below=6mm of w4] (w5) {Sensors (Wrist Module)};
+
+\draw[arrow] (w1.south) -- (w2.north);
+\draw[arrow] (w2.south) -- (w3.north);
+\draw[arrow] (w3.south) -- (w4.north);
+\draw[arrow] (w4.south) -- (w5.north);
+
+\node[above=2mm of w1, font=\bfseries\small] {Wrist Module};
+
+% Audio Module power chain
+\node[pwrstage] (a1) at (7.6,4) {500\,mAh LiPo};
+\node[pwrstage, below=6mm of a1] (a2) {TP4056 Charger + Protection};
+\node[ctrlstage, below=6mm of a2] (a3) {ESP32 Dev Board};
+\node[loadstage, below=6mm of a3] (a4) {Microphone + Light Sensor};
+
+\draw[arrow] (a1.south) -- (a2.north);
+\draw[arrow] (a2.south) -- (a3.north);
+\draw[arrow] (a3.south) -- (a4.north);
+
+\node[above=2mm of a1, font=\bfseries\small] {Audio Module};
+
+\end{tikzpicture}
+\caption{Independent power architecture for the Wrist Module (estimated battery capacity $\approx$1000\,mAh) and the Audio Module, each with dedicated LiPo battery, TP4056 charge/protection circuit, and ESP32 controller.}
+\label{fig:power-architecture}
+\end{figure*}
+
+The Wrist Module's parallel two-cell configuration yields an estimated battery capacity of approximately 1000\,mAh, while the Audio Module operates from a single 500\,mAh cell.
+
+\subsection{Communication Architecture}
+\label{sec:communication-architecture-ch3}
+
+\subsubsection{I\texorpdfstring{\textsuperscript{2}}{2}C Bus (Wrist Module)}
+The I\textsuperscript{2}C bus on the Wrist Module is shared by the MAX30102, ADS1115, MCP9808, and MPU6050. \Cref{tab:i2c-addresses} lists the expected device addresses; no address conflicts are expected.
+
+\begin{table}[H]
+\centering
+\caption{Expected I\textsuperscript{2}C device addresses on the Wrist Module bus.}
+\label{tab:i2c-addresses}
+\small
+\begin{tabularx}{\columnwidth}{@{}Y l@{}}
+\toprule
+\textbf{Device} & \textbf{Address} \\
+\midrule
+MCP9808 & \texttt{0x18} \\
+ADS1115 & \texttt{0x48} \\
+MAX30102 & \texttt{0x57} \\
+MPU6050 & \texttt{0x68} (default) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsubsection{I\texorpdfstring{\textsuperscript{2}}{2}S Bus (Audio Module)}
+The I\textsuperscript{2}S bus connects the INMP441 microphone and carries the bit clock (SCK/BCLK), word select (WS/LRCLK), and serial data (SD) signals.
+
+\subsubsection{Analog Signals}
+Analog signals are handled through the ADS1115, including the GSR analog output. The TEMT6000 provides an analog output that may be connected either to an ESP32 ADC pin or to an ADS1115 channel if higher measurement precision is desired.
+
+\subsection{Data Flow}
+\label{sec:data-flow}
+
+\Cref{fig:data-flow-pipeline} shows the end-to-end data flow from sensor acquisition through to AI processing. Each sample should receive its timestamp as close to acquisition as possible to minimize synchronization errors.
+
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}[
+    font=\scriptsize,
+    stage/.style={draw, rounded corners=3pt, text width=1.7cm, minimum height=1.15cm, align=center, line width=0.6pt, fill=blue!6, inner sep=2pt},
+    arrow/.style={-{Stealth[length=2mm]}, line width=0.6pt},
+    node distance=2.5mm
+]
+\node[stage] (s1) {Sensors};
+\node[stage, right=of s1] (s2) {ESP32 Driver Layer};
+\node[stage, right=of s2] (s3) {Signal Validation};
+\node[stage, right=of s3] (s4) {Timestamp Assignment};
+\node[stage, right=of s4] (s5) {Local Buffer};
+\node[stage, right=of s5] (s6) {Wireless Transmission};
+\node[stage, right=of s6] (s7) {Data Storage};
+\node[stage, right=of s7] (s8) {AI Processing};
+
+\foreach \i/\j in {s1/s2, s2/s3, s3/s4, s4/s5, s5/s6, s6/s7, s7/s8}
+  \draw[arrow] (\i.east) -- (\j.west);
+\end{tikzpicture}
+\caption{End-to-end PSYCON data flow, from raw sensor acquisition through driver-level reads, validation, timestamping, buffering, wireless transmission, storage, and AI processing.}
+\label{fig:data-flow-pipeline}
+\end{figure*}
+
+\subsection{Power Flow}
+\label{sec:power-flow}
+
+\Cref{fig:power-flow} shows the generic power flow within each module, from battery through to the sensor loads. All sensors share a common ground within their respective module.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\scriptsize,
+    node distance=0mm,
+    field/.style={draw, rounded corners=2pt, fill=green!8, minimum width=3.0cm, minimum height=0.65cm, align=center, line width=0.5pt}
+]
+\node[field] (bat) {Battery};
+\node[field, below=6mm of bat] (prot) {Protection Circuit};
+\node[field, below=6mm of prot] (chg) {Charging Circuit};
+\node[field, below=6mm of chg] (mcu) {ESP32};
+\node[field, below=6mm of mcu] (rail) {Sensor Power Rails};
+\node[field, below=6mm of rail] (sens) {Sensors};
+
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (bat.south) -- (prot.north);
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (prot.south) -- (chg.north);
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (chg.south) -- (mcu.north);
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (mcu.south) -- (rail.north);
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (rail.south) -- (sens.north);
+\end{tikzpicture}
+\caption{Generic per-module power flow, from battery through protection and charging circuitry to the microcontroller and sensor power rails.}
+\label{fig:power-flow}
+\end{figure}
+
+\subsection{Synchronization Strategy}
+\label{sec:synchronization-strategy}
+
+Although physically separate, both modules should:
+\begin{itemize}
+    \item Use a consistent time base.
+    \item Include timestamps with every data packet.
+    \item Include a module identifier.
+    \item Include sensor identifiers.
+    \item Handle temporary communication interruptions without losing acquisition order.
+\end{itemize}
+
+\subsection{Fault Isolation}
+\label{sec:fault-isolation}
+
+A failure in one module should not prevent the other from operating. For example, if the microphone fails, physiological sensing continues; if the wrist module resets, audio acquisition continues; and if wireless communication is unavailable, data should be buffered, subject to firmware support.
+
+\subsection{Engineering Advantages of the Split Architecture}
+\label{sec:split-architecture-advantages}
+
+\begin{observationbox}
+\begin{itemize}
+    \item Reduced electrical interference between analog sensors and the microphone.
+    \item Better weight distribution for wearability.
+    \item Simpler wiring within each module.
+    \item Independent testing and debugging.
+    \item Easier future upgrades or PCB redesigns.
+    \item Greater fault tolerance.
+\end{itemize}
+\end{observationbox}
+
+\subsection{Current Limitations}
+\label{sec:current-limitations-ch3}
+
+\begin{requirementbox}
+\textbf{The following items remain to be validated experimentally:}
+\begin{itemize}
+    \item Final GSR analog front-end implementation.
+    \item Battery runtime under real workloads.
+    \item Continuous-operation stability.
+    \item Thermal behavior during charging and prolonged operation.
+    \item Wireless throughput and latency under sustained use.
+    \item Long-term synchronization accuracy.
+\end{itemize}
+\end{requirementbox}
+
+\subsection{Chapter Status}
+\label{sec:ch3-status}
+
+\begin{validationbox}
+\textbf{Completed for this chapter:}
+\begin{itemize}
+    \item Overall system architecture
+    \item Module separation rationale
+    \item Hardware block architecture
+    \item Data flow
+    \item Power flow
+    \item Communication architecture
+    \item Synchronization strategy
+    \item Fault isolation
+    \item Engineering design rationale
+    \item Current limitations
+\end{itemize}
+\end{validationbox}

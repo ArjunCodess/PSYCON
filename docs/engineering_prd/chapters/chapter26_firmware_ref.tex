@@ -1,0 +1,63 @@
+% ============================================================
+% Chapter 26 — Firmware Architecture
+% Source: PSYCON Engineering Design Document, Vol. 5, Ch. 26
+% ============================================================
+\section{Firmware Architecture}
+\label{sec:firmware-architecture-ref}
+
+\Cref{fig:firmware-boot-sequences} shows the boot-to-shutdown sequence for the Wrist and Audio firmware.
+
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}[
+    font=\scriptsize,
+    field/.style={draw, rounded corners=2pt, text width=3.0cm, minimum height=0.55cm, align=center, line width=0.5pt, fill=orange!8},
+    arrow/.style={-{Stealth[length=1.8mm]}, line width=0.5pt}
+]
+% Wrist firmware (left)
+\node[field] (w1) at (0,6) {Boot};
+\node[field, below=3mm of w1] (w2) {Initialize GPIO};
+\node[field, below=3mm of w2] (w3) {Initialize I\textsuperscript{2}C};
+\node[field, below=3mm of w3] (w4) {Detect Sensors};
+\node[field, below=3mm of w4] (w5) {Load Configuration};
+\node[field, below=3mm of w5] (w6) {Sampling Loop};
+\node[field, below=3mm of w6] (w7) {Feature Buffer};
+\node[field, below=3mm of w7] (w8) {BLE/Wi-Fi Queue};
+\node[field, below=3mm of w8] (w9) {Sleep / Shutdown};
+
+\foreach \i/\j in {w1/w2, w2/w3, w3/w4, w4/w5, w5/w6, w6/w7, w7/w8, w8/w9}
+  \draw[arrow] (\i.south) -- (\j.north);
+
+\node[above=1mm of w1, font=\bfseries\small] {Wrist Firmware};
+
+% Audio firmware (right)
+\node[field] (a1) at (7.5,6) {Boot};
+\node[field, below=3mm of a1] (a2) {Initialize I\textsuperscript{2}S};
+\node[field, below=3mm of a2] (a3) {Initialize TEMT6000};
+\node[field, below=3mm of a3] (a4) {Audio Buffer};
+\node[field, below=3mm of a4] (a5) {Feature Extraction};
+\node[field, below=3mm of a5] (a6) {Transmission Queue};
+\node[field, below=3mm of a6] (a7) {Sleep / Shutdown};
+
+\foreach \i/\j in {a1/a2, a2/a3, a3/a4, a4/a5, a5/a6, a6/a7}
+  \draw[arrow] (\i.south) -- (\j.north);
+
+\node[above=1mm of a1, font=\bfseries\small] {Audio Firmware};
+
+\end{tikzpicture}
+\caption{Boot-to-shutdown sequence for the Wrist firmware (left, 9 stages) and Audio firmware (right, 7 stages).}
+\label{fig:firmware-boot-sequences}
+\end{figure*}
+
+\subsection{Wrist Firmware Tasks}
+\label{sec:wrist-firmware-tasks-ref}
+
+\begin{itemize}
+    \item Power management
+    \item Sensor polling
+    \item Timestamp generation
+    \item Error logging
+    \item Battery monitoring
+    \item Packet transmission
+    \item Watchdog servicing
+\end{itemize}

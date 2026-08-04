@@ -1,0 +1,217 @@
+\documentclass[10pt,twocolumn,a4paper]{article}
+\input{preamble}
+
+\title{\vspace{-1em}\textbf{PSYCON: A Multimodal Wearable System for Continuous\\ Psychological Condition Monitoring}\vspace{-0.5em}}
+\author{
+PSYCON Project Team\\
+\small \textit{Independent Research Prototype --- Engineering Design Document}\\
+\small \href{mailto:globalsaksham@gmail.com}{Saksham Yadav}
+}
+\date{}
+
+\begin{document}
+
+\twocolumn[
+\maketitle
+\begin{center}
+\begin{minipage}{0.92\textwidth}
+\begin{abstract}
+\noindent
+\textbf{Background:} Psychological well-being is influenced by physiological, behavioral, and environmental factors that are difficult to capture with single-modality tools such as questionnaires or isolated biosensors. \textbf{Objective:} This paper presents PSYCON, a two-module wearable research prototype designed to continuously acquire synchronized physiological, environmental, and speech-derived signals to support early identification of changes associated with psychological well-being. \textbf{Methods:} PSYCON consists of a Wrist Module for physiological sensing (galvanic skin response, photoplethysmography, motion, and temperature) and an Audio Module for speech and ambient-light sensing, each built around an ESP32 microcontroller with independent LiPo-battery power and USB-C charging. \textbf{Results:} We report the current, hardware-confirmed system architecture, sensor allocation, communication interfaces, and power subsystem design; items pending experimental validation --- including the GSR analog front end, firmware integration, and electrical characterization --- are explicitly identified. \textbf{Conclusions:} The modular, low-cost architecture of PSYCON provides a scalable foundation for multimodal mental-health data collection and future AI-driven analysis, while maintaining a clear distinction between confirmed engineering facts and items awaiting validation.
+\end{abstract}
+
+\vspace{0.6em}
+\noindent\textbf{Keywords:} wearable sensing; multimodal monitoring; psychological well-being; galvanic skin response; photoplethysmography; ESP32; mental health technology
+\vspace{1.2em}
+\end{minipage}
+\end{center}
+]
+
+\clearpage
+\part{Volume 1: Project Foundation}
+
+% ============================================================
+% CHAPTER 1
+% ============================================================
+\input{chapters/chapter1_overview}
+
+% ============================================================
+% CHAPTER 2
+% ============================================================
+\input{chapters/chapter2_srs}
+
+% ============================================================
+% CHAPTER 3
+% ============================================================
+\input{chapters/chapter3_architecture}
+
+% ============================================================
+% CHAPTER 4
+% ============================================================
+\input{chapters/chapter4_hardware}
+
+% ============================================================
+% CHAPTER 5
+% ============================================================
+\input{chapters/chapter5_electrical}
+
+% ============================================================
+% CHAPTER 6
+% ============================================================
+\input{chapters/chapter6_firmware}
+
+% ============================================================
+% CHAPTER 7
+% ============================================================
+\input{chapters/chapter7_ai_pipeline}
+
+% ============================================================
+% CHAPTER 8
+% ============================================================
+\input{chapters/chapter8_integration}
+
+\clearpage
+\part{Volume 2: Manufacturing, Mechanical Design \& Future Roadmap}
+
+% ============================================================
+% CHAPTER 9
+% ============================================================
+\input{chapters/chapter9_manufacturing}
+
+\clearpage
+\part{Volume 3: Reference Documentation}
+
+% ============================================================
+% CHAPTER 10
+% ============================================================
+\input{chapters/chapter10_bom}
+
+% ============================================================
+% CHAPTER 11
+% ============================================================
+\input{chapters/chapter11_gpio}
+
+% ============================================================
+% CHAPTER 12
+% ============================================================
+\input{chapters/chapter12_wiring_rules}
+
+% ============================================================
+% CHAPTER 13
+% ============================================================
+\input{chapters/chapter13_calibration}
+
+% ============================================================
+% CHAPTER 14
+% ============================================================
+\input{chapters/chapter14_test_log}
+
+% ============================================================
+% CHAPTER 15
+% ============================================================
+\input{chapters/chapter15_risk_register}
+
+% ============================================================
+% CHAPTER 16
+% ============================================================
+\input{chapters/chapter16_deliverables}
+
+\clearpage
+\part{Volume 4: Research Methodology, Ethics \& Competition Documentation}
+
+% ============================================================
+% CHAPTER 17
+% ============================================================
+\input{chapters/chapter17_research_methodology}
+
+% ============================================================
+% CHAPTER 18
+% ============================================================
+\input{chapters/chapter18_data_management}
+
+% ============================================================
+% CHAPTER 19
+% ============================================================
+\input{chapters/chapter19_ethics_privacy}
+
+% ============================================================
+% CHAPTER 20
+% ============================================================
+\input{chapters/chapter20_statistical_analysis}
+
+% ============================================================
+% CHAPTER 21
+% ============================================================
+\input{chapters/chapter21_competition_docs}
+
+% ============================================================
+% CHAPTER 22
+% ============================================================
+\input{chapters/chapter22_demonstration_plan}
+
+% ============================================================
+% CHAPTER 23
+% ============================================================
+\input{chapters/chapter23_limitations}
+
+\clearpage
+\part{Volume 5: Appendices, Reference Material \& Project Closure}
+
+% ============================================================
+% CHAPTER 24
+% ============================================================
+\input{chapters/chapter24_reference_index}
+
+% ============================================================
+% CHAPTER 25
+% ============================================================
+\input{chapters/chapter25_comm_protocol}
+
+% ============================================================
+% CHAPTER 26
+% ============================================================
+\input{chapters/chapter26_firmware_ref}
+
+% ============================================================
+% CHAPTER 27
+% ============================================================
+\input{chapters/chapter27_backend_architecture}
+
+% ============================================================
+% CHAPTER 28
+% ============================================================
+\input{chapters/chapter28_test_procedures}
+
+% ============================================================
+% CHAPTER 29
+% ============================================================
+\input{chapters/chapter29_maintenance_schedule}
+
+% ============================================================
+% CHAPTER 30
+% ============================================================
+\input{chapters/chapter30_troubleshooting}
+
+% ============================================================
+% CHAPTER 31
+% ============================================================
+\input{chapters/chapter31_glossary}
+
+% ============================================================
+% CHAPTER 32
+% ============================================================
+\input{chapters/chapter32_revision_history}
+
+% ============================================================
+% CHAPTER 33
+% ============================================================
+\input{chapters/chapter33_final_checklist}
+
+% ============================================================
+% CHAPTER 34
+% ============================================================
+\input{chapters/chapter34_conclusion}
+
+\printbibliography
+
+\end{document}

@@ -1,0 +1,128 @@
+% ============================================================
+% Chapter 17 — Research Methodology
+% Source: PSYCON Engineering Design Document, Vol. 4, Ch. 17
+% ============================================================
+\section{Research Methodology}
+\label{sec:research-methodology}
+
+\subsection{Research Objective}
+\label{sec:research-objective}
+
+The objective of PSYCON is to investigate whether multimodal physiological and speech-derived features can be combined to estimate indicators relevant to psychological well-being in a research setting. The system is intended as a research and screening prototype, not a diagnostic medical device.
+
+\subsection{Research Questions}
+\label{sec:research-questions}
+
+\textbf{Primary questions:}
+\begin{itemize}
+    \item Can physiological and speech features improve predictive performance compared with either modality alone?
+    \item How robust are predictions under different environmental conditions?
+    \item How does motion affect signal quality?
+    \item What is the minimum recording duration needed for stable feature extraction?
+\end{itemize}
+
+\subsection{Study Design}
+\label{sec:study-design}
+
+\Cref{fig:study-workflow} shows the suggested end-to-end study workflow.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\scriptsize,
+    node distance=0mm,
+    field/.style={draw, rounded corners=2pt, fill=blue!6, minimum width=3.4cm, minimum height=0.6cm, align=center, line width=0.5pt}
+]
+\node[field] (s1) {Participant Recruitment};
+\node[field, below=5mm of s1] (s2) {Consent};
+\node[field, below=5mm of s2] (s3) {Hardware Calibration};
+\node[field, below=5mm of s3] (s4) {Data Collection};
+\node[field, below=5mm of s4] (s5) {Data Quality Review};
+\node[field, below=5mm of s5] (s6) {Feature Extraction};
+\node[field, below=5mm of s6] (s7) {Model Training};
+\node[field, below=5mm of s7] (s8) {Validation};
+\node[field, below=5mm of s8] (s9) {Analysis};
+\node[field, below=5mm of s9] (s10) {Reporting};
+
+\foreach \i/\j in {s1/s2, s2/s3, s3/s4, s4/s5, s5/s6, s6/s7, s7/s8, s8/s9, s9/s10}
+  \draw[-{Stealth[length=2mm]}, line width=0.6pt] (\i.south) -- (\j.north);
+\end{tikzpicture}
+\caption{Suggested end-to-end study workflow, from participant recruitment and consent through data collection, feature extraction, model training and validation, to final analysis and reporting.}
+\label{fig:study-workflow}
+\end{figure}
+
+\subsection{Participants}
+\label{sec:participants}
+
+For each participant, the following should be recorded:
+\begin{itemize}
+    \item Anonymous participant ID
+    \item Age group (if relevant)
+    \item Biological sex (optional, if ethically approved)
+    \item Recording date/time
+    \item Session duration
+    \item Environmental conditions
+    \item Device firmware version
+\end{itemize}
+
+\begin{warningbox}
+Avoid collecting personally identifying information unless necessary and approved.
+\end{warningbox}
+
+\subsection{Data Collection Protocol}
+\label{sec:data-collection-protocol}
+
+For every session:
+\begin{enumerate}
+    \item Verify hardware operation.
+    \item Confirm battery level.
+    \item Attach wrist module.
+    \item Position audio module.
+    \item Start synchronized recording.
+    \item Monitor system status.
+    \item End recording.
+    \item Save data.
+    \item Backup data.
+    \item Review data quality.
+\end{enumerate}
+
+\subsection{Recorded Variables}
+\label{sec:recorded-variables}
+
+\Cref{tab:recorded-variables} lists the variables recorded for each session, organized by category.
+
+\begin{table}[H]
+\centering
+\caption{Recorded variables by category.}
+\label{tab:recorded-variables}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{Category} & \textbf{Variables} \\
+\midrule
+Physiological & Heart rate; PPG waveform; GSR; temperature; motion; ambient light; battery status \\
+Speech & Audio recording (if consented); extracted acoustic features; extracted language features \\
+System & Timestamp; session ID; firmware version; sensor status; error logs \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Inclusion Criteria}
+\label{sec:inclusion-criteria}
+
+\textbf{Example criteria:}
+\begin{itemize}
+    \item Adult participants (or appropriate guardian consent for minors).
+    \item Ability to provide informed consent.
+    \item Ability to wear the device comfortably.
+\end{itemize}
+
+\subsection{Exclusion Criteria}
+\label{sec:exclusion-criteria}
+
+\textbf{Example criteria:}
+\begin{itemize}
+    \item Damaged skin at electrode location.
+    \item Implanted medical devices, if required by the safety review.
+    \item Participants unwilling to consent to physiological or audio recording.
+\end{itemize}

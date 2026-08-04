@@ -1,0 +1,26 @@
+% ============================================================
+% Chapter 28 — Complete Test Procedures
+% Source: PSYCON Engineering Design Document, Vol. 5, Ch. 28
+% ============================================================
+\section{Complete Test Procedures}
+\label{sec:complete-test-procedures}
+
+\Cref{tab:complete-test-procedures} consolidates the complete set of test procedures across hardware, electrical, firmware, AI, and mechanical domains.
+
+\begin{table*}[t]
+\centering
+\caption{Complete test procedures by category.}
+\label{tab:complete-test-procedures}
+\small
+\begin{tabularx}{\textwidth}{@{}l Y@{}}
+\toprule
+\textbf{Category} & \textbf{Test Items} \\
+\midrule
+Hardware & Visual inspection; connector inspection; battery polarity verification; sensor detection; charging verification; thermal inspection \\
+Electrical & Supply voltage validation; brownout verification; current consumption; runtime testing; charging cycle testing \\
+Firmware & Boot reliability; sensor initialization; error recovery; watchdog operation; memory stability; long-duration operation \\
+AI & Dataset integrity; feature extraction validation; training reproducibility; cross-validation; performance evaluation; error analysis \\
+Mechanical & Wearability; strap integrity; enclosure fit; cable strain relief; button accessibility; charging access \\
+\bottomrule
+\end{tabularx}
+\end{table*}

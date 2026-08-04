@@ -1,0 +1,81 @@
+% ============================================================
+% Chapter 25 — Communication Protocol
+% Source: PSYCON Engineering Design Document, Vol. 5, Ch. 25
+% ============================================================
+\section{Communication Protocol}
+\label{sec:communication-protocol}
+
+\subsection{Wrist ESP32 to Backend and Audio ESP32 to Backend}
+\label{sec:packet-structures}
+
+\Cref{fig:packet-structures} shows the field structure of each transmitted packet for the Wrist and Audio modules.
+
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}[
+    font=\scriptsize,
+    field/.style={draw, rounded corners=2pt, text width=3.0cm, minimum height=0.55cm, align=center, line width=0.5pt, fill=blue!6},
+    arrow/.style={-{Stealth[length=1.8mm]}, line width=0.5pt}
+]
+% Wrist packet (left column)
+\node[field] (w1) at (0,7.5) {Packet Header};
+\node[field, below=3mm of w1] (w2) {Timestamp};
+\node[field, below=3mm of w2] (w3) {Heart Rate};
+\node[field, below=3mm of w3] (w4) {Raw PPG};
+\node[field, below=3mm of w4] (w5) {SpO\textsubscript{2} (if available)};
+\node[field, below=3mm of w5] (w6) {Temperature};
+\node[field, below=3mm of w6] (w7) {Accelerometer};
+\node[field, below=3mm of w7] (w8) {Gyroscope};
+\node[field, below=3mm of w8] (w9) {GSR};
+\node[field, below=3mm of w9] (w10) {Battery Voltage};
+\node[field, below=3mm of w10] (w11) {Signal Quality};
+\node[field, below=3mm of w11] (w12) {Checksum};
+
+\foreach \i/\j in {w1/w2, w2/w3, w3/w4, w4/w5, w5/w6, w6/w7, w7/w8, w8/w9, w9/w10, w10/w11, w11/w12}
+  \draw[arrow] (\i.south) -- (\j.north);
+
+\node[above=1mm of w1, font=\bfseries\small] {Wrist ESP32 $\to$ Backend};
+
+% Audio packet (right column)
+\node[field] (a1) at (7.5,7.5) {Packet Header};
+\node[field, below=3mm of a1] (a2) {Timestamp};
+\node[field, below=3mm of a2] (a3) {Audio Features};
+\node[field, below=3mm of a3] (a4) {Ambient Light};
+\node[field, below=3mm of a4] (a5) {Battery Voltage};
+\node[field, below=3mm of a5] (a6) {Microphone Status};
+\node[field, below=3mm of a6] (a7) {Checksum};
+
+\foreach \i/\j in {a1/a2, a2/a3, a3/a4, a4/a5, a5/a6, a6/a7}
+  \draw[arrow] (\i.south) -- (\j.north);
+
+\node[above=1mm of a1, font=\bfseries\small] {Audio ESP32 $\to$ Backend};
+
+\end{tikzpicture}
+\caption{Field structure of packets transmitted from the Wrist ESP32 (left, 12 fields) and Audio ESP32 (right, 7 fields) to the backend.}
+\label{fig:packet-structures}
+\end{figure*}
+
+\subsection{Synchronization}
+\label{sec:comm-synchronization}
+
+Both ESP32 modules should maintain synchronized timestamps. \Cref{fig:sync-sequence} shows the recommended synchronization sequence.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\scriptsize,
+    node distance=0mm,
+    field/.style={draw, rounded corners=2pt, fill=violet!6, minimum width=3.4cm, minimum height=0.6cm, align=center, line width=0.5pt}
+]
+\node[field] (s1) {Backend Time};
+\node[field, below=5mm of s1] (s2) {Audio Module};
+\node[field, below=5mm of s2] (s3) {Wrist Module};
+\node[field, below=5mm of s3] (s4) {Common Epoch};
+\node[field, below=5mm of s4] (s5) {Continuous Offset Correction};
+
+\foreach \i/\j in {s1/s2, s2/s3, s3/s4, s4/s5}
+  \draw[-{Stealth[length=2mm]}, line width=0.6pt] (\i.south) -- (\j.north);
+\end{tikzpicture}
+\caption{Recommended synchronization sequence, from backend time distribution through per-module alignment to a common epoch with continuous offset correction.}
+\label{fig:sync-sequence}
+\end{figure}

@@ -1,0 +1,35 @@
+% ============================================================
+% Chapter 27 — Backend Software Architecture
+% Source: PSYCON Engineering Design Document, Vol. 5, Ch. 27
+% ============================================================
+\section{Backend Software Architecture}
+\label{sec:backend-software-architecture}
+
+\Cref{fig:backend-architecture-ref} shows the end-to-end backend software pipeline. Modules should be independently testable and version-controlled.
+
+\begin{figure*}[t]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\scriptsize,
+    stage/.style={draw, rounded corners=3pt, text width=1.85cm, minimum height=1.05cm, align=center, line width=0.6pt, fill=gray!8, inner sep=1.5pt},
+    arrow/.style={-{Stealth[length=1.8mm]}, line width=0.5pt},
+    node distance=1mm
+]
+\node[stage] (s1) {API Gateway};
+\node[stage, right=of s1] (s2) {Authentication Layer};
+\node[stage, right=of s2] (s3) {Packet Validator};
+\node[stage, right=of s3] (s4) {Time Synchronizer};
+\node[stage, right=of s4] (s5) {Database};
+\node[stage, right=of s5] (s6) {Feature Extraction};
+\node[stage, right=of s6] (s7) {AI Inference Engine};
+\node[stage, right=of s7] (s8) {Visualization Dashboard};
+\node[stage, right=of s8] (s9) {Research Export};
+
+\foreach \i/\j in {s1/s2, s2/s3, s3/s4, s4/s5, s5/s6, s6/s7, s7/s8, s8/s9}
+  \draw[arrow] (\i.east) -- (\j.west);
+\end{tikzpicture}%
+}
+\caption{End-to-end backend software pipeline, from API gateway and authentication through packet validation, time synchronization, storage, feature extraction, AI inference, visualization, and research export.}
+\label{fig:backend-architecture-ref}
+\end{figure*}

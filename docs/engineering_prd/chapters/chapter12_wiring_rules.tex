@@ -1,0 +1,30 @@
+% ============================================================
+% Chapter 12 — Wiring Rules
+% Source: PSYCON Engineering Design Document, Vol. 3, Ch. 12
+% ============================================================
+\section{Wiring Rules}
+\label{sec:wiring-rules}
+
+\subsection{Always}
+\label{sec:wiring-always}
+
+\begin{itemize}
+    \item Share one common ground.
+    \item Keep I\textsuperscript{2}C wires short.
+    \item Keep microphone traces away from power lines.
+    \item Separate analog GSR wiring from digital signals.
+    \item Twist long GSR leads if possible.
+    \item Secure battery wiring to prevent movement.
+\end{itemize}
+
+\subsection{Avoid}
+\label{sec:wiring-avoid}
+
+\begin{warningbox}
+\begin{itemize}
+    \item 5\,V directly on ESP32 GPIOs.
+    \item Charging while electrodes are attached.
+    \item Long unshielded microphone wires.
+    \item Loose JST connectors.
+\end{itemize}
+\end{warningbox}

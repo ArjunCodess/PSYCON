@@ -1,0 +1,442 @@
+% ============================================================
+% Chapter 6 — Firmware Architecture & Software Design
+% Source: PSYCON Engineering Design Document, Vol. 1, Ch. 6
+% ============================================================
+\section{Firmware Architecture \& Software Design}
+\label{sec:firmware-architecture}
+
+\subsection{Firmware Overview}
+\label{sec:firmware-overview}
+
+PSYCON uses two independent ESP32 firmware projects, one per module.
+
+\textbf{Wrist Module firmware} is responsible for: MAX30102 acquisition; MPU6050 acquisition; MCP9808 acquisition; GSR acquisition (via the ADS1115); timestamping; local preprocessing; BLE/Wi-Fi transmission; battery monitoring; and error logging.
+
+\textbf{Audio Module firmware} is responsible for: INMP441 audio capture; TEMT6000 acquisition; audio buffering; voice preprocessing; BLE/Wi-Fi transmission; battery monitoring; and error logging.
+
+\subsection{Software Layers}
+\label{sec:software-layers}
+
+\Cref{fig:software-layers} shows the layered firmware architecture shared by both modules, from the application layer down to the physical ESP32 hardware.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\small,
+    node distance=0mm,
+    layer/.style={draw, rounded corners=3pt, minimum width=6.4cm, align=center, line width=0.6pt},
+    apps/.style={layer, fill=blue!8, minimum height=1.9cm},
+    hal/.style={layer, fill=orange!10, minimum height=0.8cm},
+    core/.style={layer, fill=gray!10, minimum height=0.8cm},
+    hw/.style={layer, fill=green!8, minimum height=0.8cm}
+]
+\node[apps] (app) {
+  \textbf{Application Layer}\\[2pt]
+  \begin{tabular}{@{}l@{}}
+  \textbullet\ Sensor Manager \\
+  \textbullet\ Data Fusion \\
+  \textbullet\ Communications \\
+  \textbullet\ Battery Manager \\
+  \textbullet\ Diagnostics
+  \end{tabular}
+};
+\node[hal, below=5mm of app] (hal) {Hardware Abstraction Layer (HAL)};
+\node[core, below=5mm of hal] (core) {ESP-IDF / Arduino Core};
+\node[hw, below=5mm of core] (hw) {ESP32 Hardware};
+
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (app.south) -- (hal.north);
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (hal.south) -- (core.north);
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (core.south) -- (hw.north);
+\end{tikzpicture}
+\caption{Layered firmware architecture: an application layer (sensor management, data fusion, communications, battery management, diagnostics) sits above a hardware abstraction layer, the ESP-IDF/Arduino core, and the ESP32 hardware itself.}
+\label{fig:software-layers}
+\end{figure}
+
+\subsection{Wrist Module Tasks}
+\label{sec:wrist-module-tasks}
+
+The Wrist Module firmware is organized into eight cooperating tasks, summarized in \Cref{tab:wrist-tasks-summary} and illustrated in \Cref{fig:wrist-task-pipeline}.
+
+\begin{table*}[t]
+\centering
+\caption{Wrist Module firmware task summary.}
+\label{tab:wrist-tasks-summary}
+\small
+\begin{tabularx}{\textwidth}{@{}l l Y@{}}
+\toprule
+\textbf{Task} & \textbf{Trigger} & \textbf{Responsibilities} \\
+\midrule
+1. Sensor Initialization & Runs once & Initializes MAX30102, ADS1115, MPU6050, MCP9808 \\
+2. Heart Rate Task & Periodic & Reads RED LED; reads IR LED; filters signal; stores buffer \\
+3. Motion Task & Periodic & Reads accelerometer and gyroscope; computes movement and orientation \\
+4. Temperature Task & Periodic & Reads MCP9808; stores temperature \\
+5. GSR Task & Periodic & Reads ADS1115; converts ADC value to conductance; stores value \\
+6. Packet Builder & Periodic & Assembles one packet from timestamp, heart, motion, temperature, GSR, and checksum \\
+7. BLE/Wi-Fi Task & Periodic & Uploads packets; retries on failure \\
+8. Battery Monitor & Periodic & Checks battery voltage; issues low-battery / shutdown warnings \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}[
+    font=\scriptsize,
+    stage/.style={draw, rounded corners=3pt, text width=1.6cm, minimum height=1.15cm, align=center, line width=0.6pt, fill=blue!6, inner sep=2pt},
+    final/.style={stage, fill=green!8},
+    arrow/.style={-{Stealth[length=2mm]}, line width=0.6pt},
+    node distance=2mm
+]
+\node[stage] (t1) {Task 1\\Sensor Init};
+\node[stage, right=of t1] (t2) {Task 2\\Heart Rate};
+\node[stage, right=of t2] (t3) {Task 3\\Motion};
+\node[stage, right=of t3] (t4) {Task 4\\Temperature};
+\node[stage, right=of t4] (t5) {Task 5\\GSR};
+\node[stage, right=of t5] (t6) {Task 6\\Packet Builder};
+\node[stage, right=of t6] (t7) {Task 7\\BLE/Wi-Fi};
+\node[final, right=of t7] (t8) {Task 8\\Battery Monitor};
+
+\draw[arrow] (t1.east) -- (t2.west);
+\draw[arrow] (t2.east) -- (t3.west);
+\draw[arrow] (t3.east) -- (t4.west);
+\draw[arrow] (t4.east) -- (t5.west);
+\draw[arrow] (t5.east) -- (t6.west);
+\draw[arrow] (t6.east) -- (t7.west);
+\draw[arrow] (t7.east) -- (t8.west);
+\end{tikzpicture}
+\caption{Wrist Module task pipeline: one-time sensor initialization followed by periodic acquisition tasks (heart rate, motion, temperature, GSR), packet assembly, wireless upload, and battery monitoring.}
+\label{fig:wrist-task-pipeline}
+\end{figure*}
+
+\subsection{Audio Tasks}
+\label{sec:audio-tasks-ch6}
+
+The Audio Module firmware runs four cooperating tasks: the Microphone Task, the Light Sensor Task, the Packet Builder, and the Battery Monitor / Communication task. \Cref{fig:audio-task-pipeline} shows the audio acquisition pipeline from initialization through transmission.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\small,
+    node distance=0mm,
+    field/.style={draw, rounded corners=2pt, fill=violet!6, minimum width=3.6cm, minimum height=0.65cm, align=center, line width=0.5pt}
+]
+\node[field] (init) {Initialization};
+\node[field, below=5mm of init] (i2s) {I\textsuperscript{2}S Configure};
+\node[field, below=5mm of i2s] (dma) {DMA Buffers};
+\node[field, below=5mm of dma] (rec) {Continuous Recording};
+\node[field, below=5mm of rec] (frame) {Frame Buffer};
+\node[field, below=5mm of frame] (tx) {Transmission};
+
+\foreach \a/\b in {init/i2s, i2s/dma, dma/rec, rec/frame, frame/tx}
+  \draw[-{Stealth[length=2mm]}, line width=0.6pt] (\a.south) -- (\b.north);
+\end{tikzpicture}
+\caption{Audio Module acquisition pipeline: initialization, I\textsuperscript{2}S configuration, DMA buffer setup, continuous recording, frame buffering, and transmission.}
+\label{fig:audio-task-pipeline}
+\end{figure}
+
+\subsection{Data Flow}
+\label{sec:firmware-data-flow}
+
+\Cref{fig:firmware-data-flow} shows the end-to-end firmware data flow, from raw sensor reads through to server-side AI processing.
+
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}[
+    font=\scriptsize,
+    stage/.style={draw, rounded corners=3pt, text width=1.6cm, minimum height=1.1cm, align=center, line width=0.6pt, fill=orange!8, inner sep=2pt},
+    arrow/.style={-{Stealth[length=2mm]}, line width=0.6pt},
+    node distance=2.5mm
+]
+\node[stage] (s1) {Sensors};
+\node[stage, right=of s1] (s2) {Driver};
+\node[stage, right=of s2] (s3) {Filter};
+\node[stage, right=of s3] (s4) {Timestamp};
+\node[stage, right=of s4] (s5) {Packet};
+\node[stage, right=of s5] (s6) {Transmission};
+\node[stage, right=of s6] (s7) {Server};
+\node[stage, right=of s7] (s8) {AI};
+
+\foreach \i/\j in {s1/s2, s2/s3, s3/s4, s4/s5, s5/s6, s6/s7, s7/s8}
+  \draw[arrow] (\i.east) -- (\j.west);
+\end{tikzpicture}
+\caption{End-to-end firmware data flow, from sensor acquisition through driver-level reads, filtering, timestamping, packet assembly, wireless transmission, server ingestion, and AI processing.}
+\label{fig:firmware-data-flow}
+\end{figure*}
+
+\subsection{Packet Structure}
+\label{sec:packet-structure}
+
+\Cref{tab:packet-physio} lists an example physiological packet structure (Wrist Module), and \Cref{tab:packet-audio} lists the audio packet structure (Audio Module).
+
+\begin{table}[H]
+\centering
+\caption{Example physiological (Wrist Module) packet fields.}
+\label{tab:packet-physio}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{\#} & \textbf{Field} \\
+\midrule
+1 & Timestamp \\
+2 & Heart rate \\
+3 & SpO\textsubscript{2} \\
+4 & Accelerometer X \\
+5 & Accelerometer Y \\
+6 & Accelerometer Z \\
+7 & Gyroscope X \\
+8 & Gyroscope Y \\
+9 & Gyroscope Z \\
+10 & Temperature \\
+11 & GSR \\
+12 & Battery \\
+13 & Checksum \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Audio packet fields.}
+\label{tab:packet-audio}
+\small
+\begin{tabularx}{\columnwidth}{@{}l Y@{}}
+\toprule
+\textbf{\#} & \textbf{Field} \\
+\midrule
+1 & Timestamp \\
+2 & PCM samples \\
+3 & Battery \\
+4 & Checksum \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Sampling Strategy}
+\label{sec:sampling-strategy}
+
+\Cref{tab:sampling-strategy} summarizes the acquisition regime for each signal. Actual sampling frequencies are to be finalized based on testing and downstream processing requirements.
+
+\begin{table}[H]
+\centering
+\caption{Sampling strategy by signal.}
+\label{tab:sampling-strategy}
+\small
+\begin{tabularx}{\columnwidth}{@{}Y l@{}}
+\toprule
+\textbf{Signal} & \textbf{Regime} \\
+\midrule
+Heart & Continuous \\
+Motion & Continuous \\
+Temperature & Periodic \\
+Light & Periodic \\
+Audio & Continuous \\
+GSR & Continuous \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{requirementbox}
+Actual sampling frequencies for each signal remain to be finalized based on empirical testing and the requirements of downstream processing.
+\end{requirementbox}
+
+\subsection{Error Handling}
+\label{sec:error-handling-ch6}
+
+\Cref{alg:error-handling} describes the generic sensor error-handling procedure used across both firmware projects. The system is designed so that a single failed sensor never causes a complete crash.
+
+\begin{algorithm}[t]
+\small
+\caption{Generic Sensor Error Handling}
+\label{alg:error-handling}
+\KwData{Sensor read request}
+\KwResult{Sensor value or logged failure, without halting the system}
+Attempt sensor read\;
+\If{timeout or communication error detected}{
+  Retry read\;
+  \If{retry fails}{
+    Log error (sensor ID, error type, timestamp)\;
+  }
+}
+Continue acquisition for all remaining sensors\;
+\end{algorithm}
+
+\subsection{Communication}
+\label{sec:communication-ch6}
+
+Every transmitted packet contains: a timestamp; a sensor ID; the payload; a CRC/checksum; and a sequence number. Because each packet carries a sequence number, missing packets can be detected at the receiving end.
+
+\subsection{Logging}
+\label{sec:logging-ch6}
+
+The firmware maintains logs for: sensor initialization failures; I\textsuperscript{2}C communication errors; buffer overruns; Wi-Fi/BLE reconnects; battery warnings; brownout events; and memory allocation failures.
+
+\subsection{Battery Management}
+\label{sec:battery-management-ch6}
+
+\Cref{fig:battery-state} shows the firmware battery-management state progression. Sudden power loss is avoided where possible by saving pending data before shutdown.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\small,
+    node distance=0mm,
+    field/.style={draw, rounded corners=2pt, fill=red!6, minimum width=4.0cm, minimum height=0.65cm, align=center, line width=0.5pt}
+]
+\node[field, fill=green!8] (normal) {Normal};
+\node[field, below=5mm of normal] (warn) {Battery Warning};
+\node[field, below=5mm of warn] (save) {Save Pending Data};
+\node[field, below=5mm of save] (shut) {Graceful Shutdown};
+
+\foreach \a/\b in {normal/warn, warn/save, save/shut}
+  \draw[-{Stealth[length=2mm]}, line width=0.6pt] (\a.south) -- (\b.north);
+\end{tikzpicture}
+\caption{Firmware battery-management state progression, from normal operation through a battery-warning state, saving of pending data, and graceful shutdown.}
+\label{fig:battery-state}
+\end{figure}
+
+\subsection{Boot Sequence}
+\label{sec:boot-sequence}
+
+\Cref{fig:boot-sequence} shows the firmware boot sequence, from power-on to continuous acquisition.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\small,
+    node distance=0mm,
+    field/.style={draw, rounded corners=2pt, fill=blue!6, minimum width=4.4cm, minimum height=0.6cm, align=center, line width=0.5pt}
+]
+\node[field] (pwr) {Power On};
+\node[field, below=4mm of pwr] (boot) {ESP32 Boot};
+\node[field, below=4mm of boot] (hwinit) {Initialize Hardware};
+\node[field, below=4mm of hwinit] (sensinit) {Initialize Sensors};
+\node[field, below=4mm of sensinit] (scan) {I\textsuperscript{2}C Scan};
+\node[field, below=4mm of scan] (self) {Self-Test};
+\node[field, below=4mm of self] (comm) {Communication Ready};
+\node[field, below=4mm of comm, fill=green!8] (acq) {Continuous Acquisition};
+
+\foreach \a/\b in {pwr/boot, boot/hwinit, hwinit/sensinit, sensinit/scan, scan/self, self/comm, comm/acq}
+  \draw[-{Stealth[length=2mm]}, line width=0.6pt] (\a.south) -- (\b.north);
+\end{tikzpicture}
+\caption{Firmware boot sequence, from power-on through hardware and sensor initialization, an I\textsuperscript{2}C bus scan, self-test, and communication readiness, to continuous acquisition.}
+\label{fig:boot-sequence}
+\end{figure}
+
+\subsection{Watchdog Recovery}
+\label{sec:watchdog-recovery}
+
+\begin{engnote}
+If the firmware hangs, the watchdog resets the ESP32. The boot reason is logged, and data acquisition resumes automatically after restart.
+\end{engnote}
+
+\subsection{Memory Management}
+\label{sec:memory-management-ch6}
+
+\begin{designnote}
+Firmware uses fixed-size buffers and circular/ring buffers for continuous streams. Dynamic memory allocation (\texttt{malloc}/\texttt{new}) is avoided within continuous acquisition loops to reduce heap fragmentation.
+\end{designnote}
+
+\subsection{Audio Buffering}
+\label{sec:audio-buffering}
+
+\Cref{fig:audio-buffering} shows the audio buffering chain, which helps prevent sample loss during temporary communication delays.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\small,
+    node distance=0mm,
+    field/.style={draw, rounded corners=2pt, fill=violet!6, minimum width=4.6cm, minimum height=0.65cm, align=center, line width=0.5pt}
+]
+\node[field] (mic) {INMP441};
+\node[field, below=5mm of mic] (dma) {DMA};
+\node[field, below=5mm of dma] (circ) {Circular Buffer};
+\node[field, below=5mm of circ] (feat) {Feature Extraction / Packetization};
+\node[field, below=5mm of feat] (tx) {Transmission};
+
+\foreach \a/\b in {mic/dma, dma/circ, circ/feat, feat/tx}
+  \draw[-{Stealth[length=2mm]}, line width=0.6pt] (\a.south) -- (\b.north);
+\end{tikzpicture}
+\caption{Audio buffering chain from the INMP441 microphone through DMA and a circular buffer to feature extraction/packetization and transmission, reducing sample loss during transient communication delays.}
+\label{fig:audio-buffering}
+\end{figure}
+
+\subsection{Firmware Folder Structure}
+\label{sec:firmware-folder-structure}
+
+\Cref{lst:firmware-structure} shows the planned firmware repository layout, shared between the Wrist and Audio Module projects.
+
+\begin{figure}[H]
+\centering
+\begin{lstlisting}[
+  basicstyle=\ttfamily\scriptsize,
+  frame=single,
+  caption={PSYCON firmware repository structure.},
+  label={lst:firmware-structure},
+  numbers=none
+]
+firmware/
+|-- wrist/
+|   |-- sensors/
+|   |-- communication/
+|   |-- battery/
+|   |-- logging/
+|   |-- utilities/
+|   `-- main.cpp
+|-- audio/
+|   |-- microphone/
+|   |-- communication/
+|   |-- battery/
+|   |-- logging/
+|   `-- main.cpp
+`-- shared/
+    |-- config.h
+    |-- packet.h
+    |-- crc.cpp
+    `-- timestamp.cpp
+\end{lstlisting}
+\end{figure}
+
+\subsection{Firmware Validation Checklist}
+\label{sec:firmware-validation-checklist}
+
+\begin{requirementbox}
+\textbf{Before full integration, the following must be verified:}
+\begin{itemize}
+    \item Sensor initialization succeeds.
+    \item All I\textsuperscript{2}C devices are detected.
+    \item No address conflicts.
+    \item Stable sampling over extended periods.
+    \item No packet corruption.
+    \item No memory leaks.
+    \item No watchdog resets during normal operation.
+    \item Battery warnings trigger correctly.
+    \item Graceful shutdown works.
+    \item Audio stream remains continuous without excessive buffer overruns.
+\end{itemize}
+\end{requirementbox}
+
+\subsection{Version Control}
+\label{sec:version-control-ch6}
+
+The following are tracked under version control: firmware version; hardware revision; configuration changes; sensor calibration updates; release notes; and test results for each firmware version.
+
+\subsection{Chapter Status}
+\label{sec:ch6-status}
+
+\begin{validationbox}
+\textbf{Completed for this chapter:}
+\begin{itemize}
+    \item Firmware architecture
+    \item Task scheduling
+    \item Sensor acquisition flow
+    \item Packet structure
+    \item Communication design
+    \item Logging strategy
+    \item Battery management
+    \item Error handling
+    \item Memory management
+    \item Boot process
+    \item Validation checklist
+\end{itemize}
+\end{validationbox}

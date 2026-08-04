@@ -1,0 +1,266 @@
+% ============================================================
+% Chapter 9 — Manufacturing, PCB Design & Mechanical Engineering
+% Source: PSYCON Engineering Design Document, Vol. 2, Ch. 9
+% ============================================================
+\section{Manufacturing, PCB Design, and Mechanical Engineering}
+\label{sec:manufacturing}
+
+\subsection{Manufacturing Philosophy}
+\label{sec:manufacturing-philosophy}
+
+PSYCON is designed as a research prototype with a clear migration path, shown in \Cref{fig:manufacturing-path}. The current implementation emphasizes rapid prototyping, validation, and documentation before hardware miniaturization.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    font=\scriptsize,
+    node distance=0mm,
+    field/.style={draw, rounded corners=2pt, fill=violet!6, minimum width=3.6cm, minimum height=0.65cm, align=center, line width=0.5pt}
+]
+\node[field] (s1) {Breadboard};
+\node[field, below=6mm of s1] (s2) {Perfboard};
+\node[field, below=6mm of s2] (s3) {Custom PCB};
+\node[field, below=6mm of s3] (s4) {Integrated Wearable Prototype};
+\node[field, below=6mm of s4] (s5) {Pilot Research Device};
+
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (s1.south) -- (s2.north);
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (s2.south) -- (s3.north);
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (s3.south) -- (s4.north);
+\draw[-{Stealth[length=2mm]}, line width=0.6pt] (s4.south) -- (s5.north);
+\end{tikzpicture}
+\caption{PSYCON manufacturing migration path, from breadboard prototyping through to a pilot research device.}
+\label{fig:manufacturing-path}
+\end{figure}
+
+\subsection{PCB Design Goals}
+\label{sec:pcb-design-goals}
+
+The custom PCB should:
+\begin{itemize}
+    \item Reduce wiring complexity.
+    \item Improve signal integrity.
+    \item Lower power consumption.
+    \item Reduce mechanical failure points.
+    \item Simplify assembly.
+    \item Improve repeatability across multiple units.
+\end{itemize}
+
+\subsection{PCB Architecture}
+\label{sec:pcb-architecture}
+
+\Cref{tab:pcb-architecture} summarizes which components are integrated on the Wrist PCB versus the Audio PCB.
+
+\begin{table*}[t]
+\centering
+\caption{PCB architecture: component allocation between the Wrist PCB and Audio PCB.}
+\label{tab:pcb-architecture}
+\small
+\begin{tabularx}{\textwidth}{@{}Y c c@{}}
+\toprule
+\textbf{Component} & \textbf{Wrist PCB} & \textbf{Audio PCB} \\
+\midrule
+ESP32 & \checkmark & \checkmark \\
+MAX30102 & \checkmark & --- \\
+ADS1115 & \checkmark & --- \\
+MCP9808 & \checkmark & --- \\
+MPU6050 & \checkmark & --- \\
+GSR analog front-end & \checkmark & --- \\
+INMP441 & --- & \checkmark \\
+TEMT6000 & --- & \checkmark \\
+Battery connector & \checkmark & \checkmark \\
+Charging interface & \checkmark & \checkmark \\
+Programming header & \checkmark & \checkmark \\
+Power regulation & \checkmark & --- \\
+Status LEDs & --- & \checkmark \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\subsection{Mechanical Layout}
+\label{sec:mechanical-layout}
+
+\Cref{fig:mechanical-layout} shows the suggested mechanical stack-up for both modules.
+
+\begin{figure*}[t]
+\centering
+\begin{tikzpicture}[
+    font=\scriptsize,
+    layer/.style={draw, rounded corners=2pt, text width=3.4cm, minimum height=0.7cm, align=center, line width=0.5pt, fill=gray!8},
+    arrow/.style={-{Stealth[length=2mm]}, line width=0.6pt}
+]
+% Wrist Module stack
+\node[layer] (w1) at (0,5.4) {Top Cover};
+\node[layer, below=4mm of w1] (w2) {MAX30102 Window};
+\node[layer, below=4mm of w2] (w3) {PCB};
+\node[layer, below=4mm of w3] (w4) {Battery};
+\node[layer, below=4mm of w4] (w5) {Bottom Cover};
+\node[layer, below=4mm of w5] (w6) {Skin Contact Surface};
+
+\draw[arrow] (w1.south) -- (w2.north);
+\draw[arrow] (w2.south) -- (w3.north);
+\draw[arrow] (w3.south) -- (w4.north);
+\draw[arrow] (w4.south) -- (w5.north);
+\draw[arrow] (w5.south) -- (w6.north);
+
+\node[above=1mm of w1, font=\bfseries\small] {Wrist Module Stack};
+
+% Audio Module stack
+\node[layer] (a1) at (7.5,5.4) {Microphone Port};
+\node[layer, below=4mm of a1] (a2) {PCB};
+\node[layer, below=4mm of a2] (a3) {Battery};
+\node[layer, below=4mm of a3] (a4) {Rear Cover};
+
+\draw[arrow] (a1.south) -- (a2.north);
+\draw[arrow] (a2.south) -- (a3.north);
+\draw[arrow] (a3.south) -- (a4.north);
+
+\node[above=1mm of a1, font=\bfseries\small] {Audio Module Stack};
+
+\end{tikzpicture}
+\caption{Suggested mechanical stack-up for the Wrist Module (top cover through skin-contact surface) and Audio Module (microphone port through rear cover).}
+\label{fig:mechanical-layout}
+\end{figure*}
+
+\textbf{Wrist Module.} The optical sensor should remain flush against the skin, while electronics are isolated from direct skin contact.
+
+\textbf{Audio Module.} The microphone opening should remain unobstructed and protected from dust.
+
+\subsection{Enclosure Requirements}
+\label{sec:enclosure-requirements}
+
+\begin{itemize}
+    \item Lightweight.
+    \item Rounded edges.
+    \item Sweat resistant.
+    \item Battery securely retained.
+    \item Accessible USB charging port.
+    \item Reset/programming access.
+    \item Ventilation where required.
+    \item Strain relief for any external wiring.
+\end{itemize}
+
+\subsection{Assembly Process}
+\label{sec:assembly-process}
+
+\begin{enumerate}
+    \item Inspect all PCBs.
+    \item Verify battery polarity.
+    \item Assemble power system.
+    \item Program ESP32 firmware.
+    \item Test each sensor individually.
+    \item Integrate all modules.
+    \item Perform system-level verification.
+    \item Close enclosure.
+    \item Final functional test.
+\end{enumerate}
+
+\subsection{Quality Control Checklist}
+\label{sec:qc-checklist}
+
+\textbf{Before final assembly:}
+\begin{checklist}
+    \item No solder bridges.
+    \item Correct component orientation.
+    \item Secure connectors.
+    \item Proper insulation.
+    \item Stable power rails.
+    \item All sensors detected.
+    \item Firmware version recorded.
+\end{checklist}
+
+\subsection{Maintenance}
+\label{sec:maintenance}
+
+\textbf{Recommended periodic checks:}
+\begin{itemize}
+    \item Battery health.
+    \item Connector wear.
+    \item Sensor cleanliness.
+    \item Enclosure integrity.
+    \item Firmware updates.
+    \item Calibration verification.
+\end{itemize}
+
+\subsection{Reliability Considerations}
+\label{sec:reliability-considerations}
+
+\begin{observationbox}
+\textbf{Potential failure modes:}
+\begin{itemize}
+    \item Battery degradation.
+    \item Loose connectors.
+    \item Sensor contamination.
+    \item Wire fatigue.
+    \item Moisture ingress.
+    \item Firmware corruption.
+    \item Electrostatic discharge (ESD).
+\end{itemize}
+Documented mitigation should be provided for each failure mode.
+\end{observationbox}
+
+\subsection{Future Improvements}
+\label{sec:future-improvements-ch9}
+
+\begin{futureworkbox}
+\textbf{Potential upgrades:}
+\begin{itemize}
+    \item Custom low-power PCB.
+    \item Dedicated medical-grade GSR analog front-end.
+    \item Lower-power MCU variants.
+    \item Larger-capacity battery with improved power management.
+    \item Secure data encryption hardware.
+    \item OTA firmware updates.
+    \item Additional physiological sensors (only after validating clinical usefulness).
+    \item Improved enclosure with waterproofing.
+\end{itemize}
+\end{futureworkbox}
+
+\subsection{Scalability}
+\label{sec:scalability-ch9}
+
+Future versions may support:
+\begin{itemize}
+    \item Multiple wearable form factors.
+    \item Cloud synchronization.
+    \item Long-duration monitoring.
+    \item Clinical research dashboards.
+    \item Multi-user study management.
+    \item Automated firmware update system.
+\end{itemize}
+
+\subsection{Final Manufacturing Deliverables}
+\label{sec:final-manufacturing-deliverables}
+
+\begin{checklist}
+    \item Complete Bill of Materials (BOM).
+    \item PCB design files.
+    \item Schematic diagrams.
+    \item Assembly drawings.
+    \item Wiring diagrams.
+    \item Mechanical CAD files.
+    \item Enclosure STL files.
+    \item Firmware source code.
+    \item AI model documentation.
+    \item Test reports.
+    \item Validation records.
+    \item User documentation.
+    \item Risk assessment.
+\end{checklist}
+
+\subsection{Volume 2 Status}
+\label{sec:volume2-status}
+
+\begin{validationbox}
+\textbf{Completed for this chapter:}
+\begin{itemize}
+    \item Manufacturing strategy
+    \item PCB migration plan
+    \item Mechanical architecture
+    \item Enclosure requirements
+    \item Assembly workflow
+    \item Quality control
+    \item Maintenance plan
+    \item Reliability considerations
+    \item Future roadmap
+\end{itemize}
+\end{validationbox}
