@@ -1,0 +1,13 @@
+{
+  "sessionId": "engineering-session-001",
+  "deviceId": 2952908802,
+  "sequence": 7,
+  "deviceTimestampUs": 1700000000999000,
+  "samplePeriodUs": 40000,
+  "batteryMv": 3875,
+  "samples": [
+    {"sampleIndex": 1000, "ppgRed": 50000, "ppgIr": 60000, "edaAdc": 1234, "temperatureCentiC": 3150, "accelXMg": 10, "accelYMg": -20, "accelZMg": 1005, "gyroXDeciDps": 1, "gyroYDeciDps": -2, "gyroZDeciDps": 0, "qualityFlags": 0},
+    {"sampleIndex": 1001, "ppgRed": 50010, "ppgIr": 60020, "edaAdc": 1240, "temperatureCentiC": 3155, "accelXMg": 15, "accelYMg": -15, "accelZMg": 1000, "gyroXDeciDps": 2, "gyroYDeciDps": -1, "gyroZDeciDps": 1, "qualityFlags": 0}
+  ],
+  "errors": []
+}

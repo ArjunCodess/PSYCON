@@ -20,3 +20,5 @@ export {
 } from "./chunk";
 export { predictStress, scoreToState } from "./inference";
 export { validateFeatureWindow, validateModelArtifact, validateSensorPacket } from "./validation";
+export type { CalibrationRecord, WristBatch, WristSample } from "./wrist";
+export { WristQuality, validateWristBatch } from "./wrist";
