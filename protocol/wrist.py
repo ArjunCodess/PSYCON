@@ -33,6 +33,15 @@ class WristSample:
 
 
 @dataclass(frozen=True)
+class WristError:
+    code: str
+    sensor: str
+    message: str
+    recoverable: bool
+    observed_at_sample: int | None = None
+
+
+@dataclass(frozen=True)
 class WristBatch:
     session_id: str
     device_id: int
@@ -41,7 +50,7 @@ class WristBatch:
     sample_period_us: int
     battery_mv: int
     samples: tuple[WristSample, ...]
-    errors: tuple[str, ...] = ()
+    errors: tuple[WristError, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -66,6 +75,11 @@ def validate_wrist_batch(batch: WristBatch) -> None:
         raise ValueError("invalid sample period or battery voltage")
     if not batch.samples:
         raise ValueError("wrist batch must contain samples")
+    for error in batch.errors:
+        if not error.code.strip() or not error.sensor.strip() or not error.message.strip():
+            raise ValueError("wrist error code, sensor, and message are required")
+        if error.observed_at_sample is not None and error.observed_at_sample < 0:
+            raise ValueError("wrist error sample index must be nonnegative")
 
     previous = None
     allowed_flags = int(

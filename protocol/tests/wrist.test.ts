@@ -21,4 +21,12 @@ describe("normalized wrist batches", () => {
     const invalid = { ...fixture, samples: [{ ...fixture.samples[0], qualityFlags: 128 }] };
     expect(() => validateWristBatch(invalid)).toThrow("range");
   });
+
+  it("accepts typed recoverable errors", () => {
+    const value = {
+      ...fixture,
+      errors: [{ code: "i2c_retry", sensor: "max30102", message: "transient read failure", recoverable: true, observedAtSample: 1000 }],
+    };
+    expect(() => validateWristBatch(value)).not.toThrow();
+  });
 });

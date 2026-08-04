@@ -31,7 +31,15 @@ export type WristBatch = {
   samplePeriodUs: number;
   batteryMv: number;
   samples: WristSample[];
-  errors: string[];
+  errors: WristError[];
+};
+
+export type WristError = {
+  code: string;
+  sensor: string;
+  message: string;
+  recoverable: boolean;
+  observedAtSample?: number;
 };
 
 export type CalibrationRecord = {
@@ -61,7 +69,16 @@ export function validateWristBatch(value: unknown): asserts value is WristBatch 
     throw new Error("Invalid batteryMv");
   }
   if (!Array.isArray(batch.samples) || batch.samples.length === 0) throw new Error("Wrist batch needs samples");
-  if (!Array.isArray(batch.errors) || !batch.errors.every((error) => typeof error === "string")) throw new Error("Invalid errors");
+  if (!Array.isArray(batch.errors)) throw new Error("Invalid errors");
+  for (const raw of batch.errors) {
+    if (typeof raw !== "object" || raw === null) throw new Error("Invalid wrist error");
+    const error = raw as Record<string, unknown>;
+    if (!["code", "sensor", "message"].every((field) => typeof error[field] === "string" && String(error[field]).trim())) {
+      throw new Error("Invalid wrist error text");
+    }
+    if (typeof error.recoverable !== "boolean") throw new Error("Invalid wrist error recovery flag");
+    if (error.observedAtSample !== undefined && !unsignedInteger(error.observedAtSample)) throw new Error("Invalid wrist error sample");
+  }
 
   let previous = -1;
   const allowedFlags = 0x3f;

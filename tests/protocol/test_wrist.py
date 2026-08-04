@@ -4,7 +4,7 @@ from dataclasses import replace
 
 import pytest
 
-from protocol.wrist import WristBatch, WristQuality, WristSample, validate_wrist_batch
+from protocol.wrist import WristBatch, WristError, WristQuality, WristSample, validate_wrist_batch
 
 
 def batch() -> WristBatch:
@@ -23,7 +23,11 @@ def batch() -> WristBatch:
 
 
 def test_validates_wrist_batch() -> None:
-    validate_wrist_batch(batch())
+    value = replace(
+        batch(),
+        errors=(WristError("i2c_retry", "max30102", "transient read failure", True, 10),),
+    )
+    validate_wrist_batch(value)
 
 
 @pytest.mark.parametrize(
