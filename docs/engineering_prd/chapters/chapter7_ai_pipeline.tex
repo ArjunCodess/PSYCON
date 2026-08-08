@@ -51,7 +51,7 @@ PSYCON consists of two synchronized AI pipelines whose feature sets are fused in
 
 \textbf{Physiological.} Heart rate, HRV, GSR, temperature, and motion are collected continuously. Every sample receives a timestamp, sensor ID, quality flag, and battery status.
 
-\textbf{Speech.} Speech is collected continuously. \Cref{fig:speech-pipeline} shows the speech acquisition pipeline.
+\textbf{Speech.} The target system collects consented speech continuously in an approved study. The current firmware has not yet demonstrated continuous capture; \Cref{fig:speech-pipeline} shows the intended acquisition pipeline.
 
 \begin{figure}[H]
 \centering
@@ -100,6 +100,25 @@ Speech (language) & Vocabulary diversity; sentence length; sentiment; emotion-re
 \begin{researchnote}
 The feature lists above represent candidate features under consideration. Final feature selection should be informed by empirical validation on collected data.
 \end{researchnote}
+
+\subsection{Implemented Audio Engineering Baseline}
+\label{sec:implemented-audio-baseline}
+
+The Week 3 software baseline implements a deterministic mono PCM16 extractor named \texttt{psycon\_audio\_v1}. Its ordered feature vector contains duration, RMS and peak dBFS, clipping fraction, DC offset, zero-crossing rate, spectral centroid, 85\% spectral rolloff, spectral flatness, autocorrelation fundamental frequency from 70--400~Hz, energy-active frame fraction, and pause count. This version has no downloaded-model or third-party feature-extractor dependency. Incompatible feature changes require a new extractor version and equivalence tests.
+
+Every extracted window retains the session and device identifiers, packet sequence, device timestamp, first sample index, sample count, nominal sample rate, SHA-256 source-packet digest, and extractor version. Before inference, the pipeline returns one explicit state: usable, insufficient audio, clipped, too noisy, corrupt, or missing audio. Missing input is never replaced with zero-valued audio.
+
+Deterministic fixtures cover silence, impulse, a 220~Hz tone, clipped tone, amplitude-modulated speech-like input, and seeded white noise. The local demo passes each fixture through the Protocol v2 decoder and writes a JSON decision report. These tests verify the software contract and abstention behavior only; final thresholds require evidence from the installed INMP441, and continuous capture, light alignment, clock behavior, and transport-loss recovery remain physical integration gates.
+
+The completed Week 3 software adds the consent-gated \texttt{psycon\_transcription\_v1} stage. Contiguous acoustic windows marked usable are transcribed with a locally cached faster-whisper model; rejected windows never silently enter speech-to-text processing. Results preserve timestamped transcript segments, source-sample boundaries, detected language, approximate confidence, engine/model identity, and explicit complete, no-speech, skipped-quality, unavailable, not-requested, or failed states. Recordings are not sent to a third-party transcription API.
+
+The development profile uses \texttt{small.en} on CPU with int8 computation, replacing \texttt{tiny} because transcript errors directly contaminate vocabulary, sentiment, emotion-word, and topic-transition features. The approved production profile runs \texttt{large-v3-turbo} with float16 computation on a CUDA GPU inside the PSYCON backend. \texttt{large-v3} remains a benchmark candidate rather than the production default because its additional compute and latency are justified only if representative recordings show a material accuracy or downstream-feature improvement. The model, device, and compute type are deployment configuration and must be recorded with every result.
+
+Before release, compare \texttt{small.en}, \texttt{medium.en}, \texttt{large-v3-turbo}, and \texttt{large-v3} on representative consented recordings. Report word error rate, language-detection accuracy, end-to-end latency, peak memory, failure rate, and stability of downstream language features. Freeze a model version only after this evidence is recorded; a server deployment does not waive latency, concurrency, cost, or privacy constraints.
+
+The versioned \texttt{psycon\_language\_v1} baseline implements the English features specified in this chapter: vocabulary diversity, sentence count and length, transparent lexicon-based sentiment, emotion-related word counts, topic-transition distance, speech duration, pause duration, and speaking rate. Unsupported languages, insufficient text, and unavailable transcription abstain explicitly. These features are intended for controlled research comparison; they are not validated emotion recognition, speaker diarization, or clinical interpretation.
+
+The local webpage accepts permission-confirmed WAV recordings, performs decoding and balanced Protocol v2 quality windows of at most two seconds, optionally runs local transcription, and displays acoustic decisions, transcript segments, language features, and provenance. Its permission checkbox is an engineering safeguard rather than a complete participant-consent system, and the localhost development server is not a production data-collection service.
 
 \subsection{Data Fusion}
 \label{sec:data-fusion-ai}
@@ -185,7 +204,7 @@ Logs \\
 \end{table}
 
 \begin{warningbox}
-For privacy, avoid storing raw audio longer than necessary unless explicit user consent and a clear research need are established.
+For privacy, avoid storing raw audio longer than necessary unless explicit user consent and a clear research need are established. Server-side transcription requires encrypted transport and storage, authenticated access, audit logging, a documented retention and deletion schedule, and separation of participant identity from recordings and transcripts.
 \end{warningbox}
 
 \subsection{Machine Learning Workflow}
