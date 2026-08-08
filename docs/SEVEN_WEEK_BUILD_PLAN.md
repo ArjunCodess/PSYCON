@@ -1,10 +1,10 @@
 # PSYCON Seven-Week Build Plan
 
-**Assessment date:** 4 August 2026
+**Assessment date:** 9 August 2026
 
 **Owners:** Arjun Vijay Prakash, software and research; Saksham Yadav, hardware and device firmware
 
-**Current completion:** 44% overall; approximately 18% of end-to-end functional acceptance demonstrated
+**Current completion:** 47% overall; approximately 20% of end-to-end functional acceptance demonstrated
 
 This plan implements the 34-chapter engineering design in `docs/engineering_prd/`. It covers the complete Wrist Module, Audio Module, shared protocol, backend, multimodal study, electrical validation, safety, documentation, and competition demonstration.
 
@@ -21,29 +21,39 @@ Documentation proves documentation only. A diagram of a driver, backend, calibra
 
 | Area | State | Evidence |
 | --- | --- | --- |
-| Engineering PRD | Tracked and reproducible | 34 TeX chapters and a current 36-page PDF; placeholder bibliography entries remain release blockers |
+| Engineering PRD | Tracked and reproducible | 34 TeX chapters, a current 36-page PDF, reproducibility matrix, device-feature contract, and audio contract; placeholder bibliography entries remain release blockers |
 | Hardware | Partial reported bring-up | BOM, GPIO, wiring, and power design; no integrated or measured evidence in repository |
 | Wrist firmware | Scaffold | Compiles and scans I2C; sensor samples are placeholders |
 | Audio firmware | Scaffold | Compiles and initializes 16 kHz I2S; capture is discontinuous and TEMT6000 is absent |
-| Protocol | Partial implementation | Four tests and type-check pass; no cross-language byte-level contract |
+| Protocol | Versioned transport implemented | Protocol v2 fixtures decode identically in Python, TypeScript, and C++; a backend transport and synchronized session service remain absent |
 | Backend | Designed | No API, authentication, validator, synchronizer, database, dashboard, or export |
-| ML | Wrist baseline | WESAD models/artifacts exist; no speech or fusion evaluation |
-| Validation | Procedures only | No calibration, integrated logs, runtime, discharge, thermal, or demo evidence |
+| ML | Wrist baseline plus audio engineering pipeline | WESAD models/artifacts and the deterministic `psycon_audio_v1` extractor exist; transcription, PRD language features, recorded-speech evaluation, fusion evaluation, and external validation remain absent |
+| Validation | Software checks plus synthetic demo | Repository checks and the Week 3 synthetic audio demo pass; no physical calibration, integrated logs, runtime, discharge, thermal, or device-demo evidence exists |
 
-## Questions for Saksham
+## PRD-resolved implementation decisions
 
-These answers are required before the software contracts can be mapped to real firmware. Record the exact part/revision, measurement or datasheet evidence, chosen value, and consequence for each answer.
+The Engineering PRD is the sole design authority for the remaining build. These are settled inputs, not open questions:
 
-1. What exact ESP32, MAX30102, MPU6050, MCP9808, ADS1115, INMP441, TEMT6000, TP4056, battery, and regulator board revisions are physically present?
-2. Which final sample rates and ranges will firmware use for MAX30102 RED/IR, MPU6050 acceleration/gyroscope, MCP9808, ADS1115/GSR, TEMT6000, and INMP441?
-3. Can the MAX30102 reliably expose raw RED/IR samples at the chosen rate, and what observed values define contact loss, saturation, FIFO overflow, or sensor disconnect?
-4. Which MPU6050 axis orientation, accelerometer range, gyroscope range, and conversion factors map to the normalized `mg` and `0.1 °/s` software fields?
-5. What ADS1115 gain/data rate and GSR analog front end will be used, what excitation current is measured, and what ADC values define open electrodes, saturation, or unsafe contact?
-6. How will battery millivolts be measured on each ESP32 without exceeding an ADC pin limit, and which measured thresholds define warning and controlled shutdown?
-7. Does each device have a monotonic microsecond clock stable enough for the protocol timestamp, and what reset/persistence behavior should software expect for sample indices and sequence numbers?
-8. Will acceleration, gyroscope, battery, and quality fields travel in an expanded binary wrist record or a synchronized companion-status packet? Software currently normalizes both behind `WristBatch`, but firmware must choose and document one mapping.
-9. What exact charger/load-sharing behavior is present, and is charge-while-operating physically prevented until reviewed?
-10. Provide saved I2C/I2S logs, one real sample batch per sensor, rail/current measurements, and photographs of the as-built wiring so fixture values can be replaced with hardware evidence.
+1. The system uses two 30-pin ESP32 DevKit boards with ESP32-WROOM-32 controllers. The Wrist Module uses MAX30102, MPU6050, MCP9808, ADS1115, and GSR electrodes; the Audio Module uses INMP441 and TEMT6000.
+2. Wrist I²C uses `GPIO21` SDA and `GPIO22` SCL with MCP9808 at `0x18`, ADS1115 at `0x48`, MAX30102 at `0x57`, and MPU6050 at `0x68`. The GSR front end enters ADS1115 A0.
+3. Audio wiring is INMP441 BCLK `GPIO26`, WS/LRCLK `GPIO25`, DATA `GPIO33`, and L/R tied to ground for the left channel. TEMT6000 SIG uses `GPIO32` ADC. Sensors use 3.3 V logic and a common ground.
+4. Power uses two TP4056 USB-C HW-373 V1.2.1 charger/protection modules and three HLCY 651735P 500 mAh LiPo cells. The Wrist Module uses two cells in parallel; the Audio Module uses one. The PRD notes that TP4056 has no true load sharing and does not recommend wearable operation while charging; charging is disconnected before GSR electrodes contact a participant. The recommended light-load cutoff is approximately 3.2–3.3 V.
+5. The PRD targets continuous monitoring through continuous heart, motion, GSR, and audio acquisition plus periodic temperature and light tasks; speech may be continuous or scheduled. Chapter 6 deliberately leaves exact frequencies to empirical testing, so selected values are recorded as configuration and calibration evidence rather than treated as a new architecture decision.
+6. Firmware uses non-blocking tasks, timestamps, sequence numbers, checksums, fixed-size or circular buffers, retry-and-log error handling, battery warning and graceful shutdown, watchdog recovery, and continued operation when another sensor or module fails.
+7. Engineering capture may transport PCM samples as described in Chapter 6. The deployed Audio-to-Backend record described in Chapter 25 contains header, timestamp, audio features, ambient light, battery voltage, microphone status, and checksum. Both modes retain timestamps and checksums.
+8. The backend sequence is API gateway, authentication, packet validation, time synchronization, database, feature extraction, AI inference, visualization dashboard, and research export. Synchronization uses backend time, a common epoch, and continuous offset correction.
+9. Stored research material includes raw sensor files, processed features, metadata, model outputs, and logs. Firmware, hardware, PCB, dataset, model, and documentation versions are tracked.
+10. The minimum runtime target is six hours; 24 hours is a stretch goal. Outputs remain research indicators and must never be presented as clinical diagnoses.
+
+### PRD-required evidence still to record
+
+These are measurements required by Chapters 4, 5, 8, 13, 14, and 28, not unanswered design questions:
+
+- Verify the assembled ESP32 power-input path, regulator, stable 3.3 V rail under wireless load, TP4056 charge current, peak current, brownout behavior, charging temperature, and discharge runtime.
+- Finalize sample rates and sensor ranges through testing, then record them with firmware version, date, operator, environmental conditions, method, and results.
+- Validate the GSR analog front end, safe excitation, protection, contact behavior, calibration, and the rule prohibiting charging while electrodes are attached.
+- Save I²C detection, real sensor samples, clean INMP441 recordings, TEMT6000 dark/bright response, DMA stability, packet integrity, reconnect, watchdog, and graceful-shutdown results.
+- Record final assembly, insulation, connector, enclosure, strain-relief, wearability, microphone-port, and safety inspection evidence.
 
 ## Definition of done
 
@@ -52,7 +62,7 @@ These answers are required before the software contracts can be mapped to real f
 3. Acquisition is continuous and exposes every sequence gap, corruption, reboot, contact loss, saturation, and overrun.
 4. C++, TypeScript, and Python decode identical versioned wire fixtures.
 5. Authentication, validation, synchronization, durable storage, features, inference, visualization, and research export work end to end.
-6. A long run reports offset, drift, late data, loss, queue depth, and reboot epochs.
+6. Stress and runtime tests record synchronized timestamps, temperature, memory use, packet loss, unexpected resets, battery voltage, runtime, charging time, and communication status.
 7. Physiology-only, speech-only, and combined models use identical subject-independent splits and honest missing-signal behavior.
 8. Rail, current, battery, charging, brownout, thermal, insulation, GSR excitation, strain relief, and shutdown tests pass.
 9. Both modules meet the paper's six-hour minimum; 24 hours is claimed only if an actual stretch test passes.
@@ -77,7 +87,7 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 
 **Goal:** Reconcile the paper, code, compiled artifacts, hardware variants, and test environment.
 
-**Software status: complete.** Clean-checkout tests, dependency audit, three-language protocol fixtures, documentation reconciliation, and the PRD build pass. The remaining Week 1 exit items are the hardware evidence listed under “Questions for Saksham.”
+**Software status: complete.** Clean-checkout tests, dependency audit, three-language protocol fixtures, documentation reconciliation, and the PRD build pass. The remaining Week 1 exit items are listed under “PRD-required evidence still to record.”
 
 ### Arjun
 
@@ -135,136 +145,159 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 
 ## Week 3: Complete the Audio Module
 
-**Goal:** Produce continuous, interpretable audio and synchronized light data without hidden gaps.
+**Goal:** Complete the PRD speech-and-environment pipeline from continuous capture through acoustic and language features.
+
+**Status: in progress.** The deterministic `psycon_audio_v1` acoustic extractor, provenance, quality abstention, synthetic demo, and real-WAV upload page are implemented. The PRD also requires language features and conversation analysis, which imply a transcription stage and are now explicitly included below. Physical INMP441/TEMT6000 integration remains with Saksham.
 
 ### Arjun
 
-1. Add deterministic audio tests for silence, impulses, tones, clipping, speech, and noise.
-2. Implement quality, dBFS/level, pitch/prosody, timing, and a versioned standardized feature vector where licensing permits.
-3. Preserve provenance from source samples to feature windows.
-4. Implement explicit insufficient, corrupt, clipped, noisy, and missing-audio outcomes.
+1. Keep the existing deterministic tests for silence, impulses, tones, clipping, speech-like input, noise, corrupt packets, missing audio, and real WAV uploads.
+2. Complete acoustic features for speaking activity, pause duration, pitch statistics, energy/loudness, voice stability, and spectral characteristics while retaining explicit insufficient, clipped, noisy, corrupt, and missing states.
+3. Add local speech-to-text processing for consented recordings, with timestamped transcript segments, transcription confidence, no-speech, failed-transcription, and unsupported-language outcomes.
+4. Implement the PRD language features: vocabulary diversity, sentence length, sentiment, emotion-related language, topic transitions, and basic conversation-level summaries. Keep these as research features, not clinical interpretations.
+5. Preserve lineage from source recording and Protocol v2 samples to acoustic windows, transcript segments, language features, extractor versions, and quality decisions.
+6. Apply the acoustic quality gate before transcription and support a feature-only path when raw speech recording is not consented or retained.
+7. Extend the local webpage to display playback, acoustic decisions, timestamped transcription, language features, and clear privacy/consent boundaries.
 
 ### Saksham
 
-1. Remove the 250 ms delay and use continuous I2S DMA with multiple buffers and overrun counters.
-2. Verify channel, sign, bit shift, sample rate, clipping, DC behavior, playback speed, and noise floor.
-3. Integrate TEMT6000 and document ADC configuration and units.
-4. Freeze placement/enclosure after speech, walking, fabric, Wi-Fi, and nearby-speaker tests.
-5. Add battery, microphone status, quality, sequence, timestamp, and errors to the real packet path.
+1. Implement the PRD audio task chain: initialize I²S, allocate DMA and circular buffers, record continuously or on the scheduled mode, extract/package frames, and transmit without blocking acquisition.
+2. Use the fixed PRD wiring: INMP441 left channel on `GPIO26/25/33`, TEMT6000 on `GPIO32`, 3.3 V logic, common ground, and an unobstructed microphone port away from switching power circuitry.
+3. Verify clean INMP441 recordings, correct I²S configuration, acceptable noise floor, no clipping, and no excessive DMA overruns; record the empirically selected rate and configuration.
+4. Integrate continuous TEMT6000 acquisition and verify smooth dark-to-bright response on the same timestamped session timeline.
+5. Produce PRD audio records containing timestamp, PCM or derived audio features as appropriate, ambient light, battery voltage, microphone status, checksum, sequence, and error/log context.
+6. Implement buffer-overrun, reconnect, battery-warning, brownout, memory-failure, watchdog-reset, and graceful-shutdown logging.
 
 ### Exit gate
 
-- A one-hour capture has the expected sample count, measured clock error, and no unexplained gaps.
-- Known tones reproduce expected duration/frequency; bad fixtures abstain.
-- Light readings align with the audio timeline.
-- Capture continues through a temporary transport failure and exposes any loss.
+- A consented real WAV or live capture passes quality review, produces timestamped transcription, acoustic features, language features, and an inspectable result in the local webpage.
+- Silence, noise, clipping, missing audio, corrupt packets, no speech, and failed transcription never produce a normal inference input.
+- The integrated Audio Module records cleanly for the PRD one-hour stress test with no dropped buffers, while TEMT6000 readings vary smoothly and remain timestamp-aligned.
+- Temporary communication loss is buffered and retried; microphone, light, battery, error, sequence, timestamp, and checksum information reach the receiver.
 
 ## Week 4: Backend, synchronization, and data management
 
-**Goal:** Turn both devices into one durable, replayable research session.
+**Goal:** Implement the complete backend chain and produce synchronized, stored, visualized, and exportable research sessions.
 
 ### Arjun
 
-1. Implement API gateway, authentication, validation, time synchronization, durable storage, feature jobs, inference, status/visualization, and export.
-2. Store hardware, firmware, session, packet, calibration, feature, model, error, and deletion versions.
-3. Implement idempotency, checksums, gaps, duplicates, reboot epochs, late data, and crash recovery.
-4. Reconstruct the common timeline and record offsets, corrections, and drift.
-5. Add deterministic saved-session replay and raw-to-result lineage.
-6. Implement access control, pseudonymous IDs, retention/deletion state, backups, and audit logs.
+1. Implement the Chapter 27 modules as independently testable components: API gateway, authentication layer, packet validator, time synchronizer, database, feature extraction, AI inference engine, visualization dashboard, and research export.
+2. Validate module ID, sensor ID, timestamp, payload, battery, quality/error flags, sequence number, and checksum for Wrist and Audio records.
+3. Synchronize both devices from backend time to a common epoch and apply continuous offset correction so wrist, audio, transcript, and light records share one timeline.
+4. Store the Chapter 7 and Chapter 18 records: user/anonymous participant ID, session ID, timestamps, raw sensor data, audio metadata, features, predicted class or score, confidence, data-quality indicators, and logs.
+5. Use the PRD data structure for participants, sessions/raw, sessions/features, models, results, docs, and firmware; provide secure storage, limited access, encryption in transmission, regular backups, and research export.
+6. Track firmware, hardware, PCB, dataset, model, configuration/calibration, and documentation versions with every session and result.
+7. Implement dashboard views for sensor status, synchronized signals, audio/transcription quality, extracted features, inference output, confidence, and errors.
 
 ### Saksham
 
-1. Implement the chosen BLE/Wi-Fi path without blocking acquisition.
-2. Test access-point/backend loss, reconnect, reboot, queue saturation, and recovery.
-3. Measure current and temperature during normal, reconnect, and backlog operation.
-4. Prove independent operation when the other module/backend is unavailable.
+1. Transmit timestamped, sequenced, checksum-protected Wrist and Audio records over the PRD BLE/Wi-Fi path without blocking sensor acquisition.
+2. Use fixed-size transmission queues and retry temporary communication failures while logging reconnects and buffer overruns.
+3. Verify that either wearable module continues acquisition when the other module or backend is unavailable.
+4. Provide the backend with startup/self-test, sensor status, battery warning, error, watchdog/reset, and graceful-shutdown events.
 
 ### Exit gate
 
-- A two-hour dual-module session survives a ten-minute interruption without hidden loss or duplicate processing.
-- Reports contain expected/received samples, gaps, corruptions, duplicates, offsets, drift, reboots, queues, and latency.
-- The backend never acknowledges data before durable storage.
-- Export links raw records, features, versions, outputs, and deletion state.
+- Both modules create one complete synchronized dataset with no undetected packet corruption.
+- The dashboard shows live/replayed physiology, audio/light context, synchronization, system status, model output, confidence, and errors.
+- Temporary communication loss recovers through buffering/retry, and a failed sensor or module does not stop the remaining acquisition.
+- Research export contains raw data, processed features, metadata, model outputs, logs, and every PRD-required version.
 
 ## Week 5: Multimodal research comparison
 
-**Goal:** Test the paper's primary question with identical splits and honest missingness.
+**Goal:** Execute the PRD study and compare physiology-only, speech-only, and combined models without clinical claims.
 
 ### Arjun
 
-1. Make WESAD acquisition and external-data tests reproducible without committing restricted raw data.
-2. Build a licensed public-audio development path and ethically permitted final-device engineering dataset.
-3. Create aligned physiology-only, speech-only, and combined windows.
-4. Use repeated group validation or leave-one-subject-out evaluation with confidence intervals and no leakage.
-5. Report balanced accuracy, macro-F1, sensitivity, specificity, false-positive rate, calibration, confusion matrices, per-subject results, motion/environment strata, missingness, and errors.
-6. Implement quality-aware fusion with explicit `insufficient_signal` behavior.
-7. Report a negative ablation if speech does not improve the wrist baseline.
+1. Freeze the research questions: multimodal improvement, environmental robustness, motion effects, and minimum duration for stable features.
+2. Prepare the PRD study workflow: recruitment, informed consent, calibration, collection, quality review, feature extraction, training, validation, analysis, and reporting.
+3. Use anonymous participant IDs and record approved age group, optional biological sex, recording date/time, session duration, environmental conditions, firmware version, system status, and error logs; apply the PRD inclusion and exclusion criteria.
+4. Explain speech collection, processing, retention, and access in consent materials; support withdrawal, data minimization, secure storage, limited access, and transparent reporting.
+5. Create synchronized physiological features, acoustic features, transcript/language features, and ambient-light/motion context, with explicit handling of missing or corrupted data.
+6. Build physiology-only, speech-only, and combined datasets using the same participant-level training, validation, and test separation.
+7. Train and validate candidate models, report confidence and data-quality indicators, and complete dataset integrity, feature validation, training reproducibility, cross-validation, performance evaluation, error analysis, and external validation.
+8. Produce descriptive statistics, correlations, accuracy, precision, recall, F1, ROC-AUC where applicable, confusion matrices, ROC curves, false-positive/false-negative analysis, ablations, limitations, and confidence intervals where possible.
+9. Document the PRD model-update lifecycle: collect new data, review quality, retrain, validate, assign dataset/model versions, and release.
 
 ### Saksham
 
-1. Record consented calibration/engineering sessions with frozen hardware and firmware.
-2. Capture calm, speech, movement, non-wear, contact-loss, and controlled-environment conditions without clinical claims.
-3. Record motion, contact, light, microphone placement, and device state for every session.
-4. Freeze the tested BOM, wiring, enclosure, rates, and calibration settings.
+1. Calibrate the hardware before collection and record date, firmware version, environmental conditions, operator, method, and result.
+2. Run the PRD session procedure: hardware check, battery check, wrist attachment, audio placement, synchronized start, status monitoring, stop, save, backup, and quality review.
+3. Collect only approved and consented physiological, speech, light, motion, battery, sensor-status, and error data with frozen hardware and firmware.
+4. Record the device configuration and environmental/motion conditions needed to answer the PRD robustness questions.
 
 ### Exit gate
 
-- Saved sessions reproduce identical features and inputs.
-- One report compares all three modalities on identical subject-independent splits.
-- Bad or missing signals abstain/fall back explicitly.
-- No clinical accuracy or unsupported improvement is claimed.
+- The dataset package contains raw files, processed features, metadata, model outputs, logs, backups, and tracked versions.
+- A reproducible report compares physiology-only, speech-only, and combined models on participant-separated data and includes the PRD statistical analyses and external validation.
+- Missing, corrupted, low-quality, or untranscribable signals are identified and handled explicitly.
+- Results report overall performance, error analysis, environmental and motion effects, minimum useful duration, limitations, and no diagnostic claim.
 
 ## Week 6: Integration, calibration, runtime, and safety
 
-**Goal:** Produce the physical evidence required by the paper's integration and final checklists.
+**Goal:** Pass the PRD's five integration stages and complete hardware, electrical, firmware, AI, mechanical, calibration, runtime, and safety validation.
 
 ### Saksham
 
-1. Assemble the final wearable with fixed wiring, labels, insulation, strain relief, controls, indicators, battery restraint, sensor contact, microphone opening, and charging access.
-2. Complete calibration records with date, operator, versions, environment, method, reference, result, limitations, and pass/fail.
-3. Measure rails, current, discharge, charging, brownout, low-battery behavior, queue flush, shutdown, temperature, and restart.
-4. Run the six-hour minimum test; attempt 24 hours only with a reviewed safe power arrangement.
-5. Inspect the complete build before and after the run.
+1. Complete Stage 1 sensor validation, Stage 2 I²C validation, Stage 3 Wrist integration, Stage 4 Audio integration, and Stage 5 full-system integration in that order.
+2. Assemble lightweight enclosures with rounded edges, battery restraint, insulation, accessible charging/reset, ventilation where required, strain relief, flush optical contact, isolated electronics, and an unobstructed microphone port.
+3. Pass assembly quality control: PCB inspection, polarity, orientation, soldering, connectors, wiring, stable rails, sensor detection, firmware version, enclosure fit, strap integrity, button access, and charging access.
+4. Complete calibration records for MAX30102, GSR, MCP9808, TEMT6000, and MPU6050 with date, firmware, environment, operator, method, and results; recalibrate after hardware changes or replacement.
+5. Measure supply rails, current consumption, peak wireless load, battery charge/discharge, charging time, runtime, low-battery detection, brownout handling, controlled shutdown, and device temperature.
+6. Run the six-hour minimum battery-powered test. Attempt and claim the 24-hour stretch goal only if it is actually measured and safely achieved.
+7. Enforce protected batteries, insulated terminals, safe GSR excitation, no wired external power during wear, and no charging while GSR electrodes are attached.
 
 ### Arjun
 
-1. Automate the integration report from device/backend logs and result provenance.
-2. Inject communication loss, backend restart, reboot, disconnect, corruption, missing data, and replay failures.
-3. Verify memory, watchdog/reset cause, loss, drift, latency, storage growth, and deletion.
-4. Update the risk register with measured evidence, owners, mitigation, and residual risk.
+1. Produce the PRD test report covering visual/connector/battery inspection, electrical measurements, boot reliability, initialization, error recovery, watchdog, memory stability, long-duration operation, AI validation, and mechanical checks.
+2. Run rapid reboot cycles, repeated connection/disconnection, temporary communication loss, continuous wireless transmission, sensor failure, corrupt data, missing data, and safe-shutdown tests.
+3. Verify feature extraction, timestamp synchronization, inference, confidence reporting, dashboard behavior, research export, and missing/corrupted-data handling end to end.
+4. Record hardware revision, firmware version, date, tester, sensor initialization, I²C scan, battery voltage, runtime, charging time, communication status, notes, and corrective actions for each build.
+5. Update the PRD risk register with evidence for battery depletion, sensor disconnect, I²C failure, motion artifacts, audio noise, GSR contact loss, firmware crash, wireless interruption, and data corruption.
 
 ### Exit gate
 
-- The integrated system passes six hours with quantified completeness, stability, drift, current, temperatures, and recovery.
-- Untethered runtime comes from a measured discharge curve; 24 hours is claimed only if achieved.
-- Critical safety checks pass, including GSR excitation and charging policy.
-- Calibration records, test logs, failures, and risks are stored with the release.
+- All sensors initialize, expected I²C addresses appear without intermittent failure, audio records correctly, physiological streams remain continuous, modules operate independently, timestamps synchronize, and temporary communication loss recovers.
+- The system completes the one-hour stress test and the six-hour minimum battery-powered test while recording temperature, memory, packet loss, resets, voltage, runtime, and charging behavior.
+- Electrical, mechanical, wearability, calibration, GSR, battery, charging, shutdown, and safety checks pass with completed test logs and corrective actions.
+- Hardware, firmware, backend, dashboard, AI, export, and failure handling pass one end-to-end validation session.
 
 ## Week 7: Freeze, reproduce, and demonstrate
 
-**Goal:** Turn measured evidence into the competition package. New features are prohibited.
+**Goal:** Freeze the complete PRD deliverable package and prove that it can be maintained, reproduced, presented, and demonstrated.
 
 ### Arjun
 
-1. Freeze protocol, backend, dataset, feature, model, configuration, and report versions.
-2. Document setup, firmware build, backend start, session creation, replay, evaluation, and report generation.
-3. Replace bibliography placeholders with verified sources, rebuild the current PDF, and align claims with results.
-4. Produce the executive summary, architecture/method, results, limitations, references, safety/ethics, budget, and timeline.
-5. Generate all tables/plots from scripts.
+1. Freeze firmware, hardware, PCB, dataset, model, feature/transcription, backend, configuration/calibration, results, and documentation versions.
+2. Complete the user manual, software setup, firmware build/flash, backend start, session collection, backup, replay, model evaluation, dashboard, export, and safe-shutdown instructions.
+3. Prepare the competition package: executive summary, abstract, problem statement, innovation, hardware/software architecture, AI methodology, testing results, limitations, future work, verified references and official component datasheets, safety, ethics, budget, and timeline.
+4. Rebuild the Engineering PRD and ensure every implementation claim is supported by test, calibration, study, or demonstration evidence; unresolved items remain clearly labeled limitations or future work.
+5. Package AI documentation, dataset description, training and validation procedures, model performance, error analysis, version history, ethics, and user documentation.
+6. Generate final tables, plots, reports, and research exports reproducibly from the frozen data and models.
 
 ### Saksham
 
-1. Freeze BOM, schematics, wiring, power tree, hardware revision, enclosure, calibration, configuration, and maintenance.
-2. Complete assembly, user, safety, troubleshooting, and recovery guides with photographs.
-3. Rehearse startup, sensors, physiology, consented audio, synchronization, visualization, inference, recovery, and shutdown.
-4. Record and verify a backup demonstration.
+1. Freeze the hardware prototype, BOM, schematics, wiring diagrams, GPIO map, power tree, assembly drawings, PCB/design files where applicable, enclosure CAD/STL, calibration records, validation records, and risk assessment.
+2. Complete assembly, user, safety, troubleshooting, recovery, and maintenance guides with the PRD before-use, weekly, and monthly tasks.
+3. Prepare backup firmware and practical backup hardware, then rehearse the full live demonstration: startup, sensor initialization, physiology, consented audio, synchronization, backend visualization, AI output, and safe shutdown.
+4. Record and verify the required backup demonstration.
 
 ### Joint exit gate
 
-- A third person can reproduce the build and replay a session.
-- Every SRS and final-checklist claim links to evidence.
-- Live and recorded demonstrations pass.
-- The release separates verified results, limitations, open risks, and future work.
+- A third person can assemble, operate, maintain, troubleshoot, reproduce, and replay the system from the delivered package.
+- The final hardware, firmware, AI, backend/interface, testing, validation, research, safety/ethics, user, assembly, maintenance, risk, and competition deliverables are present.
+- Every SRS acceptance item and Chapter 33 checklist item links to evidence or is explicitly identified as an unmet limitation.
+- Live and recorded demonstrations both show the complete PRD sequence and all outputs remain clearly non-diagnostic.
+
+## PRD coverage map for Weeks 3–7
+
+| Week | Engineering PRD coverage |
+| --- | --- |
+| Week 3 | Audio hardware, wiring, firmware, buffering, ambient light, acoustic features, transcription required for language features, conversation analysis, privacy, audio packet fields, and audio troubleshooting from Chapters 2–8, 15, 17, 19, 25, 26, and 30 |
+| Week 4 | Communication, common-epoch synchronization, API/authentication/validation, database, feature and inference services, dashboard, export, storage structure, backups, and version control from Chapters 3, 6–8, 18, 25, and 27 |
+| Week 5 | Research questions, participant/session protocol, recorded variables, ethics/privacy, data management, model workflow, statistical analysis, ablation, external validation, limitations, and AI checklist from Chapters 7, 17–20, 23, and 33 |
+| Week 6 | Five-stage integration, manufacturing/assembly, calibration, test logs, risk mitigation, hardware/electrical/firmware/AI/mechanical tests, six-hour runtime, and safety acceptance from Chapters 2, 4–6, 8, 9, 13–15, 28, and 33 |
+| Week 7 | Complete deliverables, competition documentation, live/recorded demonstration, maintenance, troubleshooting, references, revision history, final checklist, and conclusion from Chapters 8–10, 12, 16, 18, 19, and 21–34 |
 
 ## Operating and fallback rules
 
@@ -283,7 +316,7 @@ Every update states what became true, its evidence, the acceptance criterion adv
 
 ## Completion calculation
 
-The 44% score is recomputed with fixed weights:
+The 47% score is recomputed with fixed weights:
 
 | Workstream | Weight | Completion rule |
 | --- | ---: | --- |
