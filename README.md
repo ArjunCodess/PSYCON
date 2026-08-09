@@ -14,7 +14,7 @@ PSYCON is a research and screening prototype, not a medical device. It must not 
 | Hardware, electrical, and mechanical | 20% | 35% | 7.0% | Components and wiring are documented and reported as individually checked. There is no repository evidence of an integrated wearable, calibrated GSR front end, measured rails/current/temperature, enclosure, or runtime test. |
 | Device firmware and acquisition | 20% | 30% | 6.0% | Both firmware targets compile. Audio I2S/BLE and wrist I2C/BLE bring-up exist, but wrist values are placeholders and continuous sensing, quality, storage, recovery, power, and watchdog behavior are absent. |
 | Protocol, backend, and synchronization | 15% | 34% | 5.1% | Protocol v2 has shared fixtures and Python, TypeScript, and C++ conformance tests; normalized wrist/session/quality/calibration schemas and audio packet provenance are implemented. The backend and synchronization service remain absent. |
-| Data science and research pipeline | 15% | 78% | 11.7% | WESAD processing/results, a hardware-compatible wrist converter, deterministic acoustic analysis, local timestamped transcription, and versioned English language/conversation features exist. Recorded participant speech, hardware data, fusion, repeated validation, confidence intervals, and external validation remain. |
+| Data science and research pipeline | 15% | 78% | 11.7% | WESAD processing/results, a hardware-compatible wrist converter, deterministic acoustic analysis, local timestamped transcription, and English language/conversation features exist. Recorded participant speech, hardware data, fusion, repeated validation, confidence intervals, and external validation remain. |
 | Verification, safety, and release evidence | 15% | 35% | 5.25% | Repository checks, dependency audit, fixture conformance, firmware builds, PRD compilation, audio quality fixtures, webpage tests, and an actual local-model transcription test pass. Physical calibration, runtime, safety, and device demonstration evidence remain. |
 | **Total** | **100%** |  | **49.30% ≈ 49%** | Week 1 through Week 3 software are complete. Physical Wrist/Audio integration and the Week 4 backend are the next critical path. |
 
@@ -55,9 +55,9 @@ The paper uses protected LiPo cells and TP4056 USB-C charger modules but explici
 
 ### Firmware
 
-[`firmware/ear/src/main.cpp`](firmware/ear/src/main.cpp) configures 16 kHz I2S, calculates RMS, mean absolute energy, and zero-crossing rate, and publishes a version-1 BLE feature packet. It reads only 256 samples before a 250 ms delay, does not read TEMT6000, and lacks continuous buffering, storage, reconnect, quality, battery, watchdog, and recovery behavior.
+[`firmware/ear/src/main.cpp`](firmware/ear/src/main.cpp) configures 16 kHz I2S, calculates RMS, mean absolute energy, and zero-crossing rate, and publishes a BLE feature packet. It reads only 256 samples before a 250 ms delay, does not read TEMT6000, and lacks continuous buffering, storage, reconnect, quality, battery, watchdog, and recovery behavior.
 
-[`firmware/wrist/src/main.cpp`](firmware/wrist/src/main.cpp) initializes I2C, scans addresses, and publishes a version-1 BLE packet. Its BVP, EDA, and acceleration values are placeholders; the real MAX30102, ADS1115/GSR, MPU6050, and MCP9808 drivers are not integrated.
+[`firmware/wrist/src/main.cpp`](firmware/wrist/src/main.cpp) initializes I2C, scans addresses, and publishes a BLE packet. Its BVP, EDA, and acceleration values are placeholders; the real MAX30102, ADS1115/GSR, MPU6050, and MCP9808 drivers are not integrated.
 
 Both PlatformIO targets compile. Compilation proves source/toolchain compatibility, not physical sensor behavior.
 
@@ -67,11 +67,11 @@ Both PlatformIO targets compile. Compilation proves source/toolchain compatibili
 
 ### Audio analysis
 
-[`ml/src/audio.py`](ml/src/audio.py) decodes Protocol v2 PCM16 packets into the frozen `psycon_audio_v2` quality, dBFS, pitch statistics, voice stability, prosody, spectral, and timing feature vector. It preserves packet hashes and sample lineage and returns explicit `usable`, `insufficient_audio`, `clipped`, `too_noisy`, `corrupt`, or `missing_audio` states before inference.
+[`ml/src/audio.py`](ml/src/audio.py) decodes Protocol v2 PCM16 packets with the `psycon_audio` extractor for quality, dBFS, pitch statistics, voice stability, prosody, spectral, and timing features. It preserves packet hashes and sample lineage and returns explicit `usable`, `insufficient_audio`, `clipped`, `too_noisy`, `corrupt`, or `missing_audio` states before inference.
 
-[`ml/src/transcription.py`](ml/src/transcription.py) now quality-gates and transcribes consented usable regions locally with timestamped segments, language detection, confidence, source-sample offsets, and explicit no-speech, skipped-quality, unavailable, and failed states. [`ml/src/language_features.py`](ml/src/language_features.py) implements the versioned English baseline for vocabulary diversity, sentence length, sentiment, emotion-related word counts, topic transitions, speech duration, pauses, and speaking rate. Unsupported languages abstain from language features, and speaker diarization is not claimed.
+[`ml/src/transcription.py`](ml/src/transcription.py) now quality-gates and transcribes consented usable regions locally with timestamped segments, language detection, confidence, source-sample offsets, and explicit no-speech, skipped-quality, unavailable, and failed states. [`ml/src/language_features.py`](ml/src/language_features.py) implements the English baseline for vocabulary diversity, sentence length, sentiment, emotion-related word counts, topic transitions, speech duration, pauses, and speaking rate. Unsupported languages abstain from language features, and speaker diarization is not claimed.
 
-[`demo/audio_week3_demo.py`](demo/audio_week3_demo.py) processes deterministic generated fixtures and writes [`results/demo/audio_week3_demo.json`](results/demo/audio_week3_demo.json). This proves the software path and abstention behavior without using personal recordings; it does not prove the INMP441, TEMT6000, continuous DMA, placement, clock, or transport behavior.
+[`demo/audio_demo.py`](demo/audio_demo.py) processes deterministic generated fixtures and writes [`results/demo/audio_demo.json`](results/demo/audio_demo.json). This proves the software path and abstention behavior without using personal recordings; it does not prove the INMP441, TEMT6000, continuous DMA, placement, clock, or transport behavior.
 
 [`demo/audio_web_app.py`](demo/audio_web_app.py) provides a local upload page for consented PCM or floating-point WAV recordings. It keeps the upload in memory, downmixes and resamples it to mono 16 kHz PCM16, analyzes balanced Protocol v2 windows of at most two seconds, transcribes accepted regions with a local faster-whisper model, and displays quality, timestamped text, language features, and provenance. It does not send recordings to a transcription API or make a psychological inference.
 
@@ -88,7 +88,7 @@ There is no recorded-speech dataset, synchronized device dataset, physiology/aud
 | Requirement | Evidence | Status |
 | --- | --- | --- |
 | FR-1 physiological monitoring | Hardware/interfaces documented; firmware data are placeholders | Partial |
-| FR-2 audio monitoring | Short-buffer I2S compiles; versioned acoustic analysis, local transcription, language features, provenance, quality decisions, fixtures, and real/synthetic demos pass | Partial |
+| FR-2 audio monitoring | Short-buffer I2S compiles; acoustic analysis, local transcription, language features, provenance, quality decisions, fixtures, and real/synthetic demos pass | Partial |
 | FR-3 ambient light | TEMT6000 documented; no driver | Planned |
 | FR-4 synchronization | Timestamp fields designed; no common epoch or drift correction | Planned |
 | FR-5 communication | BLE notifications exist in both starters | Partial |
@@ -125,7 +125,7 @@ The clean-checkout expectations are maintained in [`docs/REPRODUCIBILITY.md`](do
 ```powershell
 python -m pip install -r requirements.txt
 python -m pytest
-python -m demo.audio_week3_demo
+python -m demo.audio_demo
 python -m demo.audio_web_app
 ```
 
@@ -139,7 +139,7 @@ npm run typecheck
 cd ..
 ```
 
-The protocol passes its TypeScript tests and type-checking with zero `npm audit` vulnerabilities. Python, TypeScript, and C++ consume the same protocol-v2 audio, wrist, and corrupt-CRC fixtures.
+The protocol passes its TypeScript tests and type-checking with zero `npm audit` vulnerabilities. Python, TypeScript, and C++ consume the same canonical audio, wrist, and corrupt-CRC fixtures.
 
 ```powershell
 python -m pip install platformio
