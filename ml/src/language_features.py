@@ -12,7 +12,7 @@ import numpy as np
 from ml.src.transcription import TranscriptionResult, TranscriptionStatus
 
 
-LANGUAGE_FEATURE_VERSION = "psycon_language_v1"
+LANGUAGE_FEATURE_EXTRACTOR = "psycon_language"
 _WORD = re.compile(r"[a-zA-Z]+(?:'[a-zA-Z]+)?")
 _SENTENCE = re.compile(r"[^.!?]+[.!?]?")
 _POSITIVE = frozenset(
@@ -52,7 +52,7 @@ def extract_language_features(transcription: TranscriptionResult) -> dict[str, A
         language = transcription.language or "unknown"
         return _empty(
             LanguageFeatureStatus.UNSUPPORTED_LANGUAGE,
-            f"language_{language}_not_supported_by_v1_lexicons",
+            f"language_{language}_not_supported_by_english_lexicons",
         )
 
     words = [word.lower() for word in _WORD.findall(transcription.text)]
@@ -77,7 +77,7 @@ def extract_language_features(transcription: TranscriptionResult) -> dict[str, A
     pause_duration = max(0.0, total_span - speech_duration)
     return {
         "status": LanguageFeatureStatus.COMPLETE.value,
-        "version": LANGUAGE_FEATURE_VERSION,
+        "extractor": LANGUAGE_FEATURE_EXTRACTOR,
         "reasons": [],
         "word_count": len(words),
         "unique_word_count": len(counts),
@@ -112,6 +112,6 @@ def _topic_transitions(transcription: TranscriptionResult) -> list[float]:
 def _empty(status: LanguageFeatureStatus, reason: str) -> dict[str, Any]:
     return {
         "status": status.value,
-        "version": LANGUAGE_FEATURE_VERSION,
+        "extractor": LANGUAGE_FEATURE_EXTRACTOR,
         "reasons": [reason],
     }

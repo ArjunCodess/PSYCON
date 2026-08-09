@@ -12,7 +12,7 @@ import numpy as np
 from protocol.chunk import AudioChunkV2, ChunkV2DecodeError, decode_chunk_v2
 
 
-FEATURE_VERSION = "psycon_audio_v2"
+FEATURE_EXTRACTOR = "psycon_audio"
 FEATURE_NAMES = (
     "duration_s",
     "rms_dbfs",
@@ -54,7 +54,7 @@ class AudioProvenance:
     sample_count: int
     sample_rate_hz: int
     source_sha256: str
-    feature_version: str = FEATURE_VERSION
+    extractor: str = FEATURE_EXTRACTOR
 
 
 @dataclass(frozen=True)
@@ -67,7 +67,7 @@ class AudioAnalysis:
     def to_dict(self) -> dict[str, Any]:
         return {
             "status": self.status.value,
-            "feature_version": FEATURE_VERSION,
+            "extractor": FEATURE_EXTRACTOR,
             "features": self.features,
             "reasons": list(self.reasons),
             "provenance": asdict(self.provenance) if self.provenance else None,
@@ -122,7 +122,7 @@ def analyze_pcm16(
     sample_rate_hz: int,
     provenance: AudioProvenance | None = None,
 ) -> AudioAnalysis:
-    """Extract the frozen v1 feature vector and make an explicit quality decision."""
+    """Extract the acoustic feature vector and make an explicit quality decision."""
 
     values = np.asarray(samples)
     if sample_rate_hz < 1_000 or sample_rate_hz > 192_000:

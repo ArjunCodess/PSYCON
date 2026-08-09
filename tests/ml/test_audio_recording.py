@@ -49,7 +49,7 @@ def test_decodes_stereo_wav_and_resamples_to_pipeline_format() -> None:
 def test_real_wav_upload_runs_as_protocol_windows() -> None:
     result = analyze_wav_upload(_wav_bytes(tone(16_000, duration_s=4.0)), "tone.wav")
     assert result["overall_status"] == "usable"
-    assert result["feature_version"] == "psycon_audio_v2"
+    assert result["extractor"] == "psycon_audio"
     assert result["window_count"] == 2
     assert all(window["status"] == "usable" for window in result["windows"])
     assert all(window["features"]["f0_hz"] == pytest.approx(220, abs=3) for window in result["windows"])

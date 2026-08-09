@@ -27,11 +27,11 @@ def test_local_transcriber_defaults_to_multilingual_small_cpu(
 
 
 def test_server_transcriber_accepts_turbo_gpu_profile(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("PSYCON_WHISPER_MODEL", "large-v3-turbo")
+    monkeypatch.setenv("PSYCON_WHISPER_MODEL", "turbo")
     monkeypatch.setenv("PSYCON_WHISPER_DEVICE", "cuda")
     monkeypatch.delenv("PSYCON_WHISPER_COMPUTE_TYPE", raising=False)
     transcriber = FasterWhisperTranscriber()
-    assert transcriber.engine_name == "faster-whisper/large-v3-turbo/cuda-float16"
+    assert transcriber.engine_name == "faster-whisper/turbo/cuda-float16"
 
 
 class FakeTranscriber:
@@ -41,7 +41,7 @@ class FakeTranscriber:
 
     @property
     def engine_name(self) -> str:
-        return "fake-transcriber/v1"
+        return "fake-transcriber"
 
     def transcribe(self, samples: np.ndarray, sample_rate_hz: int) -> TranscriptionResult:
         self.calls += 1
@@ -76,7 +76,7 @@ class StatusTranscriber:
 
     @property
     def engine_name(self) -> str:
-        return "status-transcriber/v1"
+        return "status-transcriber"
 
     def transcribe(self, samples: np.ndarray, sample_rate_hz: int) -> TranscriptionResult:
         return TranscriptionResult(
@@ -170,7 +170,7 @@ def test_language_features_abstain_for_unsupported_language() -> None:
     )
     result = extract_language_features(transcription)
     assert result["status"] == LanguageFeatureStatus.UNSUPPORTED_LANGUAGE.value
-    assert result["reasons"] == ["language_hi_not_supported_by_v1_lexicons"]
+    assert result["reasons"] == ["language_hi_not_supported_by_english_lexicons"]
 
 
 def test_language_features_abstain_when_language_is_unknown() -> None:
@@ -188,4 +188,4 @@ def test_language_features_abstain_when_language_is_unknown() -> None:
     )
     result = extract_language_features(transcription)
     assert result["status"] == LanguageFeatureStatus.UNSUPPORTED_LANGUAGE.value
-    assert result["reasons"] == ["language_unknown_not_supported_by_v1_lexicons"]
+    assert result["reasons"] == ["language_unknown_not_supported_by_english_lexicons"]

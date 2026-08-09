@@ -11,7 +11,7 @@ from typing import Any, Protocol
 import numpy as np
 
 
-TRANSCRIPTION_VERSION = "psycon_transcription_v1"
+TRANSCRIPTION_PIPELINE = "psycon_transcription"
 
 
 class TranscriptionStatus(str, Enum):
@@ -53,12 +53,12 @@ class TranscriptionResult:
     segments: tuple[TranscriptSegment, ...]
     engine: str
     reasons: tuple[str, ...] = ()
-    version: str = TRANSCRIPTION_VERSION
+    pipeline: str = TRANSCRIPTION_PIPELINE
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "status": self.status.value,
-            "version": self.version,
+            "pipeline": self.pipeline,
             "text": self.text,
             "language": self.language,
             "language_confidence": self.language_confidence,

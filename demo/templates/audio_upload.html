@@ -74,7 +74,7 @@
           <ol class="method-list">
             <li><span>01</span><p>The WAV is decoded, mixed to mono, and resampled to 16 kHz PCM16.</p></li>
             <li><span>02</span><p>Each window of at most two seconds is wrapped in a checksum-protected Protocol v2 packet.</p></li>
-            <li><span>03</span><p><code>psycon_audio_v2</code> measures level, clipping, pitch statistics, voice stability, timing, and spectrum.</p></li>
+            <li><span>03</span><p><code>psycon_audio</code> measures level, clipping, pitch statistics, voice stability, timing, and spectrum.</p></li>
             <li><span>04</span><p>Every window receives an explicit quality decision before future inference.</p></li>
           </ol>
         </aside>
@@ -205,9 +205,9 @@
             <div><dt>Session</dt><dd><code>{{ result.session_id }}</code></dd></div>
             <div><dt>SHA-256</dt><dd><code>{{ result.source_sha256 }}</code></dd></div>
             <div><dt>Source format</dt><dd><code>{{ result.source_dtype }}</code></dd></div>
-            <div><dt>Extractor</dt><dd><code>{{ result.feature_version }}</code></dd></div>
-            <div><dt>Transcription</dt><dd><code>{{ result.transcription.version }}</code></dd></div>
-            <div><dt>Language features</dt><dd><code>{{ result.language_features.version }}</code></dd></div>
+            <div><dt>Extractor</dt><dd><code>{{ result.extractor }}</code></dd></div>
+            <div><dt>Transcription</dt><dd><code>{{ result.transcription.pipeline }}</code></dd></div>
+            <div><dt>Language features</dt><dd><code>{{ result.language_features.extractor }}</code></dd></div>
           </dl>
         </details>
       </section>

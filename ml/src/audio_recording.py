@@ -156,7 +156,7 @@ def analyze_decoded_recording(
         "channels": decoded.channels,
         "source_dtype": decoded.source_dtype,
         "window_count": len(windows),
-        "feature_version": windows[0]["feature_version"],
+        "extractor": windows[0]["extractor"],
         "counts": counts,
         "windows": windows,
         "decoder": {
