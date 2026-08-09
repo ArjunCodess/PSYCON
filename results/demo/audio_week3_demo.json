@@ -1,0 +1,252 @@
+[
+  {
+    "case": "silence",
+    "status": "insufficient_audio",
+    "feature_version": "psycon_audio_v2",
+    "features": {
+      "duration_s": 2.0,
+      "rms_dbfs": -120.0,
+      "peak_dbfs": -120.0,
+      "clip_fraction": 0.0,
+      "dc_offset": 0.0,
+      "zero_crossing_rate": 0.0,
+      "spectral_centroid_hz": 0.0,
+      "spectral_rolloff_85_hz": 0.0,
+      "spectral_flatness": 0.0,
+      "f0_hz": 0.0,
+      "f0_std_hz": 0.0,
+      "f0_min_hz": 0.0,
+      "f0_max_hz": 0.0,
+      "pitch_jitter_relative": 0.0,
+      "voice_stability": 0.0,
+      "voiced_fraction": 0.0,
+      "pause_count": 0.0,
+      "pause_duration_s": 1.98
+    },
+    "reasons": [
+      "insufficient_signal_energy"
+    ],
+    "provenance": {
+      "session_id": "week3-synthetic-demo",
+      "device_id": 3,
+      "sequence": 1,
+      "device_timestamp_us": 2000000,
+      "first_sample_index": 0,
+      "sample_count": 32000,
+      "sample_rate_hz": 16000,
+      "source_sha256": "d7c50e50f01a481664840684ded20109ff0758d7867b270a62e63a481b59f65b",
+      "feature_version": "psycon_audio_v2"
+    }
+  },
+  {
+    "case": "impulse",
+    "status": "insufficient_audio",
+    "feature_version": "psycon_audio_v2",
+    "features": {
+      "duration_s": 2.0,
+      "rms_dbfs": -47.756273648161304,
+      "peak_dbfs": -2.704773864962238,
+      "clip_fraction": 0.0,
+      "dc_offset": 2.288818359375e-05,
+      "zero_crossing_rate": 6.250195318603706e-05,
+      "spectral_centroid_hz": 4000.25,
+      "spectral_rolloff_85_hz": 6800.0,
+      "spectral_flatness": 1.0000000000000002,
+      "f0_hz": 400.0,
+      "f0_std_hz": 0.0,
+      "f0_min_hz": 400.0,
+      "f0_max_hz": 400.0,
+      "pitch_jitter_relative": 0.0,
+      "voice_stability": 1.0,
+      "voiced_fraction": 0.015151515151515152,
+      "pause_count": 1.0,
+      "pause_duration_s": 1.95
+    },
+    "reasons": [
+      "insufficient_signal_energy"
+    ],
+    "provenance": {
+      "session_id": "week3-synthetic-demo",
+      "device_id": 3,
+      "sequence": 2,
+      "device_timestamp_us": 4000000,
+      "first_sample_index": 32000,
+      "sample_count": 32000,
+      "sample_rate_hz": 16000,
+      "source_sha256": "bfb0021ea4d308d41a106260976b38d87d01a2ed1a61cabe7159c6860f85687b",
+      "feature_version": "psycon_audio_v2"
+    }
+  },
+  {
+    "case": "tone",
+    "status": "usable",
+    "feature_version": "psycon_audio_v2",
+    "features": {
+      "duration_s": 2.0,
+      "rms_dbfs": -12.12922027860655,
+      "peak_dbfs": -9.11924501370542,
+      "clip_fraction": 0.0,
+      "dc_offset": 0.0,
+      "zero_crossing_rate": 0.02746960842526329,
+      "spectral_centroid_hz": 220.0000046256535,
+      "spectral_rolloff_85_hz": 220.0,
+      "spectral_flatness": 1.8396042311831157e-36,
+      "f0_hz": 220.60813365798467,
+      "f0_std_hz": 8.937744516983975e-05,
+      "f0_min_hz": 220.6080254046446,
+      "f0_max_hz": 220.60825872712627,
+      "pitch_jitter_relative": 6.844222942685984e-07,
+      "voice_stability": 0.9999993155777057,
+      "voiced_fraction": 1.0,
+      "pause_count": 0.0,
+      "pause_duration_s": 0.0
+    },
+    "reasons": [],
+    "provenance": {
+      "session_id": "week3-synthetic-demo",
+      "device_id": 3,
+      "sequence": 3,
+      "device_timestamp_us": 6000000,
+      "first_sample_index": 64000,
+      "sample_count": 32000,
+      "sample_rate_hz": 16000,
+      "source_sha256": "0729434e2b29ba309d36821a5fc9946d21c465c7ba8a0d0ada30cf88d508bcca",
+      "feature_version": "psycon_audio_v2"
+    }
+  },
+  {
+    "case": "clipping",
+    "status": "clipped",
+    "feature_version": "psycon_audio_v2",
+    "features": {
+      "duration_s": 2.0,
+      "rms_dbfs": -1.2144720044752633,
+      "peak_dbfs": -0.00026507636037961915,
+      "clip_fraction": 0.6275,
+      "dc_offset": 0.0,
+      "zero_crossing_rate": 0.02746960842526329,
+      "spectral_centroid_hz": 239.53596568189243,
+      "spectral_rolloff_85_hz": 220.0,
+      "spectral_flatness": 6.282655556371603e-37,
+      "f0_hz": 220.42801349027323,
+      "f0_std_hz": 1.097547758200838e-05,
+      "f0_min_hz": 220.42800476414826,
+      "f0_max_hz": 220.42803416034016,
+      "pitch_jitter_relative": 6.815602609662365e-08,
+      "voice_stability": 0.999999931843974,
+      "voiced_fraction": 1.0,
+      "pause_count": 0.0,
+      "pause_duration_s": 0.0
+    },
+    "reasons": [
+      "clip_fraction_above_1pct"
+    ],
+    "provenance": {
+      "session_id": "week3-synthetic-demo",
+      "device_id": 3,
+      "sequence": 4,
+      "device_timestamp_us": 8000000,
+      "first_sample_index": 96000,
+      "sample_count": 32000,
+      "sample_rate_hz": 16000,
+      "source_sha256": "e8f72fa7dbe8d619e642f257bcfda49b92c3e7ddee4dd036238e8c0a1fedacd4",
+      "feature_version": "psycon_audio_v2"
+    }
+  },
+  {
+    "case": "speech_like",
+    "status": "usable",
+    "feature_version": "psycon_audio_v2",
+    "features": {
+      "duration_s": 2.0,
+      "rms_dbfs": -17.209214477548464,
+      "peak_dbfs": -9.347157662946913,
+      "clip_fraction": 0.0,
+      "dc_offset": 7.243156433105469e-05,
+      "zero_crossing_rate": 0.022188193381043157,
+      "spectral_centroid_hz": 194.83952356557413,
+      "spectral_rolloff_85_hz": 182.5,
+      "spectral_flatness": 4.285432346521818e-07,
+      "f0_hz": 180.6581192723862,
+      "f0_std_hz": 0.11773804584427117,
+      "f0_min_hz": 180.60063637215697,
+      "f0_max_hz": 181.26199836047005,
+      "pitch_jitter_relative": 0.00015426589283883054,
+      "voice_stability": 0.9998457341071612,
+      "voiced_fraction": 0.9141414141414141,
+      "pause_count": 5.0,
+      "pause_duration_s": 0.17
+    },
+    "reasons": [],
+    "provenance": {
+      "session_id": "week3-synthetic-demo",
+      "device_id": 3,
+      "sequence": 5,
+      "device_timestamp_us": 10000000,
+      "first_sample_index": 128000,
+      "sample_count": 32000,
+      "sample_rate_hz": 16000,
+      "source_sha256": "9801e7538d40c6277bba13a13a9a23ad5091c80a5d3a73a17ec8b892988e58ca",
+      "feature_version": "psycon_audio_v2"
+    }
+  },
+  {
+    "case": "noise",
+    "status": "too_noisy",
+    "feature_version": "psycon_audio_v2",
+    "features": {
+      "duration_s": 2.0,
+      "rms_dbfs": -12.038693645856494,
+      "peak_dbfs": -0.00026507636037961915,
+      "clip_fraction": 6.25e-05,
+      "dc_offset": -0.0019958696365356444,
+      "zero_crossing_rate": 0.5038282446326448,
+      "spectral_centroid_hz": 4008.5425807942934,
+      "spectral_rolloff_85_hz": 6816.5,
+      "spectral_flatness": 0.5545161094381338,
+      "f0_hz": 0.0,
+      "f0_std_hz": 0.0,
+      "f0_min_hz": 0.0,
+      "f0_max_hz": 0.0,
+      "pitch_jitter_relative": 0.0,
+      "voice_stability": 0.0,
+      "voiced_fraction": 1.0,
+      "pause_count": 0.0,
+      "pause_duration_s": 0.0
+    },
+    "reasons": [
+      "spectral_flatness_above_0_5"
+    ],
+    "provenance": {
+      "session_id": "week3-synthetic-demo",
+      "device_id": 3,
+      "sequence": 6,
+      "device_timestamp_us": 12000000,
+      "first_sample_index": 160000,
+      "sample_count": 32000,
+      "sample_rate_hz": 16000,
+      "source_sha256": "5130ae964717c3d42a99d403dd922a698c9618160e592ed6a5678f7a7d0d22ac",
+      "feature_version": "psycon_audio_v2"
+    }
+  },
+  {
+    "case": "missing",
+    "status": "missing_audio",
+    "feature_version": "psycon_audio_v2",
+    "features": {},
+    "reasons": [
+      "packet_missing"
+    ],
+    "provenance": null
+  },
+  {
+    "case": "corrupt",
+    "status": "corrupt",
+    "feature_version": "psycon_audio_v2",
+    "features": {},
+    "reasons": [
+      "Protocol v2 CRC mismatch: stored 0xb1e70e30, computed 0x9ce5e1bd"
+    ],
+    "provenance": null
+  }
+]
