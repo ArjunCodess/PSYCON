@@ -6,19 +6,19 @@ PSYCON is a research and screening prototype, not a medical device. It must not 
 
 ## Current completion
 
-**Overall project completion: 44% as of 4 August 2026.** This weighted estimate measures progress toward the PRD's competition-ready integrated prototype. It does not count a completed documentation chapter as completed hardware.
+**Overall project completion: 49% as of 9 August 2026.** This weighted estimate measures progress toward the PRD's competition-ready integrated prototype. It does not count completed software, documentation, or generated-speech tests as completed hardware.
 
 | Workstream | Weight | Completion | Contribution | Evidence and remaining gap |
 | --- | ---: | ---: | ---: | --- |
-| Requirements and engineering documentation | 15% | 93% | 14.0% | The tracked 34-chapter PRD, current 36-page PDF, reproducibility matrix, protocol specification, and device-feature contract are present. Verified bibliography sources and completed physical records remain open. |
+| Requirements and engineering documentation | 15% | 95% | 14.25% | The tracked 34-chapter PRD, current PDF, reproducibility matrix, protocol specification, device-feature contract, and complete audio/transcription/language contract are present. Verified bibliography sources and completed physical records remain open. |
 | Hardware, electrical, and mechanical | 20% | 35% | 7.0% | Components and wiring are documented and reported as individually checked. There is no repository evidence of an integrated wearable, calibrated GSR front end, measured rails/current/temperature, enclosure, or runtime test. |
 | Device firmware and acquisition | 20% | 30% | 6.0% | Both firmware targets compile. Audio I2S/BLE and wrist I2C/BLE bring-up exist, but wrist values are placeholders and continuous sensing, quality, storage, recovery, power, and watchdog behavior are absent. |
-| Protocol, backend, and synchronization | 15% | 32% | 4.8% | Protocol v2 has shared fixtures and Python, TypeScript, and C++ conformance tests; normalized wrist/session/quality/calibration schemas are implemented. The backend and synchronization service remain absent. |
-| Data science and research pipeline | 15% | 60% | 9.0% | WESAD processing/results and a hardware-compatible wrist batch converter/feature surface exist. Speech, hardware data, fusion, repeated validation, confidence intervals, and external validation remain. |
-| Verification, safety, and release evidence | 15% | 20% | 3.0% | Clean-checkout checks, dependency audit, fixture conformance, firmware builds, and PRD compilation pass. Physical calibration, runtime, safety, and demonstration evidence remain. |
-| **Total** | **100%** |  | **43.8% ≈ 44%** | Week 1 and Week 2 software are complete; the critical path is physical sensor integration followed by backend work. |
+| Protocol, backend, and synchronization | 15% | 34% | 5.1% | Protocol v2 has shared fixtures and Python, TypeScript, and C++ conformance tests; normalized wrist/session/quality/calibration schemas and audio packet provenance are implemented. The backend and synchronization service remain absent. |
+| Data science and research pipeline | 15% | 78% | 11.7% | WESAD processing/results, a hardware-compatible wrist converter, deterministic acoustic analysis, local timestamped transcription, and versioned English language/conversation features exist. Recorded participant speech, hardware data, fusion, repeated validation, confidence intervals, and external validation remain. |
+| Verification, safety, and release evidence | 15% | 35% | 5.25% | Repository checks, dependency audit, fixture conformance, firmware builds, PRD compilation, audio quality fixtures, webpage tests, and an actual local-model transcription test pass. Physical calibration, runtime, safety, and device demonstration evidence remain. |
+| **Total** | **100%** |  | **49.30% ≈ 49%** | Week 1 through Week 3 software are complete. Physical Wrist/Audio integration and the Week 4 backend are the next critical path. |
 
-The narrower end-to-end functional prototype is roughly **18% complete** because real sensor acquisition, synchronized backend sessions, power evidence, and multimodal validation are still absent. The 44% overall figure gives reusable credit to the specification, verified software contracts, firmware scaffolds, WESAD pipeline, device converter, and generated results.
+The narrower end-to-end functional prototype is roughly **21% complete** because real sensor acquisition, synchronized backend sessions, power evidence, and multimodal validation are still absent. The 49% overall figure gives reusable credit to the specification, verified software contracts, firmware scaffolds, WESAD pipeline, device converters, deterministic audio analysis, local transcription/language features, and generated results.
 
 ## Source of truth
 
@@ -63,7 +63,17 @@ Both PlatformIO targets compile. Compilation proves source/toolchain compatibili
 
 ### Protocol
 
-[`protocol/`](protocol/) contains version-1 TypeScript types, validation, and logistic-regression inference. Four Vitest tests and `tsc --noEmit` pass. The TypeScript objects and packed C++ structs are not yet one byte-for-byte shared protocol; widths, units, endianness, timestamps, checksums, quality flags, and error behavior must be frozen before backend integration.
+[`protocol/`](protocol/) contains the Protocol v2 byte contract, shared binary fixtures, Python and TypeScript decoders, a C++ header, normalized wrist/session/quality/calibration types, validation, and logistic-regression inference. Cross-language fixture tests, Vitest, and `tsc --noEmit` pass; the backend transport and synchronized session service remain unimplemented.
+
+### Audio analysis
+
+[`ml/src/audio.py`](ml/src/audio.py) decodes Protocol v2 PCM16 packets into the frozen `psycon_audio_v2` quality, dBFS, pitch statistics, voice stability, prosody, spectral, and timing feature vector. It preserves packet hashes and sample lineage and returns explicit `usable`, `insufficient_audio`, `clipped`, `too_noisy`, `corrupt`, or `missing_audio` states before inference.
+
+[`ml/src/transcription.py`](ml/src/transcription.py) now quality-gates and transcribes consented usable regions locally with timestamped segments, language detection, confidence, source-sample offsets, and explicit no-speech, skipped-quality, unavailable, and failed states. [`ml/src/language_features.py`](ml/src/language_features.py) implements the versioned English baseline for vocabulary diversity, sentence length, sentiment, emotion-related word counts, topic transitions, speech duration, pauses, and speaking rate. Unsupported languages abstain from language features, and speaker diarization is not claimed.
+
+[`demo/audio_week3_demo.py`](demo/audio_week3_demo.py) processes deterministic generated fixtures and writes [`results/demo/audio_week3_demo.json`](results/demo/audio_week3_demo.json). This proves the software path and abstention behavior without using personal recordings; it does not prove the INMP441, TEMT6000, continuous DMA, placement, clock, or transport behavior.
+
+[`demo/audio_web_app.py`](demo/audio_web_app.py) provides a local upload page for consented PCM or floating-point WAV recordings. It keeps the upload in memory, downmixes and resamples it to mono 16 kHz PCM16, analyzes balanced Protocol v2 windows of at most two seconds, transcribes accepted regions with a local faster-whisper model, and displays quality, timestamped text, language features, and provenance. It does not send recordings to a transcription API or make a psychological inference.
 
 ### WESAD baseline
 
@@ -71,14 +81,14 @@ Both PlatformIO targets compile. Compilation proves source/toolchain compatibili
 
 The checked-in processed table contains **13,698 windows from 15 subjects**: 8,760 calm and 4,938 high-stress. The best recorded accuracy is 0.932 for EDA XGBoost; the exported multimodal-wrist logistic run records 0.915 accuracy, 0.895 F1, 0.995 recall, and 0.130 false-positive rate on one grouped holdout. These are WESAD development results, not PSYCON hardware or clinical validation.
 
-There is no audio pipeline, synchronized device dataset, physiology/audio/fusion ablation, repeated group validation, confidence interval, or external validation. Raw WESAD pickles are absent, so preprocessing cannot be reproduced from a clean checkout without separately obtaining WESAD.
+There is no recorded-speech dataset, synchronized device dataset, physiology/audio/fusion ablation, repeated group validation, confidence interval, or external validation. Raw WESAD pickles are absent, so preprocessing cannot be reproduced from a clean checkout without separately obtaining WESAD.
 
 ## Paper requirements versus implementation
 
 | Requirement | Evidence | Status |
 | --- | --- | --- |
 | FR-1 physiological monitoring | Hardware/interfaces documented; firmware data are placeholders | Partial |
-| FR-2 audio monitoring | Short-buffer I2S and three basic features compile | Partial |
+| FR-2 audio monitoring | Short-buffer I2S compiles; versioned acoustic analysis, local transcription, language features, provenance, quality decisions, fixtures, and real/synthetic demos pass | Partial |
 | FR-3 ambient light | TEMT6000 documented; no driver | Planned |
 | FR-4 synchronization | Timestamp fields designed; no common epoch or drift correction | Planned |
 | FR-5 communication | BLE notifications exist in both starters | Partial |
@@ -96,6 +106,7 @@ There is no audio pipeline, synchronized device dataset, physiology/audio/fusion
 PSYCON/
   main.py                         # WESAD experiment entrypoint
   ml/src/                         # Loading, preprocessing, features, models
+  demo/                           # Deterministic local software demonstrations
   data/processed/                 # Checked-in feature table
   results/                        # Metrics, model exports, charts
   firmware/wrist/                 # Compiling wrist scaffold with placeholders
@@ -114,9 +125,11 @@ The clean-checkout expectations are maintained in [`docs/REPRODUCIBILITY.md`](do
 ```powershell
 python -m pip install -r requirements.txt
 python -m pytest
+python -m demo.audio_week3_demo
+python -m demo.audio_web_app
 ```
 
-Python currently passes all repository-safe tests. Three raw-WESAD integration tests skip when `data/raw/wesad/S*/S*.pkl` is absent; after obtaining WESAD under its terms, place the files there and rerun `python main.py` and the tests.
+The web demo opens at `http://127.0.0.1:5000`; stop it with `Ctrl+C`. Python currently passes all repository-safe tests, the synthetic demo writes a reproducible JSON decision report, and web tests exercise valid and invalid real-WAV uploads. Three raw-WESAD integration tests skip when `data/raw/wesad/S*/S*.pkl` is absent; after obtaining WESAD under its terms, place the files there and rerun `python main.py` and the tests.
 
 ```powershell
 cd protocol
