@@ -27,7 +27,7 @@ Documentation proves documentation only. A diagram of a driver, backend, calibra
 | Audio firmware | Scaffold | Compiles and initializes 16 kHz I2S; capture is discontinuous and TEMT6000 is absent |
 | Protocol | Versioned transport implemented | Protocol v2 fixtures decode identically in Python, TypeScript, and C++; a backend transport and synchronized session service remain absent |
 | Backend | Designed | No API, authentication, validator, synchronizer, database, dashboard, or export |
-| ML | Wrist and complete Week 3 software baselines | WESAD models/artifacts, `psycon_audio_v2`, local `psycon_transcription_v1`, and English `psycon_language_v1` exist; recorded-participant speech, fusion evaluation, and external validation remain absent |
+| ML | Wrist and complete Week 3 software baselines | WESAD models/artifacts, `psycon_audio`, local `psycon_transcription`, and English `psycon_language` exist; recorded-participant speech, fusion evaluation, and external validation remain absent |
 | Validation | Software checks plus audio demos | Repository checks, synthetic quality demo, upload-page tests, and an actual local-model transcription test pass; no physical calibration, integrated logs, runtime, discharge, thermal, or device-demo evidence exists |
 
 ## PRD-resolved implementation decisions
@@ -147,7 +147,7 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 
 **Goal:** Complete the PRD speech-and-environment pipeline from continuous capture through acoustic and language features.
 
-**Software status: complete.** The deterministic `psycon_audio_v2` acoustic extractor covers speaking activity, pause duration, pitch statistics, energy, voice stability, and spectral characteristics. Quality abstention, `psycon_transcription_v1` multilingual timestamped transcription, `psycon_language_v1` English language/conversation features, source lineage, synthetic demo, and the consent-aware real-WAV webpage are implemented and tested. Physical INMP441/TEMT6000 integration and the device exit criteria remain with Saksham.
+**Software status: complete.** The deterministic `psycon_audio` acoustic extractor covers speaking activity, pause duration, pitch statistics, energy, voice stability, and spectral characteristics. Quality abstention, `psycon_transcription` multilingual timestamped transcription, `psycon_language` English language/conversation features, source lineage, synthetic demo, and the consent-aware real-WAV webpage are implemented and tested. Physical INMP441/TEMT6000 integration and the device exit criteria remain with Saksham.
 
 ### Arjun
 
@@ -155,7 +155,7 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 2. Complete acoustic features for speaking activity, pause duration, pitch statistics, energy/loudness, voice stability, and spectral characteristics while retaining explicit insufficient, clipped, noisy, corrupt, and missing states.
 3. Add local speech-to-text processing for consented recordings, with timestamped transcript segments, transcription confidence, no-speech, failed-transcription, and unsupported-language outcomes.
 4. Implement the PRD language features: vocabulary diversity, sentence length, sentiment, emotion-related language, topic transitions, and basic conversation-level summaries. Keep these as research features, not clinical interpretations.
-5. Preserve lineage from source recording and Protocol v2 samples to acoustic windows, transcript segments, language features, extractor versions, and quality decisions.
+5. Preserve lineage from source recording and Protocol v2 samples to acoustic windows, transcript segments, language features, extractor identity, and quality decisions.
 6. Apply the acoustic quality gate before transcription and support a feature-only path when raw speech recording is not consented or retained.
 7. Extend the local webpage to display playback, acoustic decisions, timestamped transcription, language features, and clear privacy/consent boundaries.
 
