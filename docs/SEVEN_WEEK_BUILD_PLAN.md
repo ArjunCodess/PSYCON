@@ -4,7 +4,7 @@
 
 **Owners:** Arjun Vijay Prakash, software and research; Saksham Yadav, hardware and device firmware
 
-**Current completion:** 47% overall; approximately 20% of end-to-end functional acceptance demonstrated
+**Current completion:** 49% overall; approximately 21% of end-to-end functional acceptance demonstrated
 
 This plan implements the 34-chapter engineering design in `docs/engineering_prd/`. It covers the complete Wrist Module, Audio Module, shared protocol, backend, multimodal study, electrical validation, safety, documentation, and competition demonstration.
 
@@ -27,8 +27,8 @@ Documentation proves documentation only. A diagram of a driver, backend, calibra
 | Audio firmware | Scaffold | Compiles and initializes 16 kHz I2S; capture is discontinuous and TEMT6000 is absent |
 | Protocol | Versioned transport implemented | Protocol v2 fixtures decode identically in Python, TypeScript, and C++; a backend transport and synchronized session service remain absent |
 | Backend | Designed | No API, authentication, validator, synchronizer, database, dashboard, or export |
-| ML | Wrist baseline plus audio engineering pipeline | WESAD models/artifacts and the deterministic `psycon_audio_v1` extractor exist; transcription, PRD language features, recorded-speech evaluation, fusion evaluation, and external validation remain absent |
-| Validation | Software checks plus synthetic demo | Repository checks and the Week 3 synthetic audio demo pass; no physical calibration, integrated logs, runtime, discharge, thermal, or device-demo evidence exists |
+| ML | Wrist and complete Week 3 software baselines | WESAD models/artifacts, `psycon_audio_v2`, local `psycon_transcription_v1`, and English `psycon_language_v1` exist; recorded-participant speech, fusion evaluation, and external validation remain absent |
+| Validation | Software checks plus audio demos | Repository checks, synthetic quality demo, upload-page tests, and an actual local-model transcription test pass; no physical calibration, integrated logs, runtime, discharge, thermal, or device-demo evidence exists |
 
 ## PRD-resolved implementation decisions
 
@@ -147,7 +147,7 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 
 **Goal:** Complete the PRD speech-and-environment pipeline from continuous capture through acoustic and language features.
 
-**Status: in progress.** The deterministic `psycon_audio_v1` acoustic extractor, provenance, quality abstention, synthetic demo, and real-WAV upload page are implemented. The PRD also requires language features and conversation analysis, which imply a transcription stage and are now explicitly included below. Physical INMP441/TEMT6000 integration remains with Saksham.
+**Software status: complete.** The deterministic `psycon_audio_v2` acoustic extractor covers speaking activity, pause duration, pitch statistics, energy, voice stability, and spectral characteristics. Quality abstention, `psycon_transcription_v1` multilingual timestamped transcription, `psycon_language_v1` English language/conversation features, source lineage, synthetic demo, and the consent-aware real-WAV webpage are implemented and tested. Physical INMP441/TEMT6000 integration and the device exit criteria remain with Saksham.
 
 ### Arjun
 
@@ -316,7 +316,7 @@ Every update states what became true, its evidence, the acceptance criterion adv
 
 ## Completion calculation
 
-The 47% score is recomputed with fixed weights:
+The 49% score is recomputed with fixed weights:
 
 | Workstream | Weight | Completion rule |
 | --- | ---: | --- |
