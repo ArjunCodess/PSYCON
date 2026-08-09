@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>PSYCON Audio Inspector</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='audio_demo.css') }}">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="masthead">
+      <a class="brand" href="/" aria-label="PSYCON audio inspector home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>PSYCON / AUDIO</span>
+      </a>
+      <span class="local-label">LOCAL ENGINEERING DEMO</span>
+    </header>
+
+    <main>
+      <section class="intro" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">Recording quality inspection</p>
+          <h1 id="page-title">See what the audio pipeline accepts.</h1>
+        </div>
+        <p class="intro-copy">Upload a WAV recording. The page converts it to mono 16 kHz audio, checks it in windows of at most two seconds, and explains why each window is usable or rejected.</p>
+      </section>
+
+      <section class="workspace">
+        <form class="upload-panel" id="audio-form" method="post" enctype="multipart/form-data" aria-labelledby="upload-title">
+          <div>
+            <p class="section-index">01 / INPUT</p>
+            <h2 id="upload-title">Choose a recording</h2>
+            <p class="helper">PCM or floating-point WAV, up to {{ max_upload_mb }} MB and five minutes. The server keeps it in memory and does not save it.</p>
+          </div>
+
+          <label class="drop-zone" for="audio-input">
+            <span class="drop-title">Select a WAV file</span>
+            <span class="drop-detail" id="file-name">or drop it here</span>
+            <input id="audio-input" name="audio" type="file" accept=".wav,audio/wav" required>
+          </label>
+
+          <audio id="local-preview" class="audio-preview" controls hidden></audio>
+
+          {% if error %}
+          <div class="error-message" role="alert">
+            <strong>Could not analyze this file.</strong>
+            <span>{{ error }}</span>
+          </div>
+          {% endif %}
+
+          <fieldset class="processing-options">
+            <legend>Processing permission</legend>
+            <label class="check-row">
+              <input name="consent" type="checkbox" value="yes" required>
+              <span>I own this recording or have permission from every recorded speaker to process it locally.</span>
+            </label>
+            <label class="check-row">
+              <input name="transcribe" type="checkbox" value="yes" checked>
+              <span>Run multilingual local transcription and English language-feature analysis when supported.</span>
+            </label>
+            <p>The first transcription downloads the local Whisper model. It may take several minutes; the recording is not sent to a transcription API.</p>
+          </fieldset>
+
+          <button class="analyze-button" id="analyze-button" type="submit">
+            <span id="button-label">Analyze recording</span>
+            <span aria-hidden="true">→</span>
+          </button>
+        </form>
+
+        <aside class="method-panel" aria-labelledby="method-title">
+          <p class="section-index">02 / METHOD</p>
+          <h2 id="method-title">What happens next</h2>
+          <ol class="method-list">
+            <li><span>01</span><p>The WAV is decoded, mixed to mono, and resampled to 16 kHz PCM16.</p></li>
+            <li><span>02</span><p>Each window of at most two seconds is wrapped in a checksum-protected Protocol v2 packet.</p></li>
+            <li><span>03</span><p><code>psycon_audio_v2</code> measures level, clipping, pitch statistics, voice stability, timing, and spectrum.</p></li>
+            <li><span>04</span><p>Every window receives an explicit quality decision before future inference.</p></li>
+          </ol>
+        </aside>
+      </section>
+
+      {% if result %}
+      <section class="results" aria-labelledby="result-title">
+        <div class="result-heading">
+          <div>
+            <p class="section-index">03 / RESULT</p>
+            <h2 id="result-title">{{ result.filename }}</h2>
+          </div>
+          <div class="decision decision--{{ result.overall_status }}">
+            <span class="decision-dot" aria-hidden="true"></span>
+            {{ result.overall_status | replace('_', ' ') }}
+          </div>
+        </div>
+        <p class="result-summary">{{ result.summary }}</p>
+
+        {% if audio_data_url %}
+        <audio class="audio-preview result-audio" controls src="{{ audio_data_url }}"></audio>
+        {% endif %}
+
+        <dl class="recording-facts">
+          <div><dt>Duration</dt><dd>{{ "%.2f" | format(result.duration_s) }} s</dd></div>
+          <div><dt>Input</dt><dd>{{ result.original_sample_rate_hz }} Hz / {{ result.channels }} ch</dd></div>
+          <div><dt>Analysis</dt><dd>{{ result.analysis_sample_rate_hz }} Hz mono</dd></div>
+          <div><dt>Windows</dt><dd>{{ result.window_count }}</dd></div>
+        </dl>
+
+        <div class="window-table-wrap">
+          <table class="window-table">
+            <thead>
+              <tr>
+                <th>Window</th>
+                <th>Time</th>
+                <th>Decision</th>
+                <th>RMS</th>
+                <th>Pitch</th>
+                <th>Clipped</th>
+                <th>Reason</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for window in result.windows %}
+              <tr>
+                <td>{{ "%02d" | format(window.number) }}</td>
+                <td>{{ "%.1f" | format(window.start_s) }}–{{ "%.1f" | format(window.end_s) }} s</td>
+                <td><span class="status-tag status-tag--{{ window.status }}">{{ window.status | replace('_', ' ') }}</span></td>
+                <td>{{ "%.1f" | format(window.features.rms_dbfs) }} dBFS</td>
+                <td>{{ "%.1f" | format(window.features.f0_hz) }} Hz</td>
+                <td>{{ "%.2f" | format(window.features.clip_fraction * 100) }}%</td>
+                <td>{{ window.reasons | join(', ') if window.reasons else 'passed' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <section class="transcript-section" aria-labelledby="transcript-title">
+          <div class="subsection-heading">
+            <div>
+              <p class="section-index">04 / TRANSCRIPT</p>
+              <h3 id="transcript-title">Timestamped speech</h3>
+            </div>
+            <span class="status-tag status-tag--{{ result.transcription.status }}">{{ result.transcription.status | replace('_', ' ') }}</span>
+          </div>
+
+          {% if result.transcription.status == 'complete' %}
+          <dl class="transcript-facts">
+            <div><dt>Language</dt><dd>{{ result.transcription.language or 'unknown' }}</dd></div>
+            <div><dt>Language confidence</dt><dd>{{ "%.1f" | format(result.transcription.language_confidence * 100) }}%</dd></div>
+            <div><dt>Transcript confidence</dt><dd>{{ "%.1f" | format(result.transcription.confidence * 100) }}%</dd></div>
+            <div><dt>Engine</dt><dd>{{ result.transcription.engine }}</dd></div>
+          </dl>
+          <div class="transcript-copy">{{ result.transcription.text }}</div>
+          <ol class="segment-list">
+            {% for segment in result.transcription.segments %}
+            <li>
+              <span>{{ "%.2f" | format(segment.start_s) }}–{{ "%.2f" | format(segment.end_s) }} s</span>
+              <p>{{ segment.text }}</p>
+              <small>{{ "%.1f" | format(segment.confidence * 100) }}% confidence</small>
+            </li>
+            {% endfor %}
+          </ol>
+          {% else %}
+          <div class="result-notice">
+            <strong>No transcript was used.</strong>
+            <span>{{ result.transcription.reasons | join(', ') | replace('_', ' ') }}</span>
+          </div>
+          {% endif %}
+        </section>
+
+        <section class="language-section" aria-labelledby="language-title">
+          <div class="subsection-heading">
+            <div>
+              <p class="section-index">05 / LANGUAGE</p>
+              <h3 id="language-title">Auditable text features</h3>
+            </div>
+            <span class="status-tag">{{ result.language_features.status | replace('_', ' ') }}</span>
+          </div>
+          {% if result.language_features.status == 'complete' %}
+          <dl class="language-grid">
+            <div><dt>Words</dt><dd>{{ result.language_features.word_count }}</dd></div>
+            <div><dt>Vocabulary diversity</dt><dd>{{ "%.2f" | format(result.language_features.vocabulary_diversity) }}</dd></div>
+            <div><dt>Mean sentence length</dt><dd>{{ "%.1f" | format(result.language_features.mean_sentence_length_words) }}</dd></div>
+            <div><dt>Sentiment baseline</dt><dd>{{ result.language_features.sentiment_label }}</dd></div>
+            <div><dt>Topic transitions</dt><dd>{{ result.language_features.topic_transition_count }}</dd></div>
+            <div><dt>Words per minute</dt><dd>{{ "%.1f" | format(result.language_features.words_per_minute) }}</dd></div>
+          </dl>
+          <div class="emotion-row">
+            {% for name, count in result.language_features.emotion_word_counts.items() %}
+            <span><strong>{{ name }}</strong> {{ count }}</span>
+            {% endfor %}
+          </div>
+          <p class="language-warning">These are small, transparent English lexicons for research comparison. They are not emotion recognition or a mental-health assessment, and speaker diarization is not implemented.</p>
+          {% else %}
+          <div class="result-notice">
+            <strong>Language features were not produced.</strong>
+            <span>{{ result.language_features.reasons | join(', ') | replace('_', ' ') }}</span>
+          </div>
+          {% endif %}
+        </section>
+
+        <details class="provenance">
+          <summary>Recording provenance</summary>
+          <dl>
+            <div><dt>Session</dt><dd><code>{{ result.session_id }}</code></dd></div>
+            <div><dt>SHA-256</dt><dd><code>{{ result.source_sha256 }}</code></dd></div>
+            <div><dt>Source format</dt><dd><code>{{ result.source_dtype }}</code></dd></div>
+            <div><dt>Extractor</dt><dd><code>{{ result.feature_version }}</code></dd></div>
+            <div><dt>Transcription</dt><dd><code>{{ result.transcription.version }}</code></dd></div>
+            <div><dt>Language features</dt><dd><code>{{ result.language_features.version }}</code></dd></div>
+          </dl>
+        </details>
+      </section>
+      {% endif %}
+
+      <section class="scope-note" aria-labelledby="scope-title">
+        <p class="section-index">RESEARCH BOUNDARY</p>
+        <h2 id="scope-title">This checks recording quality, not mental health.</h2>
+        <p>A usable result means the signal passed today’s engineering thresholds. It does not identify a speaker, interpret words, diagnose a condition, or prove that the final wearable microphone is calibrated.</p>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const input = document.querySelector('#audio-input');
+    const fileName = document.querySelector('#file-name');
+    const preview = document.querySelector('#local-preview');
+    let previewUrl = null;
+
+    input.addEventListener('change', () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      const file = input.files[0];
+      if (!file) {
+        fileName.textContent = 'or drop it here';
+        preview.hidden = true;
+        return;
+      }
+      fileName.textContent = `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+      previewUrl = URL.createObjectURL(file);
+      preview.src = previewUrl;
+      preview.hidden = false;
+    });
+
+    window.addEventListener('pagehide', () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    });
+
+    document.querySelector('#audio-form').addEventListener('submit', () => {
+      const button = document.querySelector('#analyze-button');
+      document.querySelector('#button-label').textContent = 'Analyzing locally…';
+      button.disabled = true;
+      button.setAttribute('aria-busy', 'true');
+    });
+  </script>
+</body>
+</html>
