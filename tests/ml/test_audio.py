@@ -6,7 +6,7 @@ import pytest
 from ml.src.audio import AudioProvenance, AudioStatus, FEATURE_NAMES, analyze_audio_packet, analyze_pcm16
 from ml.src.audio_fixtures import all_fixtures, tone
 from protocol.chunk import encode_chunk_v2
-from demo.audio_week3_demo import run_demo
+from demo.audio_demo import run_demo
 
 
 SAMPLE_RATE = 16_000

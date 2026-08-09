@@ -2,7 +2,7 @@
   {
     "case": "silence",
     "status": "insufficient_audio",
-    "feature_version": "psycon_audio_v2",
+    "extractor": "psycon_audio",
     "features": {
       "duration_s": 2.0,
       "rms_dbfs": -120.0,
@@ -27,7 +27,7 @@
       "insufficient_signal_energy"
     ],
     "provenance": {
-      "session_id": "week3-synthetic-demo",
+      "session_id": "audio-synthetic-demo",
       "device_id": 3,
       "sequence": 1,
       "device_timestamp_us": 2000000,
@@ -35,13 +35,13 @@
       "sample_count": 32000,
       "sample_rate_hz": 16000,
       "source_sha256": "d7c50e50f01a481664840684ded20109ff0758d7867b270a62e63a481b59f65b",
-      "feature_version": "psycon_audio_v2"
+      "extractor": "psycon_audio"
     }
   },
   {
     "case": "impulse",
     "status": "insufficient_audio",
-    "feature_version": "psycon_audio_v2",
+    "extractor": "psycon_audio",
     "features": {
       "duration_s": 2.0,
       "rms_dbfs": -47.756273648161304,
@@ -66,7 +66,7 @@
       "insufficient_signal_energy"
     ],
     "provenance": {
-      "session_id": "week3-synthetic-demo",
+      "session_id": "audio-synthetic-demo",
       "device_id": 3,
       "sequence": 2,
       "device_timestamp_us": 4000000,
@@ -74,13 +74,13 @@
       "sample_count": 32000,
       "sample_rate_hz": 16000,
       "source_sha256": "bfb0021ea4d308d41a106260976b38d87d01a2ed1a61cabe7159c6860f85687b",
-      "feature_version": "psycon_audio_v2"
+      "extractor": "psycon_audio"
     }
   },
   {
     "case": "tone",
     "status": "usable",
-    "feature_version": "psycon_audio_v2",
+    "extractor": "psycon_audio",
     "features": {
       "duration_s": 2.0,
       "rms_dbfs": -12.12922027860655,
@@ -103,7 +103,7 @@
     },
     "reasons": [],
     "provenance": {
-      "session_id": "week3-synthetic-demo",
+      "session_id": "audio-synthetic-demo",
       "device_id": 3,
       "sequence": 3,
       "device_timestamp_us": 6000000,
@@ -111,13 +111,13 @@
       "sample_count": 32000,
       "sample_rate_hz": 16000,
       "source_sha256": "0729434e2b29ba309d36821a5fc9946d21c465c7ba8a0d0ada30cf88d508bcca",
-      "feature_version": "psycon_audio_v2"
+      "extractor": "psycon_audio"
     }
   },
   {
     "case": "clipping",
     "status": "clipped",
-    "feature_version": "psycon_audio_v2",
+    "extractor": "psycon_audio",
     "features": {
       "duration_s": 2.0,
       "rms_dbfs": -1.2144720044752633,
@@ -142,7 +142,7 @@
       "clip_fraction_above_1pct"
     ],
     "provenance": {
-      "session_id": "week3-synthetic-demo",
+      "session_id": "audio-synthetic-demo",
       "device_id": 3,
       "sequence": 4,
       "device_timestamp_us": 8000000,
@@ -150,13 +150,13 @@
       "sample_count": 32000,
       "sample_rate_hz": 16000,
       "source_sha256": "e8f72fa7dbe8d619e642f257bcfda49b92c3e7ddee4dd036238e8c0a1fedacd4",
-      "feature_version": "psycon_audio_v2"
+      "extractor": "psycon_audio"
     }
   },
   {
     "case": "speech_like",
     "status": "usable",
-    "feature_version": "psycon_audio_v2",
+    "extractor": "psycon_audio",
     "features": {
       "duration_s": 2.0,
       "rms_dbfs": -17.209214477548464,
@@ -179,7 +179,7 @@
     },
     "reasons": [],
     "provenance": {
-      "session_id": "week3-synthetic-demo",
+      "session_id": "audio-synthetic-demo",
       "device_id": 3,
       "sequence": 5,
       "device_timestamp_us": 10000000,
@@ -187,13 +187,13 @@
       "sample_count": 32000,
       "sample_rate_hz": 16000,
       "source_sha256": "9801e7538d40c6277bba13a13a9a23ad5091c80a5d3a73a17ec8b892988e58ca",
-      "feature_version": "psycon_audio_v2"
+      "extractor": "psycon_audio"
     }
   },
   {
     "case": "noise",
     "status": "too_noisy",
-    "feature_version": "psycon_audio_v2",
+    "extractor": "psycon_audio",
     "features": {
       "duration_s": 2.0,
       "rms_dbfs": -12.038693645856494,
@@ -218,7 +218,7 @@
       "spectral_flatness_above_0_5"
     ],
     "provenance": {
-      "session_id": "week3-synthetic-demo",
+      "session_id": "audio-synthetic-demo",
       "device_id": 3,
       "sequence": 6,
       "device_timestamp_us": 12000000,
@@ -226,13 +226,13 @@
       "sample_count": 32000,
       "sample_rate_hz": 16000,
       "source_sha256": "5130ae964717c3d42a99d403dd922a698c9618160e592ed6a5678f7a7d0d22ac",
-      "feature_version": "psycon_audio_v2"
+      "extractor": "psycon_audio"
     }
   },
   {
     "case": "missing",
     "status": "missing_audio",
-    "feature_version": "psycon_audio_v2",
+    "extractor": "psycon_audio",
     "features": {},
     "reasons": [
       "packet_missing"
@@ -242,7 +242,7 @@
   {
     "case": "corrupt",
     "status": "corrupt",
-    "feature_version": "psycon_audio_v2",
+    "extractor": "psycon_audio",
     "features": {},
     "reasons": [
       "Protocol v2 CRC mismatch: stored 0xb1e70e30, computed 0x9ce5e1bd"

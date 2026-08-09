@@ -1,4 +1,4 @@
-"""Run the Week 3 audio pipeline on deterministic Protocol v2 packets."""
+"""Run the audio pipeline on deterministic Protocol v2 packets."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def run_demo(output_path: Path) -> list[dict[str, object]]:
         packet = _packet(samples, sequence)
         analysis = analyze_audio_packet(
             packet,
-            session_id="week3-synthetic-demo",
+            session_id="audio-synthetic-demo",
             first_sample_index=first_sample_index,
             nominal_sample_rate_hz=SAMPLE_RATE_HZ,
         )
@@ -33,7 +33,7 @@ def run_demo(output_path: Path) -> list[dict[str, object]]:
     rows.append(
         {
             "case": "missing",
-            **analyze_audio_packet(None, session_id="week3-synthetic-demo").to_dict(),
+            **analyze_audio_packet(None, session_id="audio-synthetic-demo").to_dict(),
         }
     )
     corrupt_packet = bytearray(_packet(all_fixtures(SAMPLE_RATE_HZ)["tone"], 99))
@@ -41,7 +41,7 @@ def run_demo(output_path: Path) -> list[dict[str, object]]:
     rows.append(
         {
             "case": "corrupt",
-            **analyze_audio_packet(bytes(corrupt_packet), session_id="week3-synthetic-demo").to_dict(),
+            **analyze_audio_packet(bytes(corrupt_packet), session_id="audio-synthetic-demo").to_dict(),
         }
     )
 
@@ -67,7 +67,7 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("results/demo/audio_week3_demo.json"),
+        default=Path("results/demo/audio_demo.json"),
         help="JSON report path",
     )
     args = parser.parse_args()
