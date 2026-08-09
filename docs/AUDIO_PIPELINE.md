@@ -1,14 +1,14 @@
 # Audio Feature and Quality Contract
 
-Week 3 freezes a deterministic software contract for mono signed PCM16 audio, local transcription, and transparent English language features. It does not identify a speaker, infer a diagnosis, or prove that the physical microphone is correctly configured.
+This document defines the single deterministic software contract for mono signed PCM16 audio, local transcription, and transparent English language features. It does not identify a speaker, infer a diagnosis, or prove that the physical microphone is correctly configured.
 
 The Engineering PRD specifies language features and conversation analysis. The implemented consent-aware stage provides timestamped text, confidence/failure states, vocabulary and sentence statistics, sentiment, emotion-related word counts, topic transitions, and basic speech/pause summaries. The acoustic quality decision runs first so unusable audio does not silently enter transcription or multimodal inference.
 
 ## Input and provenance
 
-`analyze_audio_packet` accepts one CRC-checked Protocol v2 `audio_pcm` packet. Every accepted feature window retains the session ID, device ID, sequence, device timestamp, first sample index, sample count, nominal sample rate, SHA-256 digest of the complete source packet, and extractor version. A caller may supply the nominal 16 kHz rate because the current integer-microsecond protocol period represents it as 62 microseconds; a disagreement greater than one microsecond is rejected.
+`analyze_audio_packet` accepts one CRC-checked Protocol v2 `audio_pcm` packet. Every accepted feature window retains the session ID, device ID, sequence, device timestamp, first sample index, sample count, nominal sample rate, SHA-256 digest of the complete source packet, and extractor identity. A caller may supply the nominal 16 kHz rate because the current integer-microsecond protocol period represents it as 62 microseconds; a disagreement greater than one microsecond is rejected.
 
-The extractor version is `psycon_audio_v2`. Its ordered feature vector is:
+The extractor is `psycon_audio`. Its ordered feature vector is:
 
 1. duration in seconds;
 2. RMS and peak level in dBFS;
@@ -19,7 +19,7 @@ The extractor version is `psycon_audio_v2`. Its ordered feature vector is:
 7. relative pitch jitter and a bounded voice-stability score;
 8. energy-active frame fraction, pause count, and total pause duration from 25 ms frames with a 10 ms hop.
 
-This vector uses NumPy only, so it has no model download or feature-extractor licensing dependency. It should remain unchanged under the v1 name; incompatible changes require a new version and equivalence tests.
+This vector uses NumPy only, so it has no model download or feature-extractor licensing dependency. Changes must update the contract and equivalence tests together.
 
 ## Quality decisions
 
@@ -43,31 +43,31 @@ These thresholds are frozen for deterministic testing, not claimed as final fiel
 Run the small local demo from the repository root:
 
 ```powershell
-python -m demo.audio_week3_demo
+python -m demo.audio_demo
 ```
 
-It wraps each fixture in a Protocol v2 packet, runs decoding, provenance, feature extraction, and abstention, then writes `results/demo/audio_week3_demo.json`. The demo also injects a missing packet and a CRC-corrupted packet. It uses generated signals only, so no microphone, personal recording, or consented dataset is required.
+It wraps each fixture in a Protocol v2 packet, runs decoding, provenance, feature extraction, and abstention, then writes `results/demo/audio_demo.json`. The demo also injects a missing packet and a CRC-corrupted packet. It uses generated signals only, so no microphone, personal recording, or consented dataset is required.
 
 The physical Week 3 gate remains separate: Saksham must verify I2S channel/sign/shift/sample rate, establish placement-specific noise and clipping limits, prove continuous DMA and overrun accounting, align TEMT6000 readings to the audio clock, and save the one-hour capture evidence.
 
 ## Transcription and language decisions
 
-`psycon_transcription_v1` uses `faster-whisper` with a locally cached model. The development profile defaults to the multilingual `small` model on CPU with int8 computation. The approved production profile is `large-v3-turbo` on a CUDA GPU with float16 computation; it runs inside the PSYCON backend rather than a third-party transcription API. Configure these profiles with `PSYCON_WHISPER_MODEL`, `PSYCON_WHISPER_DEVICE`, and `PSYCON_WHISPER_COMPUTE_TYPE`. Raw recordings still require encrypted transport, restricted access, consent, and an explicit retention policy when the backend performs transcription.
+`psycon_transcription` uses `faster-whisper` with a locally cached model. The development profile defaults to the multilingual `small` model on CPU with int8 computation. The approved production profile is `turbo` on a CUDA GPU with float16 computation; it runs inside the PSYCON backend rather than a third-party transcription API. Configure these profiles with `PSYCON_WHISPER_MODEL`, `PSYCON_WHISPER_DEVICE`, and `PSYCON_WHISPER_COMPUTE_TYPE`. Raw recordings still require encrypted transport, restricted access, consent, and an explicit retention policy when the backend performs transcription.
 
 Use the production profile with:
 
 ```powershell
-$env:PSYCON_WHISPER_MODEL = "large-v3-turbo"
+$env:PSYCON_WHISPER_MODEL = "turbo"
 $env:PSYCON_WHISPER_DEVICE = "cuda"
 $env:PSYCON_WHISPER_COMPUTE_TYPE = "float16"
 python demo/audio_web_app.py
 ```
 
-Model selection remains an empirical research decision. Before freezing a release, compare `small`, `medium`, `large-v3-turbo`, and `large-v3` on representative consented multilingual recordings using word error rate, language-detection accuracy, latency, peak memory, and downstream language-feature stability. Transcription is multilingual, but `psycon_language_v1` still abstains from sentiment, emotion-word, vocabulary, and topic-transition analysis outside English until validated language-specific feature extractors exist.
+Model selection remains an empirical research decision. Before freezing a release, compare `small`, `medium`, and `turbo` on representative consented multilingual recordings using word error rate, language-detection accuracy, latency, peak memory, and downstream language-feature stability. Transcription is multilingual, but `psycon_language` still abstains from sentiment, emotion-word, vocabulary, and topic-transition analysis outside English until validated language-specific feature extractors exist.
 
-Only contiguous windows marked `usable` by `psycon_audio_v2` are transcribed. The result is one of `complete`, `no_speech`, `skipped_quality`, `not_requested`, `transcription_unavailable`, or `failed_transcription`. Completed segments retain start/end time, approximate confidence, and source-sample boundaries.
+Only contiguous windows marked `usable` by `psycon_audio` are transcribed. The result is one of `complete`, `no_speech`, `skipped_quality`, `not_requested`, `transcription_unavailable`, or `failed_transcription`. Completed segments retain start/end time, approximate confidence, and source-sample boundaries.
 
-`psycon_language_v1` supports English transcripts. It reports word and unique-word counts, vocabulary diversity, sentence count and mean length, a small lexicon-based sentiment baseline, emotion-related word counts, topic-transition distance, speech-segment count, speaking duration, pauses, and words per minute. Non-English transcripts return `unsupported_language`, short transcripts return `insufficient_text`, and missing transcription returns `transcription_unavailable`.
+`psycon_language` supports English transcripts. It reports word and unique-word counts, vocabulary diversity, sentence count and mean length, a small lexicon-based sentiment baseline, emotion-related word counts, topic-transition distance, speech-segment count, speaking duration, pauses, and words per minute. Non-English transcripts return `unsupported_language`, short transcripts return `insufficient_text`, and missing transcription returns `transcription_unavailable`.
 
 The lexicons are deliberately small and inspectable. Their values are research features for ablation testing, not validated emotion recognition. Transcript segments are not speaker turns, and speaker diarization is explicitly unavailable.
 
