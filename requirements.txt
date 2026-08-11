@@ -9,6 +9,7 @@ joblib>=1.4
 xgboost>=3.2
 lightgbm>=4.6
 Flask>=3.0,<4
+python-dotenv>=1.0,<2
 av>=11,<19
 faster-whisper>=1.1,<2
 cryptography>=44,<47
