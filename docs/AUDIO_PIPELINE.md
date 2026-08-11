@@ -1,6 +1,6 @@
 # Audio Feature and Quality Contract
 
-This document defines the single deterministic software contract for mono signed PCM16 audio, local transcription, and transparent English language features. It does not identify a speaker, infer a diagnosis, or prove that the physical microphone is correctly configured.
+This document defines the software contract for mono signed PCM16 audio, local transcription, transparent English language features, consented wearer verification, conversation timing, and voice jitter. It does not infer a diagnosis or prove that the physical microphone is correctly configured.
 
 The Engineering PRD specifies language features and conversation analysis. The implemented consent-aware stage provides timestamped text, confidence/failure states, vocabulary and sentence statistics, sentiment, emotion-related word counts, topic transitions, and basic speech/pause summaries. The acoustic quality decision runs first so unusable audio does not silently enter transcription or multimodal inference.
 
@@ -65,11 +65,23 @@ python demo/audio_web_app.py
 
 Model selection remains an empirical research decision. Before freezing a release, compare `small`, `medium`, and `turbo` on representative consented multilingual recordings using word error rate, language-detection accuracy, latency, peak memory, and downstream language-feature stability. Transcription is multilingual, but `psycon_language` still abstains from sentiment, emotion-word, vocabulary, and topic-transition analysis outside English until validated language-specific feature extractors exist.
 
-Only contiguous windows marked `usable` by `psycon_audio` are transcribed. The result is one of `complete`, `no_speech`, `skipped_quality`, `not_requested`, `transcription_unavailable`, or `failed_transcription`. Completed segments retain start/end time, approximate confidence, and source-sample boundaries.
+Only contiguous windows marked `usable` by `psycon_audio` are transcribed. The result is one of `complete`, `no_speech`, `skipped_quality`, `not_requested`, `transcription_unavailable`, or `failed_transcription`. Completed segments retain start/end time, approximate confidence, source-sample boundaries, and word timestamps used for speaker attribution.
 
 `psycon_language` supports English transcripts. It reports word and unique-word counts, vocabulary diversity, sentence count and mean length, a small lexicon-based sentiment baseline, emotion-related word counts, topic-transition distance, speech-segment count, speaking duration, pauses, and words per minute. Non-English transcripts return `unsupported_language`, short transcripts return `insufficient_text`, and missing transcription returns `transcription_unavailable`.
 
-The lexicons are deliberately small and inspectable. Their values are research features for ablation testing, not validated emotion recognition. Transcript segments are not speaker turns, and speaker diarization is explicitly unavailable.
+The lexicons are deliberately small and inspectable. Their values are research features for ablation testing, not validated emotion recognition. Filler-word classification is not implemented.
+
+## Speaker, timing, and jitter analysis
+
+`psycon_speaker_analysis` runs `pyannote/speaker-diarization-community-1` on the project-controlled server. `HF_TOKEN` grants the gated model access, while `PSYCON_DIARIZATION_DEVICE` selects CPU or CUDA. Regular diarization measures overlap; exclusive diarization assigns word timestamps to speakers. Words with less than 50% overlap with any turn remain `unknown`.
+
+One wearer is enrolled from exactly three clean 5–10 second WAV recordings. SpeechBrain ECAPA-TDNN creates normalized embeddings, which are averaged and encrypted using `PSYCON_PROFILE_KEY`. The recordings are held in memory and discarded, and neither raw embeddings nor enrollment audio enter results or logs. The page supports profile deletion and replacement.
+
+Each diarized speaker needs at least three seconds of clean non-overlapping speech before comparison. A cluster becomes `participant` only when it exceeds `PSYCON_SPEAKER_THRESHOLD` and beats the runner-up by `PSYCON_SPEAKER_MARGIN`; otherwise the analysis reports an explicit abstention. All other clusters are anonymous within the current recording.
+
+The analyzer reports speaking duration/share, turn statistics, articulation and session speaking rates, within-speaker pauses, response gaps, signed transition latencies, overlap, and interruptions. A pause is at least 200 ms before the same speaker continues. An interruption starts at least 200 ms before the active turn ends and lasts at least 500 ms.
+
+Praat through Parselmouth calculates local absolute jitter, local relative jitter, RAP, PPQ5, and DDP on separate continuous regions of at least one second. Overlapped, clipped, low-energy, short, and pitch-insufficient regions abstain. Aggregates are weighted by valid voiced duration and include coverage; these microphone-sensitive measurements are research features, not diagnostic evidence.
 
 ## Local real-recording webpage
 
@@ -80,8 +92,10 @@ python -m pip install -r requirements.txt
 python -m demo.audio_web_app
 ```
 
-Open `http://127.0.0.1:5000` and upload a PCM or floating-point WAV file. The page accepts at most 12 MB and five minutes, holds the recording in process memory rather than writing it to disk, and provides an in-browser playback control. It downmixes as many as eight channels, resamples supported rates to 16 kHz, converts samples to PCM16 without loudness normalization, and divides the recording into balanced sequential windows of at most two seconds so a short final remainder is not judged alone. Each window then travels through the same Protocol v2 decoder, provenance, feature, and quality-decision path used by the synthetic demo.
+Set `PSYCON_PROFILE_KEY` to a random secret of at least 32 characters and supply `HF_TOKEN` for the gated local diarization model. Select CUDA with `PSYCON_DIARIZATION_DEVICE` and `PSYCON_SPEAKER_DEVICE` on the intended server.
+
+Open `http://127.0.0.1:5000`, enroll the wearer, and upload a PCM or floating-point conversation WAV. The page accepts at most 12 MB and five minutes, holds conversation and enrollment recordings in process memory rather than writing them to disk, and provides playback. It downmixes as many as eight channels, resamples supported rates to 16 kHz, converts samples to PCM16 without loudness normalization, and divides the recording into balanced sequential windows of at most two seconds. Independent failure states keep acoustic analysis and transcription usable when model access or enrollment is missing.
 
 The summary is `usable` only when every window passes, `partially_usable` when at least one window passes, and `no_usable_audio` when none pass. The per-window table remains authoritative because a usable section must not hide clipping, noise, silence, or an insufficient final window elsewhere in the recording.
 
-The page requires the operator to confirm permission from recorded speakers before processing and can disable transcription for an acoustic-only check. This checkbox is an engineering safeguard, not a complete participant-consent system. The Flask development server binds to localhost by default and has no authentication, encryption, durable storage, participant management, or production deployment configuration. Do not expose it to a network or use it to collect research participants' recordings.
+The page requires recording permission and separate biometric-processing consent. These checkboxes are engineering safeguards, not a complete participant-consent system. The Flask development server binds to localhost and has no authentication, encrypted transport, audit log, or production deployment configuration. Do not expose it to a network or use it to collect research participants' recordings.

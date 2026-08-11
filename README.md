@@ -6,7 +6,7 @@ PSYCON is a research and screening prototype, not a medical device. It must not 
 
 ## Current completion
 
-**Overall project completion: 49% as of 9 August 2026.** This weighted estimate measures progress toward the PRD's competition-ready integrated prototype. It does not count completed software, documentation, or generated-speech tests as completed hardware.
+**Overall project completion: 50% as of 10 August 2026.** This weighted estimate measures progress toward the PRD's competition-ready integrated prototype. It does not count implemented speaker software or generated-speech tests as completed hardware or real-participant validation.
 
 | Workstream | Weight | Completion | Contribution | Evidence and remaining gap |
 | --- | ---: | ---: | ---: | --- |
@@ -14,11 +14,11 @@ PSYCON is a research and screening prototype, not a medical device. It must not 
 | Hardware, electrical, and mechanical | 20% | 35% | 7.0% | Components and wiring are documented and reported as individually checked. There is no repository evidence of an integrated wearable, calibrated GSR front end, measured rails/current/temperature, enclosure, or runtime test. |
 | Device firmware and acquisition | 20% | 30% | 6.0% | Both firmware targets compile. Audio I2S/BLE and wrist I2C/BLE bring-up exist, but wrist values are placeholders and continuous sensing, quality, storage, recovery, power, and watchdog behavior are absent. |
 | Protocol, backend, and synchronization | 15% | 34% | 5.1% | Protocol v2 has shared fixtures and Python, TypeScript, and C++ conformance tests; normalized wrist/session/quality/calibration schemas and audio packet provenance are implemented. The backend and synchronization service remain absent. |
-| Data science and research pipeline | 15% | 78% | 11.7% | WESAD processing/results, a hardware-compatible wrist converter, deterministic acoustic analysis, local timestamped transcription, and English language/conversation features exist. Recorded participant speech, hardware data, fusion, repeated validation, confidence intervals, and external validation remain. |
-| Verification, safety, and release evidence | 15% | 35% | 5.25% | Repository checks, dependency audit, fixture conformance, firmware builds, PRD compilation, audio quality fixtures, webpage tests, and an actual local-model transcription test pass. Physical calibration, runtime, safety, and device demonstration evidence remain. |
-| **Total** | **100%** |  | **49.30% ≈ 49%** | Week 1 through Week 3 software are complete. Physical Wrist/Audio integration and the Week 4 backend are the next critical path. |
+| Data science and research pipeline | 15% | 82% | 12.3% | WESAD results, wrist conversion, acoustic analysis, word-timestamped transcription, encrypted wearer enrollment, diarization adapters, conversation timing, and standard jitter features exist. Consented real-speaker calibration, hardware data, fusion, confidence intervals, and external validation remain. |
+| Verification, safety, and release evidence | 15% | 37% | 5.55% | Repository checks, fixture conformance, firmware builds, PRD compilation, deterministic speaker tests, encrypted-profile tests, audio fixtures, webpage tests, and local-model transcription pass. Gated real diarization, physical calibration, runtime, safety, and device demonstrations remain. |
+| **Total** | **100%** |  | **50.20% ≈ 50%** | Week 3 speaker-analysis software is implemented, but its real multi-speaker validation gate and all physical Audio Module evidence remain open. |
 
-The narrower end-to-end functional prototype is roughly **21% complete** because real sensor acquisition, synchronized backend sessions, power evidence, and multimodal validation are still absent. The 49% overall figure gives reusable credit to the specification, verified software contracts, firmware scaffolds, WESAD pipeline, device converters, deterministic audio analysis, local transcription/language features, and generated results.
+The narrower end-to-end functional prototype is roughly **22% complete** because real sensor acquisition, synchronized backend sessions, power evidence, and multimodal validation are still absent. The 50% overall figure gives reusable credit to the specification, verified software contracts, firmware scaffolds, WESAD pipeline, device converters, deterministic audio analysis, local transcription/language features, and implemented speaker analysis.
 
 ## Source of truth
 
@@ -69,11 +69,13 @@ Both PlatformIO targets compile. Compilation proves source/toolchain compatibili
 
 [`ml/src/audio.py`](ml/src/audio.py) decodes Protocol v2 PCM16 packets with the `psycon_audio` extractor for quality, dBFS, pitch statistics, voice stability, prosody, spectral, and timing features. It preserves packet hashes and sample lineage and returns explicit `usable`, `insufficient_audio`, `clipped`, `too_noisy`, `corrupt`, or `missing_audio` states before inference.
 
-[`ml/src/transcription.py`](ml/src/transcription.py) now quality-gates and transcribes consented usable regions locally with timestamped segments, language detection, confidence, source-sample offsets, and explicit no-speech, skipped-quality, unavailable, and failed states. [`ml/src/language_features.py`](ml/src/language_features.py) implements the English baseline for vocabulary diversity, sentence length, sentiment, emotion-related word counts, topic transitions, speech duration, pauses, and speaking rate. Unsupported languages abstain from language features, and speaker diarization is not claimed.
+[`ml/src/transcription.py`](ml/src/transcription.py) quality-gates and transcribes consented usable regions locally with segment and word timestamps, language detection, confidence, source-sample offsets, and explicit failure states. [`ml/src/language_features.py`](ml/src/language_features.py) implements the transparent English baseline; unsupported languages abstain and filler-word classification is excluded.
+
+[`ml/src/speaker_analysis.py`](ml/src/speaker_analysis.py) adds optional local pyannote diarization, encrypted three-recording wearer enrollment with SpeechBrain ECAPA embeddings, conservative wearer verification, anonymous speaker labels, word attribution, per-speaker speaking rates, pauses, response gaps, overlaps, interruptions, and quality-gated Praat jitter. Heavy models load only when requested, and deterministic tests use fakes so the normal suite does not need gated downloads.
 
 [`demo/audio_demo.py`](demo/audio_demo.py) processes deterministic generated fixtures and writes [`results/demo/audio_demo.json`](results/demo/audio_demo.json). This proves the software path and abstention behavior without using personal recordings; it does not prove the INMP441, TEMT6000, continuous DMA, placement, clock, or transport behavior.
 
-[`demo/audio_web_app.py`](demo/audio_web_app.py) provides a local upload page for consented PCM or floating-point WAV recordings. It keeps the upload in memory, downmixes and resamples it to mono 16 kHz PCM16, analyzes balanced Protocol v2 windows of at most two seconds, transcribes accepted regions with a local faster-whisper model, and displays quality, timestamped text, language features, and provenance. It does not send recordings to a transcription API or make a psychological inference.
+[`demo/audio_web_app.py`](demo/audio_web_app.py) provides a local upload page for consented WAV recordings. It enrolls or deletes one encrypted wearer profile, keeps uploaded audio in memory, runs optional local transcription and speaker analysis, and displays quality, speaker turns, attributed words, conversation timing, speaking rates, jitter, language features, and provenance. It does not send recordings to a speech API or make a psychological inference.
 
 ### WESAD baseline
 
@@ -129,7 +131,7 @@ python -m demo.audio_demo
 python -m demo.audio_web_app
 ```
 
-The web demo opens at `http://127.0.0.1:5000`; stop it with `Ctrl+C`. Python currently passes all repository-safe tests, the synthetic demo writes a reproducible JSON decision report, and web tests exercise valid and invalid real-WAV uploads. Three raw-WESAD integration tests skip when `data/raw/wesad/S*/S*.pkl` is absent; after obtaining WESAD under its terms, place the files there and rerun `python main.py` and the tests.
+The web demo opens at `http://127.0.0.1:5000`; stop it with `Ctrl+C`. Set `PSYCON_PROFILE_KEY` to a random secret of at least 32 characters before enrollment, and supply `HF_TOKEN` after accepting the Community-1 model terms to enable real diarization. Python tests use deterministic model fakes, the synthetic demo writes a reproducible JSON decision report, and web tests exercise uploads and encrypted profile lifecycle without downloading gated models. Three raw-WESAD integration tests skip when `data/raw/wesad/S*/S*.pkl` is absent; after obtaining WESAD under its terms, place the files there and rerun `python main.py` and the tests.
 
 ```powershell
 cd protocol
