@@ -21,3 +21,10 @@
 \begin{requirementbox}
 If recording speech, clearly explain what is collected, how it is processed, how long it is retained, and who can access it.
 \end{requirementbox}
+
+\subsection{Wearer Voice Profile}
+\label{sec:wearer-voice-profile-privacy}
+
+Speaker verification is biometric processing and requires consent separate from permission to process the conversation recording. Week~3 supports one local wearer profile created from three quality-checked recordings. Only the normalized averaged voice embedding and non-identifying enrollment metadata may be retained; the source enrollment recordings must be discarded immediately after processing. The profile must be encrypted using an operator-provisioned secret, excluded from logs and API responses, and replaceable or deletable by the operator.
+
+The profile may identify only the enrolled wearer. Other voices remain anonymous recording-local speaker labels, and an uncertain comparison must abstain rather than select the nearest voice. Production deployment additionally requires authenticated access, encrypted transport, audit logging, a documented retention period, and measured false-match and false-rejection rates across the intended languages, microphones, and environments.

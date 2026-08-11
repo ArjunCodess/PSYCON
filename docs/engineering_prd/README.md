@@ -80,7 +80,7 @@ pdflatex -interaction=nonstopmode main.tex
 This project has been test-compiled locally with TeX Live 2023 (pdfTeX,
 Biber 2.19) with **zero errors, zero undefined references, and zero
 overfull boxes** after the full four-pass sequence above, across all
-36 pages / 34 chapters / 5 volumes — the complete PSYCON Engineering Design
+37 pages / 34 chapters / 5 volumes — the complete PSYCON Engineering Design
 Document.
 
 ## Design Conventions Used
@@ -170,7 +170,7 @@ Document.
 | 34 — Conclusion | ✅ Converted |
 
 **The complete PSYCON Engineering Design Document is now fully converted** —
-all 34 chapters across 5 volumes, 36 pages, compiling cleanly with zero
+all 34 chapters across 5 volumes, 37 pages, compiling cleanly with zero
 errors and zero overfull boxes. If further chapters, appendices, or a
 revised volume follow, paste them and they will be converted and appended
 in the same style, maintaining consistent numbering, cross-references, and
