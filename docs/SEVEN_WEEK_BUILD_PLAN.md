@@ -1,10 +1,10 @@
 # PSYCON Seven-Week Build Plan
 
-**Assessment date:** 9 August 2026
+**Assessment date:** 10 August 2026
 
 **Owners:** Arjun Vijay Prakash, software and research; Saksham Yadav, hardware and device firmware
 
-**Current completion:** 49% overall; approximately 21% of end-to-end functional acceptance demonstrated
+**Current completion:** 50% overall; approximately 22% of end-to-end functional acceptance demonstrated
 
 This plan implements the 34-chapter engineering design in `docs/engineering_prd/`. It covers the complete Wrist Module, Audio Module, shared protocol, backend, multimodal study, electrical validation, safety, documentation, and competition demonstration.
 
@@ -21,14 +21,14 @@ Documentation proves documentation only. A diagram of a driver, backend, calibra
 
 | Area | State | Evidence |
 | --- | --- | --- |
-| Engineering PRD | Tracked and reproducible | 34 TeX chapters, a current 36-page PDF, reproducibility matrix, device-feature contract, and audio contract; placeholder bibliography entries remain release blockers |
+| Engineering PRD | Tracked and reproducible | 34 TeX chapters, a current 37-page PDF, reproducibility matrix, device-feature contract, and audio contract; placeholder bibliography entries remain release blockers |
 | Hardware | Partial reported bring-up | BOM, GPIO, wiring, and power design; no integrated or measured evidence in repository |
 | Wrist firmware | Scaffold | Compiles and scans I2C; sensor samples are placeholders |
 | Audio firmware | Scaffold | Compiles and initializes 16 kHz I2S; capture is discontinuous and TEMT6000 is absent |
 | Protocol | Versioned transport implemented | Protocol v2 fixtures decode identically in Python, TypeScript, and C++; a backend transport and synchronized session service remain absent |
 | Backend | Designed | No API, authentication, validator, synchronizer, database, dashboard, or export |
-| ML | Wrist and complete Week 3 software baselines | WESAD models/artifacts, `psycon_audio`, local `psycon_transcription`, and English `psycon_language` exist; recorded-participant speech, fusion evaluation, and external validation remain absent |
-| Validation | Software checks plus audio demos | Repository checks, synthetic quality demo, upload-page tests, and an actual local-model transcription test pass; no physical calibration, integrated logs, runtime, discharge, thermal, or device-demo evidence exists |
+| ML | Wrist and implemented Week 3 software baselines | WESAD models/artifacts, acoustic analysis, word-timestamped transcription, English language features, speaker diarization adapters, encrypted wearer enrollment, conversation timing, and Praat jitter analysis exist; recorded-participant validation, fusion evaluation, and external validation remain absent |
+| Validation | Software checks plus audio demos | Repository checks, deterministic speaker/model fakes, encrypted-profile tests, synthetic quality demo, upload-page tests, and an actual local-model transcription test pass; gated diarization and physical microphone validation remain open |
 
 ## PRD-resolved implementation decisions
 
@@ -54,6 +54,13 @@ These are measurements required by Chapters 4, 5, 8, 13, 14, and 28, not unanswe
 - Validate the GSR analog front end, safe excitation, protection, contact behavior, calibration, and the rule prohibiting charging while electrodes are attached.
 - Save I²C detection, real sensor samples, clean INMP441 recordings, TEMT6000 dark/bright response, DMA stability, packet integrity, reconnect, watchdog, and graceful-shutdown results.
 - Record final assembly, insulation, connector, enclosure, strain-relief, wearability, microphone-port, and safety inspection evidence.
+
+### Questions for Saksham
+
+- Can the project-controlled server access the gated `pyannote/speaker-diarization-community-1` model, and who will provision its `HF_TOKEN` without committing the token?
+- Which consented multilingual, multi-speaker recordings may be used to calibrate wearer-match thresholds, ambiguity margins, diarization error, and false-match/false-rejection rates?
+- What are the measured INMP441 noise floor, clipping limit, clock accuracy, microphone placement, and channel/sign/shift settings on the assembled Audio Module?
+- Does the intended server GPU have enough memory and throughput to run local Whisper, pyannote diarization, and ECAPA speaker embeddings for the expected recording length and concurrency?
 
 ## Definition of done
 
@@ -147,7 +154,7 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 
 **Goal:** Complete the PRD speech-and-environment pipeline from continuous capture through acoustic and language features.
 
-**Software status: complete.** The deterministic `psycon_audio` acoustic extractor covers speaking activity, pause duration, pitch statistics, energy, voice stability, and spectral characteristics. Quality abstention, `psycon_transcription` multilingual timestamped transcription, `psycon_language` English language/conversation features, source lineage, synthetic demo, and the consent-aware real-WAV webpage are implemented and tested. Physical INMP441/TEMT6000 integration and the device exit criteria remain with Saksham.
+**Software status: implemented and unit-tested; real-audio exit validation open.** The acoustic extractor, word-timestamped multilingual transcription, English language features, local diarization adapter, encrypted three-sample wearer enrollment, conservative participant matching, anonymous speaker metrics, conversation timing, and Praat jitter analysis are implemented behind explicit consent. Deterministic tests do not require gated model downloads. Week 3 becomes verified only after the complete webpage succeeds on consented multi-speaker recordings from the intended microphone and server.
 
 ### Arjun
 
@@ -158,6 +165,11 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 5. Preserve lineage from source recording and Protocol v2 samples to acoustic windows, transcript segments, language features, extractor identity, and quality decisions.
 6. Apply the acoustic quality gate before transcription and support a feature-only path when raw speech recording is not consented or retained.
 7. Extend the local webpage to display playback, acoustic decisions, timestamped transcription, language features, and clear privacy/consent boundaries.
+8. Run local pyannote diarization and align Faster Whisper word timestamps to exclusive speaker turns while retaining regular turns for overlap measurement.
+9. Enroll one wearer from three quality-checked 5--10 second clips, retain only an encrypted averaged ECAPA embedding, and provide replacement and deletion controls.
+10. Identify at most one participant only above the verification threshold and ambiguity margin; otherwise return `not_enrolled`, `not_identified`, `ambiguous_match`, or `insufficient_speech`, and keep other speakers anonymous.
+11. Report per-speaker speaking duration/share, turn statistics, articulation/session rates, within-speaker pauses, response gaps, signed transition latency, overlaps, and interruptions.
+12. Calculate Praat local absolute and relative jitter, RAP, PPQ5, and DDP only on continuous quality-accepted voiced non-overlapping regions, including coverage and abstention reasons.
 
 ### Saksham
 
@@ -170,7 +182,8 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 
 ### Exit gate
 
-- A consented real WAV or live capture passes quality review, produces timestamped transcription, acoustic features, language features, and an inspectable result in the local webpage.
+- A consented real multi-speaker WAV or live capture passes quality review and produces word-timestamped transcription, acoustic/language features, anonymous diarization, a conservative wearer-match decision, conversation gaps/overlaps/interruptions, speaking rates, and quality-gated jitter in the local webpage.
+- Enrollment persists only an encrypted averaged embedding; replacement and deletion work, and enrollment audio or raw embeddings never appear in storage, responses, or logs.
 - Silence, noise, clipping, missing audio, corrupt packets, no speech, and failed transcription never produce a normal inference input.
 - The integrated Audio Module records cleanly for the PRD one-hour stress test with no dropped buffers, while TEMT6000 readings vary smoothly and remain timestamp-aligned.
 - Temporary communication loss is buffered and retried; microphone, light, battery, error, sequence, timestamp, and checksum information reach the receiver.
@@ -316,7 +329,7 @@ Every update states what became true, its evidence, the acceptance criterion adv
 
 ## Completion calculation
 
-The 49% score is recomputed with fixed weights:
+The 50% score is recomputed with fixed weights:
 
 | Workstream | Weight | Completion rule |
 | --- | ---: | --- |
