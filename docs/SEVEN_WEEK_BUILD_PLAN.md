@@ -158,7 +158,7 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 
 ### Arjun
 
-1. Keep the existing deterministic tests for silence, impulses, tones, clipping, speech-like input, noise, corrupt packets, missing audio, and real WAV/MP3 uploads.
+1. Keep the existing deterministic tests for silence, impulses, tones, clipping, speech-like input, noise, corrupt packets, missing audio, and real WAV/MP3/OGG uploads.
 2. Complete acoustic features for speaking activity, pause duration, pitch statistics, energy/loudness, voice stability, and spectral characteristics while retaining explicit insufficient, clipped, noisy, corrupt, and missing states.
 3. Add local speech-to-text processing for consented recordings, with timestamped transcript segments, transcription confidence, no-speech, failed-transcription, and unsupported-language outcomes.
 4. Implement the PRD language features: vocabulary diversity, sentence length, sentiment, emotion-related language, topic transitions, and basic conversation-level summaries. Keep these as research features, not clinical interpretations.
@@ -182,7 +182,7 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 
 ### Exit gate
 
-- A consented real multi-speaker WAV, MP3, or live capture passes quality review and produces word-timestamped transcription, acoustic/language features, anonymous diarization, a conservative wearer-match decision, conversation gaps/overlaps/interruptions, speaking rates, and quality-gated jitter in the local webpage.
+- A consented real multi-speaker WAV, MP3, OGG, or live capture passes quality review and produces word-timestamped transcription, acoustic/language features, anonymous diarization, a conservative wearer-match decision, conversation gaps/overlaps/interruptions, speaking rates, and quality-gated jitter in the local webpage.
 - Enrollment persists only an encrypted averaged embedding; replacement and deletion work, and enrollment audio or raw embeddings never appear in storage, responses, or logs.
 - Silence, noise, clipping, missing audio, corrupt packets, no speech, and failed transcription never produce a normal inference input.
 - The integrated Audio Module records cleanly for the PRD one-hour stress test with no dropped buffers, while TEMT6000 readings vary smoothly and remain timestamp-aligned.

@@ -75,7 +75,7 @@ The lexicons are deliberately small and inspectable. Their values are research f
 
 `psycon_speaker_analysis` runs `pyannote/speaker-diarization-community-1` on the project-controlled server. `HF_TOKEN` grants the gated model access, while `PSYCON_DIARIZATION_DEVICE` selects CPU or CUDA. Regular diarization measures overlap; exclusive diarization assigns word timestamps to speakers. Words with less than 50% overlap with any turn remain `unknown`.
 
-One wearer is enrolled from exactly three clean 5–10 second WAV or MP3 recordings. SpeechBrain ECAPA-TDNN creates normalized embeddings, which are averaged and encrypted using `PSYCON_PROFILE_KEY`. The recordings are held in memory and discarded, and neither raw embeddings nor enrollment audio enter results or logs. The page supports profile deletion and replacement.
+One wearer is enrolled from exactly three clean 5–10 second WAV, MP3, or OGG recordings. SpeechBrain ECAPA-TDNN creates normalized embeddings, which are averaged and encrypted using `PSYCON_PROFILE_KEY`. The recordings are held in memory and discarded, and neither raw embeddings nor enrollment audio enter results or logs. The page supports profile deletion and replacement.
 
 Each diarized speaker needs at least three seconds of clean non-overlapping speech before comparison. A cluster becomes `participant` only when it exceeds `PSYCON_SPEAKER_THRESHOLD` and beats the runner-up by `PSYCON_SPEAKER_MARGIN`; otherwise the analysis reports an explicit abstention. All other clusters are anonymous within the current recording.
 
@@ -94,7 +94,9 @@ python -m demo.audio_web_app
 
 Set `PSYCON_PROFILE_KEY` to a random secret of at least 32 characters and supply `HF_TOKEN` for the gated local diarization model. Select CUDA with `PSYCON_DIARIZATION_DEVICE` and `PSYCON_SPEAKER_DEVICE` on the intended server.
 
-Open `http://127.0.0.1:5000`, enroll the wearer, and upload a WAV or MP3 conversation recording. WAV follows the deterministic SciPy decoder, while MP3 is decoded in memory through PyAV. The page accepts at most 12 MB and five minutes, holds conversation and enrollment recordings in process memory rather than writing them to disk, and provides playback. It downmixes as many as eight channels, resamples supported rates to 16 kHz, converts samples to PCM16 without loudness normalization, and divides the recording into balanced sequential windows of at most two seconds. Independent failure states keep acoustic analysis and transcription usable when model access or enrollment is missing.
+The webpage loads these settings from the repository-root `.env` file before creating its model adapters. Process environment variables take precedence, `.env` is excluded from Git, and changes require restarting the Python webpage. The Hugging Face token needs read access to `pyannote/speaker-diarization-community-1`, and the same account must first accept that model's gated access terms.
+
+Open `http://127.0.0.1:5000`, enroll the wearer, and upload a WAV, MP3, or OGG conversation recording. WAV follows the deterministic SciPy decoder, while MP3 and OGG are decoded in memory through PyAV. The page accepts at most 12 MB and five minutes, holds conversation and enrollment recordings in process memory rather than writing them to disk, and provides playback. It downmixes as many as eight channels, resamples supported rates to 16 kHz, converts samples to PCM16 without loudness normalization, and divides the recording into balanced sequential windows of at most two seconds. Independent failure states keep acoustic analysis and transcription usable when model access or enrollment is missing.
 
 The summary is `usable` only when every window passes, `partially_usable` when at least one window passes, and `no_usable_audio` when none pass. The per-window table remains authoritative because a usable section must not hide clipping, noise, silence, or an insufficient final window elsewhere in the recording.
 

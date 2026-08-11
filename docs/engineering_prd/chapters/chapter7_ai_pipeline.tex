@@ -133,7 +133,7 @@ Standard Praat measurements include local absolute jitter, local relative jitter
 
 Deterministic tests use fake diarization and embedding adapters so routine CI does not download gated models. Release validation additionally requires consented multilingual multi-speaker recordings from the intended microphone, diarization error measurement, wearer false-match and false-rejection analysis, threshold calibration, and server GPU latency/memory evidence.
 
-The local webpage accepts permission-confirmed WAV and MP3 recordings, performs in-memory decoding and balanced Protocol v2 quality windows of at most two seconds, optionally runs local transcription and speaker analysis, and displays acoustic decisions, speaker-coloured turns, attributed words, language features, conversation timing, per-speaker rates, jitter, and provenance. Separate consent is required for biometric profile comparison. Its permission checkboxes are engineering safeguards rather than a complete participant-consent system, and the localhost development server is not a production data-collection service.
+The local webpage accepts permission-confirmed WAV, MP3, and OGG recordings, performs in-memory decoding and balanced Protocol v2 quality windows of at most two seconds, optionally runs local transcription and speaker analysis, and displays acoustic decisions, speaker-coloured turns, attributed words, language features, conversation timing, per-speaker rates, jitter, and provenance. Separate consent is required for biometric profile comparison. Its permission checkboxes are engineering safeguards rather than a complete participant-consent system, and the localhost development server is not a production data-collection service.
 
 \subsection{Data Fusion}
 \label{sec:data-fusion-ai}

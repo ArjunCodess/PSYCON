@@ -75,7 +75,7 @@ Both PlatformIO targets compile. Compilation proves source/toolchain compatibili
 
 [`demo/audio_demo.py`](demo/audio_demo.py) processes deterministic generated fixtures and writes [`results/demo/audio_demo.json`](results/demo/audio_demo.json). This proves the software path and abstention behavior without using personal recordings; it does not prove the INMP441, TEMT6000, continuous DMA, placement, clock, or transport behavior.
 
-[`demo/audio_web_app.py`](demo/audio_web_app.py) provides a local upload page for consented WAV and MP3 recordings. It enrolls or deletes one encrypted wearer profile, keeps uploaded audio in memory, runs optional local transcription and speaker analysis, and displays quality, speaker turns, attributed words, conversation timing, speaking rates, jitter, language features, and provenance. It does not send recordings to a speech API or make a psychological inference.
+[`demo/audio_web_app.py`](demo/audio_web_app.py) provides a local upload page for consented WAV, MP3, and OGG recordings. It enrolls or deletes one encrypted wearer profile, keeps uploaded audio in memory, runs optional local transcription and speaker analysis, and displays quality, speaker turns, attributed words, conversation timing, speaking rates, jitter, language features, and provenance. It does not send recordings to a speech API or make a psychological inference.
 
 ### WESAD baseline
 
@@ -132,6 +132,8 @@ python -m demo.audio_web_app
 ```
 
 The web demo opens at `http://127.0.0.1:5000`; stop it with `Ctrl+C`. Set `PSYCON_PROFILE_KEY` to a random secret of at least 32 characters before enrollment, and supply `HF_TOKEN` after accepting the Community-1 model terms to enable real diarization. Python tests use deterministic model fakes, the synthetic demo writes a reproducible JSON decision report, and web tests exercise uploads and encrypted profile lifecycle without downloading gated models. Three raw-WESAD integration tests skip when `data/raw/wesad/S*/S*.pkl` is absent; after obtaining WESAD under its terms, place the files there and rerun `python main.py` and the tests.
+
+The audio webpage automatically loads these values from the repository-root `.env` file without overriding variables already set in the PowerShell process. `.env` is ignored by Git. Paste a fine-grained Hugging Face read token into `HF_TOKEN`, keep the supplied profile key stable across restarts, and restart the webpage after changing either value.
 
 ```powershell
 cd protocol
