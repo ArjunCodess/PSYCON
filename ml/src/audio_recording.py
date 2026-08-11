@@ -1,4 +1,4 @@
-"""Decode uploaded WAV recordings and run the Protocol v2 audio pipeline."""
+"""Decode uploaded WAV or MP3 recordings and run the Protocol v2 audio pipeline."""
 
 from __future__ import annotations
 
@@ -83,12 +83,85 @@ def decode_wav(source: bytes) -> DecodedRecording:
     )
 
 
+def decode_audio(source: bytes) -> DecodedRecording:
+    """Decode supported upload bytes while preserving the deterministic WAV path."""
+
+    if source[:4] == b"RIFF" and source[8:12] == b"WAVE":
+        return decode_wav(source)
+    return _decode_compressed_audio(source)
+
+
+def _decode_compressed_audio(source: bytes) -> DecodedRecording:
+    if not source:
+        raise AudioRecordingError("The uploaded file is empty.")
+    try:
+        import av
+
+        with av.open(io.BytesIO(source), mode="r") as container:
+            stream = next((item for item in container.streams if item.type == "audio"), None)
+            if stream is None:
+                raise AudioRecordingError("The file does not contain an audio stream.")
+            sample_rate_hz = int(stream.codec_context.sample_rate or stream.rate or 0)
+            if not 1_000 <= sample_rate_hz <= 192_000:
+                raise AudioRecordingError("The audio sample rate must be between 1 kHz and 192 kHz.")
+            layout = stream.codec_context.layout
+            channels = int(layout.nb_channels) if layout is not None else 1
+            if channels > 8:
+                raise AudioRecordingError("Recordings with more than eight channels are not supported.")
+
+            resampler = av.AudioResampler(
+                format="s16",
+                layout="mono",
+                rate=TARGET_SAMPLE_RATE_HZ,
+            )
+            chunks: list[np.ndarray] = []
+            decoded_samples = 0
+            maximum_samples = round(MAX_RECORDING_DURATION_S * TARGET_SAMPLE_RATE_HZ)
+            for frame in container.decode(stream):
+                for converted in resampler.resample(frame):
+                    chunk = np.asarray(converted.to_ndarray()).reshape(-1).astype(np.int16)
+                    decoded_samples += len(chunk)
+                    if decoded_samples > maximum_samples:
+                        raise AudioRecordingError("Keep the demo recording at or below five minutes.")
+                    chunks.append(chunk)
+            for converted in resampler.resample(None):
+                chunk = np.asarray(converted.to_ndarray()).reshape(-1).astype(np.int16)
+                decoded_samples += len(chunk)
+                if decoded_samples > maximum_samples:
+                    raise AudioRecordingError("Keep the demo recording at or below five minutes.")
+                chunks.append(chunk)
+            codec_name = stream.codec_context.name or "compressed"
+    except AudioRecordingError:
+        raise
+    except Exception as error:
+        raise AudioRecordingError("This is not a readable WAV or MP3 recording.") from error
+
+    if not chunks:
+        raise AudioRecordingError("The audio file contains no decodable samples.")
+    pcm16 = np.concatenate(chunks)
+    return DecodedRecording(
+        samples=pcm16,
+        original_sample_rate_hz=sample_rate_hz,
+        sample_rate_hz=TARGET_SAMPLE_RATE_HZ,
+        channels=channels,
+        source_dtype=f"{codec_name}/decoded-pcm16",
+        duration_s=len(pcm16) / TARGET_SAMPLE_RATE_HZ,
+    )
+
+
 def analyze_wav_upload(source: bytes, filename: str) -> dict[str, Any]:
     """Analyze a real WAV upload as sequential, provenance-preserving windows."""
 
     decoded = decode_wav(source)
     source_sha256 = hashlib.sha256(source).hexdigest()
     return analyze_decoded_recording(decoded, filename, source_sha256)
+
+
+def analyze_audio_upload(source: bytes, filename: str) -> dict[str, Any]:
+    """Analyze a supported WAV or MP3 upload."""
+
+    decoded = decode_audio(source)
+    return analyze_decoded_recording(decoded, filename, hashlib.sha256(source).hexdigest())
 
 
 def analyze_decoded_recording(

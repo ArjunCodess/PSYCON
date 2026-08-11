@@ -1,4 +1,4 @@
-"""Local web interface for inspecting real WAV recordings with PSYCON."""
+"""Local web interface for inspecting real WAV and MP3 recordings with PSYCON."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from pathlib import Path
 from flask import Flask, render_template, request
 from werkzeug.exceptions import RequestEntityTooLarge
 
-from ml.src.audio_recording import AudioRecordingError, analyze_decoded_recording, decode_wav
+from ml.src.audio_recording import AudioRecordingError, analyze_decoded_recording, decode_audio
 from ml.src.language_features import extract_language_features
 from ml.src.speaker_analysis import (
     Diarizer,
@@ -66,7 +66,7 @@ def create_app(
         if request.method == "POST":
             upload = request.files.get("audio")
             if upload is None or not upload.filename:
-                error = "Choose a WAV recording before running the analysis."
+                error = "Choose a WAV or MP3 recording before running the analysis."
                 status_code = 400
             elif request.form.get("consent") != "yes":
                 error = "Confirm that you have permission to process this recording."
@@ -74,7 +74,7 @@ def create_app(
             else:
                 source = upload.read()
                 try:
-                    decoded = decode_wav(source)
+                    decoded = decode_audio(source)
                     result = analyze_decoded_recording(
                         decoded,
                         upload.filename,
@@ -117,7 +117,8 @@ def create_app(
                             "speaker_analysis_not_requested"
                         )
                     encoded = base64.b64encode(source).decode("ascii")
-                    audio_data_url = f"data:audio/wav;base64,{encoded}"
+                    media_type = "audio/mpeg" if upload.filename.lower().endswith(".mp3") else "audio/wav"
+                    audio_data_url = f"data:{media_type};base64,{encoded}"
                 except AudioRecordingError as analysis_error:
                     error = str(analysis_error)
                     status_code = 400
@@ -145,12 +146,12 @@ def create_app(
             ), 400
         uploads = [request.files.get(f"enrollment_{number}") for number in range(1, 4)]
         if any(upload is None or not upload.filename for upload in uploads):
-            error = "Choose all three enrollment WAV recordings."
+            error = "Choose all three enrollment WAV or MP3 recordings."
         else:
             try:
                 clips = []
                 for upload in uploads:
-                    decoded = decode_wav(upload.read())
+                    decoded = decode_audio(upload.read())
                     clips.append((decoded.samples, decoded.sample_rate_hz))
                 enroll_wearer(clips, speaker_embedder, wearer_profiles)
                 return index_redirect("wearer profile saved")

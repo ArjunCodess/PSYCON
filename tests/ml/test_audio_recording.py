@@ -2,19 +2,40 @@ from __future__ import annotations
 
 import io
 
+import av
 import numpy as np
 import pytest
 from scipy.io import wavfile
 
 from demo.audio_web_app import create_app
 from ml.src.audio_fixtures import tone
-from ml.src.audio_recording import AudioRecordingError, analyze_wav_upload, decode_wav
+from ml.src.audio_recording import (
+    AudioRecordingError,
+    analyze_audio_upload,
+    analyze_wav_upload,
+    decode_audio,
+    decode_wav,
+)
 from ml.src.transcription import TranscriptSegment, TranscriptionResult, TranscriptionStatus
 
 
 def _wav_bytes(samples: np.ndarray, sample_rate_hz: int = 16_000) -> bytes:
     output = io.BytesIO()
     wavfile.write(output, sample_rate_hz, samples)
+    return output.getvalue()
+
+
+def _mp3_bytes(samples: np.ndarray, sample_rate_hz: int = 16_000) -> bytes:
+    output = io.BytesIO()
+    with av.open(output, mode="w", format="mp3") as container:
+        stream = container.add_stream("mp3", rate=sample_rate_hz)
+        stream.layout = "mono"
+        frame = av.AudioFrame.from_ndarray(samples.reshape(1, -1), format="s16", layout="mono")
+        frame.sample_rate = sample_rate_hz
+        for packet in stream.encode(frame):
+            container.mux(packet)
+        for packet in stream.encode(None):
+            container.mux(packet)
     return output.getvalue()
 
 
@@ -56,6 +77,19 @@ def test_real_wav_upload_runs_as_protocol_windows() -> None:
     assert len(result["source_sha256"]) == 64
 
 
+def test_decodes_and_analyzes_real_mp3_upload() -> None:
+    source = _mp3_bytes(tone(16_000, duration_s=4.0))
+    decoded = decode_audio(source)
+    assert decoded.sample_rate_hz == 16_000
+    assert decoded.channels == 1
+    assert decoded.duration_s == pytest.approx(4.0, abs=0.05)
+    assert "mp3" in decoded.source_dtype
+    result = analyze_audio_upload(source, "tone.mp3")
+    assert result["filename"] == "tone.mp3"
+    assert result["overall_status"] == "usable"
+    assert result["window_count"] == 2
+
+
 def test_balances_windows_instead_of_creating_a_short_tail() -> None:
     result = analyze_wav_upload(_wav_bytes(tone(16_000, duration_s=10.5)), "long-tone.wav")
     durations = [window["end_s"] - window["start_s"] for window in result["windows"]]
@@ -64,16 +98,16 @@ def test_balances_windows_instead_of_creating_a_short_tail() -> None:
     assert all(window["status"] == "usable" for window in result["windows"])
 
 
-def test_rejects_non_wav_upload() -> None:
-    with pytest.raises(AudioRecordingError, match="readable WAV"):
-        decode_wav(b"not audio")
+def test_rejects_unsupported_audio_upload() -> None:
+    with pytest.raises(AudioRecordingError, match="readable WAV or MP3"):
+        decode_audio(b"not audio")
 
 
 def test_web_page_renders_upload_and_results() -> None:
     client = create_app(testing=True).test_client()
     empty_page = client.get("/")
     assert empty_page.status_code == 200
-    assert b"Select a WAV file" in empty_page.data
+    assert b"Select a WAV or MP3 file" in empty_page.data
 
     response = client.post(
         "/",
@@ -97,7 +131,22 @@ def test_web_page_shows_invalid_file_error() -> None:
         content_type="multipart/form-data",
     )
     assert response.status_code == 400
-    assert b"not a readable WAV recording" in response.data
+    assert b"not a readable WAV or MP3 recording" in response.data
+
+
+def test_web_page_accepts_mp3_upload() -> None:
+    client = create_app(testing=True).test_client()
+    response = client.post(
+        "/",
+        data={
+            "audio": (io.BytesIO(_mp3_bytes(tone(16_000, duration_s=2.0))), "voice.mp3"),
+            "consent": "yes",
+        },
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 200
+    assert b"voice.mp3" in response.data
+    assert b"data:audio/mpeg;base64" in response.data
 
 
 def test_web_page_requires_recording_permission() -> None:

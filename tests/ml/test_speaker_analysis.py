@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 
+import av
 import numpy as np
 import pytest
 from scipy.io import wavfile
@@ -210,6 +211,20 @@ def _wav_bytes(samples: np.ndarray) -> bytes:
     return output.getvalue()
 
 
+def _mp3_bytes(samples: np.ndarray) -> bytes:
+    output = io.BytesIO()
+    with av.open(output, mode="w", format="mp3") as container:
+        stream = container.add_stream("mp3", rate=SAMPLE_RATE)
+        stream.layout = "mono"
+        frame = av.AudioFrame.from_ndarray(samples.reshape(1, -1), format="s16", layout="mono")
+        frame.sample_rate = SAMPLE_RATE
+        for packet in stream.encode(frame):
+            container.mux(packet)
+        for packet in stream.encode(None):
+            container.mux(packet)
+    return output.getvalue()
+
+
 def test_demo_enrolls_and_deletes_profile(tmp_path) -> None:
     store = VoiceProfileStore(tmp_path / "wearer.enc", "a sufficiently long test-only encryption secret")
     client = create_app(testing=True, embedder=SignEmbedder(), profile_store=store).test_client()
@@ -229,6 +244,25 @@ def test_demo_enrolls_and_deletes_profile(tmp_path) -> None:
     response = client.post("/profile/delete")
     assert response.status_code == 302
     assert not store.exists
+
+
+def test_demo_enrolls_from_mp3_samples(tmp_path) -> None:
+    store = VoiceProfileStore(tmp_path / "wearer.enc", "a sufficiently long test-only encryption secret")
+    client = create_app(testing=True, embedder=SignEmbedder(), profile_store=store).test_client()
+    clip = np.full(6 * SAMPLE_RATE, 2000, dtype=np.int16)
+    source = _mp3_bytes(clip)
+    response = client.post(
+        "/enroll",
+        data={
+            "enrollment_1": (io.BytesIO(source), "one.mp3"),
+            "enrollment_2": (io.BytesIO(source), "two.mp3"),
+            "enrollment_3": (io.BytesIO(source), "three.mp3"),
+            "enrollment_consent": "yes",
+        },
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 302
+    assert store.exists
 
 
 def test_demo_renders_speaker_timing_without_real_models(tmp_path) -> None:
@@ -259,14 +293,15 @@ def test_demo_renders_speaker_timing_without_real_models(tmp_path) -> None:
 
 
 @pytest.mark.skipif(
-    not os.getenv("HF_TOKEN") or not os.getenv("PSYCON_REAL_SPEAKER_WAV"),
-    reason="set HF_TOKEN and PSYCON_REAL_SPEAKER_WAV for the opt-in model integration",
+    not os.getenv("HF_TOKEN")
+    or not (os.getenv("PSYCON_REAL_SPEAKER_AUDIO") or os.getenv("PSYCON_REAL_SPEAKER_WAV")),
+    reason="set HF_TOKEN and PSYCON_REAL_SPEAKER_AUDIO for the opt-in model integration",
 )
 def test_opt_in_real_diarization_and_embedding() -> None:
-    from ml.src.audio_recording import decode_wav
+    from ml.src.audio_recording import decode_audio
 
-    source = Path(os.environ["PSYCON_REAL_SPEAKER_WAV"]).read_bytes()
-    decoded = decode_wav(source)
+    recording_path = os.getenv("PSYCON_REAL_SPEAKER_AUDIO") or os.environ["PSYCON_REAL_SPEAKER_WAV"]
+    decoded = decode_audio(Path(recording_path).read_bytes())
     diarization = PyannoteDiarizer().diarize(decoded.samples, decoded.sample_rate_hz)
     assert diarization.exclusive_turns
     first = diarization.exclusive_turns[0]
