@@ -26,6 +26,36 @@
         <p class="intro-copy">Upload a WAV recording. The page converts it to mono 16 kHz audio, checks it in windows of at most two seconds, and explains why each window is usable or rejected.</p>
       </section>
 
+      {% if message %}
+      <div class="success-message" role="status">{{ message }}</div>
+      {% endif %}
+
+      <section class="profile-panel" aria-labelledby="profile-title">
+        <div>
+          <p class="section-index">WEARER PROFILE</p>
+          <h2 id="profile-title">Identify the consenting wearer</h2>
+          <p class="helper">The profile contains only an encrypted average voice embedding. Enrollment recordings are processed in memory and discarded.</p>
+          <p class="profile-state">Profile: <strong>{{ 'ready' if profile.exists else 'not enrolled' }}</strong> · Encryption: <strong>{{ 'configured' if profile.configured else 'set PSYCON_PROFILE_KEY' }}</strong></p>
+        </div>
+        {% if profile.exists %}
+        <form method="post" action="{{ url_for('delete_profile') }}">
+          <button class="secondary-button" type="submit">Delete wearer profile</button>
+        </form>
+        {% endif %}
+        <form class="enrollment-form" method="post" action="{{ url_for('enroll') }}" enctype="multipart/form-data">
+          <div class="enrollment-files">
+            {% for number in range(1, 4) %}
+            <label>Sample {{ number }} <input name="enrollment_{{ number }}" type="file" accept=".wav,audio/wav" required></label>
+            {% endfor %}
+          </div>
+          <label class="check-row">
+            <input name="enrollment_consent" type="checkbox" value="yes" required>
+            <span>I consent to creating and saving an encrypted biometric voice profile from these three 5–10 second recordings.</span>
+          </label>
+          <button class="secondary-button" type="submit">{{ 'Replace' if profile.exists else 'Save' }} wearer profile</button>
+        </form>
+      </section>
+
       <section class="workspace">
         <form class="upload-panel" id="audio-form" method="post" enctype="multipart/form-data" aria-labelledby="upload-title">
           <div>
@@ -59,6 +89,14 @@
               <input name="transcribe" type="checkbox" value="yes" checked>
               <span>Run multilingual local transcription and English language-feature analysis when supported.</span>
             </label>
+            <label class="check-row">
+              <input name="speakers" type="checkbox" value="yes" checked>
+              <span>Run local speaker identification, conversation timing, and per-speaker jitter analysis.</span>
+            </label>
+            <label class="check-row">
+              <input name="biometric_consent" type="checkbox" value="yes">
+              <span>I consent to comparing voices in this recording with the saved wearer profile.</span>
+            </label>
             <p>The first transcription downloads the local Whisper model. It may take several minutes; the recording is not sent to a transcription API.</p>
           </fieldset>
 
@@ -76,6 +114,7 @@
             <li><span>02</span><p>Each window of at most two seconds is wrapped in a checksum-protected Protocol v2 packet.</p></li>
             <li><span>03</span><p><code>psycon_audio</code> measures level, clipping, pitch statistics, voice stability, timing, and spectrum.</p></li>
             <li><span>04</span><p>Every window receives an explicit quality decision before future inference.</p></li>
+            <li><span>05</span><p>Optional local models separate anonymous speakers and identify the wearer only when the match is strong and unambiguous.</p></li>
           </ol>
         </aside>
       </section>
@@ -190,11 +229,72 @@
             <span><strong>{{ name }}</strong> {{ count }}</span>
             {% endfor %}
           </div>
-          <p class="language-warning">These are small, transparent English lexicons for research comparison. They are not emotion recognition or a mental-health assessment, and speaker diarization is not implemented.</p>
+          <p class="language-warning">These are small, transparent English lexicons for research comparison. They are not emotion recognition or a mental-health assessment. Speaker analysis is reported separately and can abstain.</p>
           {% else %}
           <div class="result-notice">
             <strong>Language features were not produced.</strong>
             <span>{{ result.language_features.reasons | join(', ') | replace('_', ' ') }}</span>
+          </div>
+          {% endif %}
+        </section>
+
+        <section class="speaker-section" aria-labelledby="speaker-title">
+          <div class="subsection-heading">
+            <div>
+              <p class="section-index">06 / SPEAKERS</p>
+              <h3 id="speaker-title">Who spoke and when</h3>
+            </div>
+            <span class="status-tag status-tag--{{ result.speaker_analysis.status }}">{{ result.speaker_analysis.status | replace('_', ' ') }}</span>
+          </div>
+          {% if result.speaker_analysis.status == 'complete' %}
+          <dl class="transcript-facts">
+            <div><dt>Wearer match</dt><dd>{{ result.speaker_analysis.participant_status | replace('_', ' ') }}</dd></div>
+            <div><dt>Speakers</dt><dd>{{ result.speaker_analysis.speakers | length }}</dd></div>
+            <div><dt>Overlap</dt><dd>{{ "%.2f" | format(result.speaker_analysis.conversation.overlap_duration_s) }} s</dd></div>
+            <div><dt>Interruptions</dt><dd>{{ result.speaker_analysis.conversation.interruption_count }}</dd></div>
+          </dl>
+
+          <div class="speaker-timeline" aria-label="Speaker timeline">
+            {% for turn in result.speaker_analysis.turns %}
+            <div class="speaker-turn speaker-turn--{{ turn.speaker_id }}" style="left: {{ turn.start_s / result.duration_s * 100 }}%; width: {{ (turn.end_s - turn.start_s) / result.duration_s * 100 }}%" title="{{ turn.speaker_id }}: {{ '%.2f' | format(turn.start_s) }}–{{ '%.2f' | format(turn.end_s) }} s"></div>
+            {% endfor %}
+          </div>
+
+          <div class="speaker-cards">
+            {% for speaker_id, metrics in result.speaker_analysis.speakers.items() %}
+            <article class="speaker-card">
+              <h4>{{ speaker_id | replace('_', ' ') }}</h4>
+              <dl>
+                <div><dt>Speaking</dt><dd>{{ "%.2f" | format(metrics.speaking_duration_s) }} s</dd></div>
+                <div><dt>Turns</dt><dd>{{ metrics.turn_count }}</dd></div>
+                <div><dt>Articulation</dt><dd>{{ "%.1f" | format(metrics.articulation_rate_wpm) }} wpm</dd></div>
+                <div><dt>Session rate</dt><dd>{{ "%.1f" | format(metrics.session_speaking_rate_wpm) }} wpm</dd></div>
+                <div><dt>Local jitter</dt><dd>{{ "%.3f" | format(metrics.jitter.local_relative * 100) ~ '%' if metrics.jitter.status == 'complete' else 'unavailable' }}</dd></div>
+                <div><dt>Jitter coverage</dt><dd>{{ "%.2f" | format(metrics.jitter.coverage_s) if metrics.jitter.coverage_s is defined else '0.00' }} s</dd></div>
+              </dl>
+            </article>
+            {% endfor %}
+          </div>
+
+          <h4>Attributed transcript</h4>
+          <div class="attributed-transcript">
+            {% for word in result.speaker_analysis.attributed_words %}
+            <span class="word word--{{ word.speaker_id }}" title="{{ '%.2f' | format(word.start_s) }}–{{ '%.2f' | format(word.end_s) }} s">{{ word.speaker_id | replace('_', ' ') }}: {{ word.text }}</span>
+            {% else %}
+            <p>Transcription produced no word timestamps, so speaking rates remain zero.</p>
+            {% endfor %}
+          </div>
+
+          <div class="timing-grid">
+            <div><strong>Within-speaker pauses</strong><span>{{ result.speaker_analysis.conversation.within_speaker_pauses.count }} / {{ "%.2f" | format(result.speaker_analysis.conversation.within_speaker_pauses.total_s) }} s</span></div>
+            <div><strong>Response gaps</strong><span>{{ result.speaker_analysis.conversation.response_gaps.count }} / {{ "%.2f" | format(result.speaker_analysis.conversation.response_gaps.total_s) }} s</span></div>
+            <div><strong>Overlaps</strong><span>{{ result.speaker_analysis.conversation.overlap_count }} / {{ "%.2f" | format(result.speaker_analysis.conversation.overlap_duration_s) }} s</span></div>
+            <div><strong>Interruptions</strong><span>{{ result.speaker_analysis.conversation.interruption_count }}</span></div>
+          </div>
+          {% else %}
+          <div class="result-notice">
+            <strong>Speaker analysis was not produced.</strong>
+            <span>{{ result.speaker_analysis.reasons | join(', ') | replace('_', ' ') }}</span>
           </div>
           {% endif %}
         </section>
@@ -216,7 +316,7 @@
       <section class="scope-note" aria-labelledby="scope-title">
         <p class="section-index">RESEARCH BOUNDARY</p>
         <h2 id="scope-title">This checks recording quality, not mental health.</h2>
-        <p>A usable result means the signal passed today’s engineering thresholds. It does not identify a speaker, interpret words, diagnose a condition, or prove that the final wearable microphone is calibrated.</p>
+        <p>A usable result means the signal passed today’s engineering thresholds. Speaker labels and wearer matches may abstain or be wrong; none of these measurements diagnoses a condition or proves that the final wearable microphone is calibrated.</p>
       </section>
     </main>
   </div>
