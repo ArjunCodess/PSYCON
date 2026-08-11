@@ -7,6 +7,7 @@ from ml.src.language_features import LanguageFeatureStatus, extract_language_fea
 from ml.src.transcription import (
     FasterWhisperTranscriber,
     TranscriptSegment,
+    TranscriptWord,
     TranscriptionResult,
     TranscriptionStatus,
     transcribe_usable_regions,
@@ -64,6 +65,7 @@ class FakeTranscriber:
                     confidence=0.88,
                     source_start_sample=4_000,
                     source_end_sample=28_000,
+                    words=(TranscriptWord(0.25, 0.55, "I", 0.93, 4_000, 8_800),),
                 ),
             ),
             engine=self.engine_name,
@@ -108,6 +110,8 @@ def test_transcribes_only_contiguous_usable_regions_with_source_offsets() -> Non
     assert result.segments[0].start_s == pytest.approx(0.25)
     assert result.segments[1].start_s == pytest.approx(4.25)
     assert result.segments[1].source_start_sample == 4 * SAMPLE_RATE + 4_000
+    assert result.words[1].start_s == pytest.approx(4.25)
+    assert result.words[1].source_start_sample == 4 * SAMPLE_RATE + 4_000
     assert "calm" in result.text and "stressful" in result.text
 
 

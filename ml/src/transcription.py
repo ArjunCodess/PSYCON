@@ -24,7 +24,7 @@ class TranscriptionStatus(str, Enum):
 
 
 @dataclass(frozen=True)
-class TranscriptSegment:
+class TranscriptWord:
     start_s: float
     end_s: float
     text: str
@@ -44,6 +44,28 @@ class TranscriptSegment:
 
 
 @dataclass(frozen=True)
+class TranscriptSegment:
+    start_s: float
+    end_s: float
+    text: str
+    confidence: float
+    source_start_sample: int
+    source_end_sample: int
+    words: tuple[TranscriptWord, ...] = ()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "start_s": self.start_s,
+            "end_s": self.end_s,
+            "text": self.text,
+            "confidence": self.confidence,
+            "source_start_sample": self.source_start_sample,
+            "source_end_sample": self.source_end_sample,
+            "words": [word.to_dict() for word in self.words],
+        }
+
+
+@dataclass(frozen=True)
 class TranscriptionResult:
     status: TranscriptionStatus
     text: str
@@ -55,6 +77,10 @@ class TranscriptionResult:
     reasons: tuple[str, ...] = ()
     pipeline: str = TRANSCRIPTION_PIPELINE
 
+    @property
+    def words(self) -> tuple[TranscriptWord, ...]:
+        return tuple(word for segment in self.segments for word in segment.words)
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "status": self.status.value,
@@ -64,6 +90,7 @@ class TranscriptionResult:
             "language_confidence": self.language_confidence,
             "confidence": self.confidence,
             "segments": [segment.to_dict() for segment in self.segments],
+            "words": [word.to_dict() for word in self.words],
             "engine": self.engine,
             "reasons": list(self.reasons),
         }
@@ -113,6 +140,7 @@ class FasterWhisperTranscriber:
                 vad_filter=True,
                 vad_parameters={"min_silence_duration_ms": 500},
                 condition_on_previous_text=False,
+                word_timestamps=True,
             )
             raw_segments = list(generated)
         except ImportError:
@@ -128,18 +156,7 @@ class FasterWhisperTranscriber:
                 f"{type(error).__name__}: {error}",
             )
 
-        segments = tuple(
-            TranscriptSegment(
-                start_s=float(segment.start),
-                end_s=float(segment.end),
-                text=segment.text.strip(),
-                confidence=_log_probability_to_confidence(float(segment.avg_logprob)),
-                source_start_sample=round(float(segment.start) * sample_rate_hz),
-                source_end_sample=round(float(segment.end) * sample_rate_hz),
-            )
-            for segment in raw_segments
-            if segment.text.strip()
-        )
+        segments = tuple(_convert_segment(segment, sample_rate_hz) for segment in raw_segments if segment.text.strip())
         if not segments:
             return TranscriptionResult(
                 status=TranscriptionStatus.NO_SPEECH,
@@ -204,6 +221,17 @@ def transcribe_usable_regions(
                     confidence=segment.confidence,
                     source_start_sample=segment.source_start_sample + start_sample,
                     source_end_sample=segment.source_end_sample + start_sample,
+                    words=tuple(
+                        TranscriptWord(
+                            start_s=word.start_s + start_sample / sample_rate_hz,
+                            end_s=word.end_s + start_sample / sample_rate_hz,
+                            text=word.text,
+                            confidence=word.confidence,
+                            source_start_sample=word.source_start_sample + start_sample,
+                            source_end_sample=word.source_end_sample + start_sample,
+                        )
+                        for word in segment.words
+                    ),
                 )
                 for segment in result.segments
             )
@@ -269,6 +297,30 @@ def _best_language(languages: list[tuple[str, float]]) -> tuple[str | None, floa
 
 def _log_probability_to_confidence(avg_log_probability: float) -> float:
     return float(np.clip(math.exp(avg_log_probability), 0.0, 1.0))
+
+
+def _convert_segment(segment: Any, sample_rate_hz: int) -> TranscriptSegment:
+    words = tuple(
+        TranscriptWord(
+            start_s=float(word.start),
+            end_s=float(word.end),
+            text=str(word.word).strip(),
+            confidence=float(np.clip(getattr(word, "probability", 0.0), 0.0, 1.0)),
+            source_start_sample=round(float(word.start) * sample_rate_hz),
+            source_end_sample=round(float(word.end) * sample_rate_hz),
+        )
+        for word in (getattr(segment, "words", None) or ())
+        if getattr(word, "word", "").strip()
+    )
+    return TranscriptSegment(
+        start_s=float(segment.start),
+        end_s=float(segment.end),
+        text=segment.text.strip(),
+        confidence=_log_probability_to_confidence(float(segment.avg_logprob)),
+        source_start_sample=round(float(segment.start) * sample_rate_hz),
+        source_end_sample=round(float(segment.end) * sample_rate_hz),
+        words=words,
+    )
 
 
 def _failure(status: TranscriptionStatus, engine: str, reason: str) -> TranscriptionResult:
