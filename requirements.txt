@@ -10,3 +10,7 @@ xgboost>=3.2
 lightgbm>=4.6
 Flask>=3.0,<4
 faster-whisper>=1.1,<2
+cryptography>=44,<47
+praat-parselmouth>=0.4.5,<1
+pyannote.audio>=4,<5
+speechbrain>=1.0,<2
