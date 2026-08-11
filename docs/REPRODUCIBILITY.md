@@ -9,7 +9,7 @@ This matrix defines the software checks required from a clean checkout. Hardware
 | Protocol security | `npm --prefix protocol audit` | Zero known dependency vulnerabilities |
 | Protocol Python/C++ | Included in `python -m pytest tests/protocol` | Python and host C++ decode the same v2 fixtures; the corrupt fixture is rejected |
 | Audio demo | `python -m demo.audio_demo` | Generated tone and speech-like cases are usable; silence, impulse, clipping, noise, missing input, and CRC corruption produce explicit abstention states; JSON is written under `results/demo/` |
-| Real-WAV upload page | `python -m demo.audio_web_app`, then open `http://127.0.0.1:5000` | The local page accepts consented WAV uploads and reports quality, local transcription, and language features; automated tests cover decoding, downmixing, resampling, quality gating, transcription states, language abstention, successful analysis, and invalid-file errors |
+| Real-audio upload page | `python -m demo.audio_web_app`, then open `http://127.0.0.1:5000` | The local page accepts consented WAV and MP3 uploads and reports quality, local transcription, speaker analysis, and language features; automated tests cover decoding, downmixing, resampling, quality gating, transcription states, speaker abstention, language abstention, successful analysis, and invalid-file errors |
 | Audio firmware | `python -m platformio run --project-dir firmware/ear` | ESP32 firmware compiles |
 | Wrist firmware | `python -m platformio run --project-dir firmware/wrist` | ESP32 firmware compiles |
 | Engineering PRD | Compile `docs/engineering_prd/main.tex` using the commands in its README | PDF rebuild succeeds; placeholder bibliography items remain a release blocker |

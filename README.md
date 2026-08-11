@@ -75,7 +75,7 @@ Both PlatformIO targets compile. Compilation proves source/toolchain compatibili
 
 [`demo/audio_demo.py`](demo/audio_demo.py) processes deterministic generated fixtures and writes [`results/demo/audio_demo.json`](results/demo/audio_demo.json). This proves the software path and abstention behavior without using personal recordings; it does not prove the INMP441, TEMT6000, continuous DMA, placement, clock, or transport behavior.
 
-[`demo/audio_web_app.py`](demo/audio_web_app.py) provides a local upload page for consented WAV recordings. It enrolls or deletes one encrypted wearer profile, keeps uploaded audio in memory, runs optional local transcription and speaker analysis, and displays quality, speaker turns, attributed words, conversation timing, speaking rates, jitter, language features, and provenance. It does not send recordings to a speech API or make a psychological inference.
+[`demo/audio_web_app.py`](demo/audio_web_app.py) provides a local upload page for consented WAV and MP3 recordings. It enrolls or deletes one encrypted wearer profile, keeps uploaded audio in memory, runs optional local transcription and speaker analysis, and displays quality, speaker turns, attributed words, conversation timing, speaking rates, jitter, language features, and provenance. It does not send recordings to a speech API or make a psychological inference.
 
 ### WESAD baseline
 
