@@ -1,4 +1,4 @@
-"""Decode uploaded WAV or MP3 recordings and run the Protocol v2 audio pipeline."""
+"""Decode uploaded WAV, MP3, or OGG recordings and run the Protocol v2 audio pipeline."""
 
 from __future__ import annotations
 
@@ -134,7 +134,7 @@ def _decode_compressed_audio(source: bytes) -> DecodedRecording:
     except AudioRecordingError:
         raise
     except Exception as error:
-        raise AudioRecordingError("This is not a readable WAV or MP3 recording.") from error
+        raise AudioRecordingError("This is not a readable WAV, MP3, or OGG recording.") from error
 
     if not chunks:
         raise AudioRecordingError("The audio file contains no decodable samples.")
@@ -158,7 +158,7 @@ def analyze_wav_upload(source: bytes, filename: str) -> dict[str, Any]:
 
 
 def analyze_audio_upload(source: bytes, filename: str) -> dict[str, Any]:
-    """Analyze a supported WAV or MP3 upload."""
+    """Analyze a supported WAV, MP3, or OGG upload."""
 
     decoded = decode_audio(source)
     return analyze_decoded_recording(decoded, filename, hashlib.sha256(source).hexdigest())

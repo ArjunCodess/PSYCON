@@ -1,16 +1,18 @@
-"""Local web interface for inspecting real WAV and MP3 recordings with PSYCON."""
+"""Local web interface for inspecting real WAV, MP3, and OGG recordings with PSYCON."""
 
 from __future__ import annotations
 
 import argparse
 import base64
 import hashlib
+import os
 from pathlib import Path
 
 from flask import Flask, render_template, request
 from werkzeug.exceptions import RequestEntityTooLarge
 
 from ml.src.audio_recording import AudioRecordingError, analyze_decoded_recording, decode_audio
+from ml.src.environment import load_project_environment
 from ml.src.language_features import extract_language_features
 from ml.src.speaker_analysis import (
     Diarizer,
@@ -18,6 +20,7 @@ from ml.src.speaker_analysis import (
     SpeakerEmbedder,
     SpeechBrainEmbedder,
     VoiceProfileStore,
+    VoiceProfileError,
     analyze_speakers,
     enroll_wearer,
     unavailable_speaker_analysis,
@@ -31,6 +34,8 @@ from ml.src.transcription import (
 
 
 MAX_UPLOAD_BYTES = 12 * 1024 * 1024
+
+load_project_environment(override=True)
 
 
 def create_app(
@@ -51,9 +56,19 @@ def create_app(
     )
 
     def profile_view() -> dict[str, object]:
+        profile_state = "not enrolled"
+        if wearer_profiles.exists:
+            try:
+                wearer_profiles.load()
+            except VoiceProfileError:
+                profile_state = "needs re-enrollment"
+            else:
+                profile_state = "ready"
         return {
             "configured": wearer_profiles.configured,
             "exists": wearer_profiles.exists,
+            "hf_token_configured": bool(os.getenv("HF_TOKEN", "").strip()),
+            "state": profile_state,
         }
 
     @app.route("/", methods=["GET", "POST"])
@@ -66,7 +81,7 @@ def create_app(
         if request.method == "POST":
             upload = request.files.get("audio")
             if upload is None or not upload.filename:
-                error = "Choose a WAV or MP3 recording before running the analysis."
+                error = "Choose a WAV, MP3, or OGG recording before running the analysis."
                 status_code = 400
             elif request.form.get("consent") != "yes":
                 error = "Confirm that you have permission to process this recording."
@@ -99,9 +114,13 @@ def create_app(
                         else:
                             try:
                                 profile = wearer_profiles.load()
-                            except Exception as profile_error:
+                            except VoiceProfileError as profile_error:
                                 result["speaker_analysis"] = unavailable_speaker_analysis(
-                                    f"profile_load_failed: {profile_error}"
+                                    str(profile_error)
+                                )
+                            except Exception:
+                                result["speaker_analysis"] = unavailable_speaker_analysis(
+                                    "profile_read_failed"
                                 )
                             else:
                                 result["speaker_analysis"] = analyze_speakers(
@@ -117,7 +136,12 @@ def create_app(
                             "speaker_analysis_not_requested"
                         )
                     encoded = base64.b64encode(source).decode("ascii")
-                    media_type = "audio/mpeg" if upload.filename.lower().endswith(".mp3") else "audio/wav"
+                    suffix = Path(upload.filename).suffix.lower()
+                    media_type = {
+                        ".mp3": "audio/mpeg",
+                        ".ogg": "audio/ogg",
+                        ".oga": "audio/ogg",
+                    }.get(suffix, "audio/wav")
                     audio_data_url = f"data:{media_type};base64,{encoded}"
                 except AudioRecordingError as analysis_error:
                     error = str(analysis_error)
@@ -146,7 +170,7 @@ def create_app(
             ), 400
         uploads = [request.files.get(f"enrollment_{number}") for number in range(1, 4)]
         if any(upload is None or not upload.filename for upload in uploads):
-            error = "Choose all three enrollment WAV or MP3 recordings."
+            error = "Choose all three enrollment WAV, MP3, or OGG recordings."
         else:
             try:
                 clips = []

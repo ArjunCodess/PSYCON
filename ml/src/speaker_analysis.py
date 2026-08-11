@@ -66,7 +66,8 @@ class PyannoteDiarizer:
     """Lazy local Community-1 adapter; model access requires an HF token."""
 
     def __init__(self, token: str | None = None, device: str | None = None) -> None:
-        self.token = token or os.getenv("HF_TOKEN")
+        token_value = token if token is not None else os.getenv("HF_TOKEN", "")
+        self.token = token_value.strip() or None
         self.device = device or os.getenv("PSYCON_DIARIZATION_DEVICE", "cpu")
         self._pipeline = None
 
@@ -145,6 +146,10 @@ class VoiceProfile:
     usable_duration_s: float
 
 
+class VoiceProfileError(RuntimeError):
+    """Raised when a persisted wearer profile cannot be safely opened."""
+
+
 class VoiceProfileStore:
     """One encrypted local wearer profile. Raw enrollment audio is never stored."""
 
@@ -185,7 +190,10 @@ class VoiceProfileStore:
     def load(self) -> VoiceProfile | None:
         if not self.exists:
             return None
-        payload = json.loads(self._fernet().decrypt(self.path.read_bytes()).decode("utf-8"))
+        try:
+            payload = json.loads(self._fernet().decrypt(self.path.read_bytes()).decode("utf-8"))
+        except Exception as error:
+            raise VoiceProfileError("profile_key_changed_reenroll_wearer") from error
         return VoiceProfile(
             embedding=_normalize_embedding(np.asarray(payload["embedding"], dtype=np.float32)),
             engine=str(payload["engine"]),

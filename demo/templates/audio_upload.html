@@ -23,7 +23,7 @@
           <p class="eyebrow">Recording quality inspection</p>
           <h1 id="page-title">See what the audio pipeline accepts.</h1>
         </div>
-        <p class="intro-copy">Upload a WAV or MP3 recording. The page converts it to mono 16 kHz audio, checks it in windows of at most two seconds, and explains why each window is usable or rejected.</p>
+        <p class="intro-copy">Upload a WAV, MP3, or OGG recording. The page converts it to mono 16 kHz audio, checks it in windows of at most two seconds, and explains why each window is usable or rejected.</p>
       </section>
 
       {% if message %}
@@ -35,7 +35,7 @@
           <p class="section-index">WEARER PROFILE</p>
           <h2 id="profile-title">Identify the consenting wearer</h2>
           <p class="helper">The profile contains only an encrypted average voice embedding. Enrollment recordings are processed in memory and discarded.</p>
-          <p class="profile-state">Profile: <strong>{{ 'ready' if profile.exists else 'not enrolled' }}</strong> · Encryption: <strong>{{ 'configured' if profile.configured else 'set PSYCON_PROFILE_KEY' }}</strong></p>
+          <p class="profile-state">Profile: <strong>{{ profile.state }}</strong> · Encryption: <strong>{{ 'configured' if profile.configured else 'set PSYCON_PROFILE_KEY' }}</strong> · Hugging Face: <strong>{{ 'configured' if profile.hf_token_configured else 'set HF_TOKEN in .env' }}</strong></p>
         </div>
         {% if profile.exists %}
         <form method="post" action="{{ url_for('delete_profile') }}">
@@ -45,7 +45,7 @@
         <form class="enrollment-form" method="post" action="{{ url_for('enroll') }}" enctype="multipart/form-data">
           <div class="enrollment-files">
             {% for number in range(1, 4) %}
-            <label>Sample {{ number }} <input name="enrollment_{{ number }}" type="file" accept=".wav,.mp3,audio/wav,audio/mpeg" required></label>
+            <label>Sample {{ number }} <input name="enrollment_{{ number }}" type="file" accept=".wav,.mp3,.ogg,.oga,audio/wav,audio/mpeg,audio/ogg" required></label>
             {% endfor %}
           </div>
           <label class="check-row">
@@ -61,13 +61,13 @@
           <div>
             <p class="section-index">01 / INPUT</p>
             <h2 id="upload-title">Choose a recording</h2>
-            <p class="helper">WAV or MP3, up to {{ max_upload_mb }} MB and five minutes. The server keeps it in memory and does not save it.</p>
+            <p class="helper">WAV, MP3, or OGG, up to {{ max_upload_mb }} MB and five minutes. The server keeps it in memory and does not save it.</p>
           </div>
 
           <label class="drop-zone" for="audio-input">
-            <span class="drop-title">Select a WAV or MP3 file</span>
+            <span class="drop-title">Select a WAV, MP3, or OGG file</span>
             <span class="drop-detail" id="file-name">or drop it here</span>
-            <input id="audio-input" name="audio" type="file" accept=".wav,.mp3,audio/wav,audio/mpeg" required>
+            <input id="audio-input" name="audio" type="file" accept=".wav,.mp3,.ogg,.oga,audio/wav,audio/mpeg,audio/ogg" required>
           </label>
 
           <audio id="local-preview" class="audio-preview" controls hidden></audio>
@@ -110,7 +110,7 @@
           <p class="section-index">02 / METHOD</p>
           <h2 id="method-title">What happens next</h2>
           <ol class="method-list">
-            <li><span>01</span><p>The WAV or MP3 is decoded, mixed to mono, and resampled to 16 kHz PCM16.</p></li>
+            <li><span>01</span><p>The WAV, MP3, or OGG file is decoded, mixed to mono, and resampled to 16 kHz PCM16.</p></li>
             <li><span>02</span><p>Each window of at most two seconds is wrapped in a checksum-protected Protocol v2 packet.</p></li>
             <li><span>03</span><p><code>psycon_audio</code> measures level, clipping, pitch statistics, voice stability, timing, and spectrum.</p></li>
             <li><span>04</span><p>Every window receives an explicit quality decision before future inference.</p></li>

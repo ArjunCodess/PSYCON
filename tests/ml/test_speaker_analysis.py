@@ -17,6 +17,7 @@ from ml.src.speaker_analysis import (
     SpeakerTurn,
     SpeechBrainEmbedder,
     VoiceProfile,
+    VoiceProfileError,
     VoiceProfileStore,
     analyze_speakers,
     enroll_wearer,
@@ -51,6 +52,11 @@ class FakeDiarizer:
             SpeakerTurn(5.8, 7.0, "B"),
         )
         return DiarizationResult(regular, exclusive, self.engine_name)
+
+
+def test_pyannote_token_is_trimmed_and_blank_values_are_missing() -> None:
+    assert PyannoteDiarizer(token="  hf_example  ").token == "hf_example"
+    assert PyannoteDiarizer(token="   ").token is None
 
 
 class SignEmbedder:
@@ -203,6 +209,15 @@ def test_profile_store_requires_a_long_encryption_secret(tmp_path) -> None:
     profile = VoiceProfile(np.array([1.0, 0.0]), "fixture", 3, 18.0)
     with pytest.raises(RuntimeError, match="at least 32 characters"):
         store.save(profile)
+
+
+def test_profile_store_explains_an_encryption_key_change(tmp_path) -> None:
+    path = tmp_path / "wearer.enc"
+    profile = VoiceProfile(np.array([1.0, 0.0]), "fixture", 3, 18.0)
+    VoiceProfileStore(path, "first sufficiently long test-only encryption secret").save(profile)
+    changed = VoiceProfileStore(path, "other sufficiently long test-only encryption secret")
+    with pytest.raises(VoiceProfileError, match="profile_key_changed_reenroll_wearer"):
+        changed.load()
 
 
 def _wav_bytes(samples: np.ndarray) -> bytes:

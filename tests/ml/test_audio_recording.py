@@ -16,6 +16,7 @@ from ml.src.audio_recording import (
     decode_audio,
     decode_wav,
 )
+from ml.src.speaker_analysis import VoiceProfile, VoiceProfileStore
 from ml.src.transcription import TranscriptSegment, TranscriptionResult, TranscriptionStatus
 
 
@@ -29,6 +30,20 @@ def _mp3_bytes(samples: np.ndarray, sample_rate_hz: int = 16_000) -> bytes:
     output = io.BytesIO()
     with av.open(output, mode="w", format="mp3") as container:
         stream = container.add_stream("mp3", rate=sample_rate_hz)
+        stream.layout = "mono"
+        frame = av.AudioFrame.from_ndarray(samples.reshape(1, -1), format="s16", layout="mono")
+        frame.sample_rate = sample_rate_hz
+        for packet in stream.encode(frame):
+            container.mux(packet)
+        for packet in stream.encode(None):
+            container.mux(packet)
+    return output.getvalue()
+
+
+def _ogg_bytes(samples: np.ndarray, sample_rate_hz: int = 48_000) -> bytes:
+    output = io.BytesIO()
+    with av.open(output, mode="w", format="ogg") as container:
+        stream = container.add_stream("libopus", rate=sample_rate_hz)
         stream.layout = "mono"
         frame = av.AudioFrame.from_ndarray(samples.reshape(1, -1), format="s16", layout="mono")
         frame.sample_rate = sample_rate_hz
@@ -90,6 +105,20 @@ def test_decodes_and_analyzes_real_mp3_upload() -> None:
     assert result["window_count"] == 2
 
 
+def test_decodes_and_analyzes_real_ogg_upload() -> None:
+    source = _ogg_bytes(tone(48_000, duration_s=4.0))
+    decoded = decode_audio(source)
+    assert decoded.sample_rate_hz == 16_000
+    assert decoded.original_sample_rate_hz == 48_000
+    assert decoded.channels == 1
+    assert decoded.duration_s == pytest.approx(4.0, abs=0.05)
+    assert "opus" in decoded.source_dtype
+    result = analyze_audio_upload(source, "tone.ogg")
+    assert result["filename"] == "tone.ogg"
+    assert result["overall_status"] == "usable"
+    assert result["window_count"] == 2
+
+
 def test_balances_windows_instead_of_creating_a_short_tail() -> None:
     result = analyze_wav_upload(_wav_bytes(tone(16_000, duration_s=10.5)), "long-tone.wav")
     durations = [window["end_s"] - window["start_s"] for window in result["windows"]]
@@ -99,7 +128,7 @@ def test_balances_windows_instead_of_creating_a_short_tail() -> None:
 
 
 def test_rejects_unsupported_audio_upload() -> None:
-    with pytest.raises(AudioRecordingError, match="readable WAV or MP3"):
+    with pytest.raises(AudioRecordingError, match="readable WAV, MP3, or OGG"):
         decode_audio(b"not audio")
 
 
@@ -107,7 +136,7 @@ def test_web_page_renders_upload_and_results() -> None:
     client = create_app(testing=True).test_client()
     empty_page = client.get("/")
     assert empty_page.status_code == 200
-    assert b"Select a WAV or MP3 file" in empty_page.data
+    assert b"Select a WAV, MP3, or OGG file" in empty_page.data
 
     response = client.post(
         "/",
@@ -131,7 +160,7 @@ def test_web_page_shows_invalid_file_error() -> None:
         content_type="multipart/form-data",
     )
     assert response.status_code == 400
-    assert b"not a readable WAV or MP3 recording" in response.data
+    assert b"not a readable WAV, MP3, or OGG recording" in response.data
 
 
 def test_web_page_accepts_mp3_upload() -> None:
@@ -147,6 +176,37 @@ def test_web_page_accepts_mp3_upload() -> None:
     assert response.status_code == 200
     assert b"voice.mp3" in response.data
     assert b"data:audio/mpeg;base64" in response.data
+
+
+def test_web_page_accepts_ogg_upload() -> None:
+    client = create_app(testing=True).test_client()
+    response = client.post(
+        "/",
+        data={
+            "audio": (io.BytesIO(_ogg_bytes(tone(48_000, duration_s=2.0))), "voice.ogg"),
+            "consent": "yes",
+        },
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 200
+    assert b"voice.ogg" in response.data
+    assert b"data:audio/ogg;base64" in response.data
+
+
+def test_web_page_requests_reenrollment_after_profile_key_change(tmp_path) -> None:
+    profile_path = tmp_path / "wearer.enc"
+    VoiceProfileStore(profile_path, "first sufficiently long test-only encryption secret").save(
+        VoiceProfile(np.array([1.0, 0.0]), "fixture", 3, 18.0)
+    )
+    changed_store = VoiceProfileStore(
+        profile_path, "other sufficiently long test-only encryption secret"
+    )
+    client = create_app(testing=True, profile_store=changed_store).test_client()
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert b"Profile: <strong>needs re-enrollment</strong>" in response.data
 
 
 def test_web_page_requires_recording_permission() -> None:
