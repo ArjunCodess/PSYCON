@@ -6,19 +6,19 @@ PSYCON is a research and screening prototype, not a medical device. It must not 
 
 ## Current completion
 
-**Overall project completion: 50% as of 10 August 2026.** This weighted estimate measures progress toward the PRD's competition-ready integrated prototype. It does not count implemented speaker software or generated-speech tests as completed hardware or real-participant validation.
+**Overall project completion: approximately 55% as of 13 August 2026.** This weighted estimate measures progress toward the PRD's competition-ready integrated prototype. It credits the Compose-verified Week 4 server and simulator, but does not count them as physical-device or real-participant validation.
 
 | Workstream | Weight | Completion | Contribution | Evidence and remaining gap |
 | --- | ---: | ---: | ---: | --- |
 | Requirements and engineering documentation | 15% | 95% | 14.25% | The tracked 34-chapter PRD, current PDF, reproducibility matrix, protocol specification, device-feature contract, and complete audio/transcription/language contract are present. Verified bibliography sources and completed physical records remain open. |
 | Hardware, electrical, and mechanical | 20% | 35% | 7.0% | Components and wiring are documented and reported as individually checked. There is no repository evidence of an integrated wearable, calibrated GSR front end, measured rails/current/temperature, enclosure, or runtime test. |
 | Device firmware and acquisition | 20% | 30% | 6.0% | Both firmware targets compile. Audio I2S/BLE and wrist I2C/BLE bring-up exist, but wrist values are placeholders and continuous sensing, quality, storage, recovery, power, and watchdog behavior are absent. |
-| Protocol, backend, and synchronization | 15% | 34% | 5.1% | Protocol v2 has shared fixtures and Python, TypeScript, and C++ conformance tests; normalized wrist/session/quality/calibration schemas and audio packet provenance are implemented. The backend and synchronization service remain absent. |
+| Protocol, backend, and synchronization | 15% | 65% | 9.75% | Protocol v2 has cross-language fixtures; the PostgreSQL/S3-compatible Flask service provides authenticated idempotent ingestion, clock correction, jobs, exports, backups, a dashboard, and deterministic device simulation. The live Compose path passes; physical-device integration remains open. |
 | Data science and research pipeline | 15% | 82% | 12.3% | WESAD results, wrist conversion, acoustic analysis, word-timestamped transcription, encrypted wearer enrollment, diarization adapters, conversation timing, and standard jitter features exist. Consented real-speaker calibration, hardware data, fusion, confidence intervals, and external validation remain. |
 | Verification, safety, and release evidence | 15% | 37% | 5.55% | Repository checks, fixture conformance, firmware builds, PRD compilation, deterministic speaker tests, encrypted-profile tests, audio fixtures, webpage tests, and local-model transcription pass. Gated real diarization, physical calibration, runtime, safety, and device demonstrations remain. |
-| **Total** | **100%** |  | **50.20% ≈ 50%** | Week 3 speaker-analysis software is implemented, but its real multi-speaker validation gate and all physical Audio Module evidence remain open. |
+| **Total** | **100%** |  | **54.85% ≈ 55%** | Week 4 server software and its simulated container path are verified; hardware transport, real synchronization, and the earlier physical validation gates remain open. |
 
-The narrower end-to-end functional prototype is roughly **22% complete** because real sensor acquisition, synchronized backend sessions, power evidence, and multimodal validation are still absent. The 50% overall figure gives reusable credit to the specification, verified software contracts, firmware scaffolds, WESAD pipeline, device converters, deterministic audio analysis, local transcription/language features, and implemented speaker analysis.
+The narrower end-to-end functional prototype is roughly **32% complete** because the server path can now be exercised with simulated devices, while real sensor acquisition, hardware-to-server transport, power evidence, and multimodal validation remain absent. The overall figure gives reusable credit to the specification, verified software contracts, firmware scaffolds, WESAD pipeline, device converters, audio/speaker analysis, and implemented Week 4 server chain.
 
 ## Source of truth
 
@@ -63,7 +63,7 @@ Both PlatformIO targets compile. Compilation proves source/toolchain compatibili
 
 ### Protocol
 
-[`protocol/`](protocol/) contains the Protocol v2 byte contract, shared binary fixtures, Python and TypeScript decoders, a C++ header, normalized wrist/session/quality/calibration types, validation, and logistic-regression inference. Cross-language fixture tests, Vitest, and `tsc --noEmit` pass; the backend transport and synchronized session service remain unimplemented.
+[`protocol/`](protocol/) contains the Protocol v2 byte contract, shared binary fixtures, Python and TypeScript decoders, a C++ header, normalized wrist/session/quality/calibration types, validation, and logistic-regression inference. Cross-language fixture tests, Vitest, and `tsc --noEmit` pass; the Flask backend ingests the same packet contract and assigns synchronized timestamps from bounded clock observations.
 
 ### Audio analysis
 
@@ -76,6 +76,10 @@ Both PlatformIO targets compile. Compilation proves source/toolchain compatibili
 [`demo/audio_demo.py`](demo/audio_demo.py) processes deterministic generated fixtures and writes [`results/demo/audio_demo.json`](results/demo/audio_demo.json). This proves the software path and abstention behavior without using personal recordings; it does not prove the INMP441, TEMT6000, continuous DMA, placement, clock, or transport behavior.
 
 [`demo/audio_web_app.py`](demo/audio_web_app.py) provides a local upload page for consented WAV, MP3, and OGG recordings. It enrolls or deletes one encrypted wearer profile, keeps uploaded audio and an optional 3--8 second sustained `/a/` vowel in memory, runs optional local transcription and speaker analysis, and displays quality, speaker turns, attributed words, conversation timing, speaking rates, conversational jitter estimates, controlled-vowel jitter, language features, and provenance. It does not send recordings to a speech API or make a psychological or diagnostic inference.
+
+### Week 4 backend and dashboard
+
+[`backend/`](backend/) implements the hardware-facing Flask service with PostgreSQL metadata, S3-compatible immutable storage, per-device and operator credentials, Protocol v2 idempotency, common-epoch synchronization with offset/drift uncertainty, independent status/error events, PostgreSQL-backed jobs, feature processing, research exports, and backup verification. [`docker-compose.yml`](docker-compose.yml) supplies PostgreSQL and MinIO locally, while [`backend/simulator.py`](backend/simulator.py) sends deterministic dual-device sessions through the real HTTP contract. The local dashboard runs at port 8000 and polls stored session state; deployment and physical hardware connection remain open. See [`docs/BACKEND.md`](docs/BACKEND.md).
 
 ### WESAD baseline
 
@@ -92,13 +96,13 @@ There is no recorded-speech dataset, synchronized device dataset, physiology/aud
 | FR-1 physiological monitoring | Hardware/interfaces documented; firmware data are placeholders | Partial |
 | FR-2 audio monitoring | Short-buffer I2S compiles; acoustic analysis, local transcription, language features, provenance, quality decisions, fixtures, and real/synthetic demos pass | Partial |
 | FR-3 ambient light | TEMT6000 documented; no driver | Planned |
-| FR-4 synchronization | Timestamp fields designed; no common epoch or drift correction | Planned |
+| FR-4 synchronization | Backend common-epoch offset/drift estimation is implemented and simulator-tested; physical clock measurements remain | Implemented in software |
 | FR-5 communication | BLE notifications exist in both starters | Partial |
 | FR-6 local processing | Basic audio features exist; failure isolation/logging do not | Partial |
 | FR-7 independent modules | Separate projects exist; physical independence is untested | Partial |
 | FR-8 expandability | Modular architecture is documented | Designed |
 | Six-hour minimum runtime | No current, discharge, thermal, or continuous-run record | Not demonstrated |
-| Backend and research export | Architecture only; no `server/` implementation | Not implemented |
+| Backend and research export | Flask API, PostgreSQL metadata, immutable S3-compatible objects, processing jobs, dashboard, hashed ZIP export, and backup verification pass the live Compose test | Implemented in software |
 | Multimodal comparison | Wrist-only WESAD baseline; no speech or fusion result | Partial |
 | Competition demonstration | Written plan only | Not demonstrated |
 

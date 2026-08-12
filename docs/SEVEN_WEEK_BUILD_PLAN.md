@@ -1,6 +1,6 @@
 # PSYCON Seven-Week Build Plan
 
-**Assessment date:** 10 August 2026
+**Assessment date:** 13 August 2026
 
 **Owners:** Arjun Vijay Prakash, software and research; Saksham Yadav, hardware and device firmware
 
@@ -25,8 +25,8 @@ Documentation proves documentation only. A diagram of a driver, backend, calibra
 | Hardware | Partial reported bring-up | BOM, GPIO, wiring, and power design; no integrated or measured evidence in repository |
 | Wrist firmware | Scaffold | Compiles and scans I2C; sensor samples are placeholders |
 | Audio firmware | Scaffold | Compiles and initializes 16 kHz I2S; capture is discontinuous and TEMT6000 is absent |
-| Protocol | Versioned transport implemented | Protocol v2 fixtures decode identically in Python, TypeScript, and C++; a backend transport and synchronized session service remain absent |
-| Backend | Designed | No API, authentication, validator, synchronizer, database, dashboard, or export |
+| Protocol | Versioned transport and server ingestion implemented | Protocol v2 fixtures decode identically in Python, TypeScript, and C++; authenticated Flask ingestion preserves immutable packet identity and synchronization metadata |
+| Backend | Week 4 software complete | PostgreSQL, S3-compatible storage, authentication, validation, synchronization, jobs, dashboard, export, backup verification, containers, and deterministic device simulation pass the live Compose smoke test |
 | ML | Wrist and implemented Week 3 software baselines | WESAD models/artifacts, acoustic analysis, word-timestamped transcription, English language features, speaker diarization adapters, encrypted wearer enrollment, conversation timing, and Praat jitter analysis exist; recorded-participant validation, fusion evaluation, and external validation remain absent |
 | Validation | Software checks plus audio demos | Repository checks, deterministic speaker/model fakes, encrypted-profile tests, synthetic quality demo, upload-page tests, and an actual local-model transcription test pass; gated diarization and physical microphone validation remain open |
 
@@ -194,6 +194,8 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 ## Week 4: Backend, synchronization, and data management
 
 **Goal:** Implement the complete backend chain and produce synchronized, stored, visualized, and exportable research sessions.
+
+**Software status: complete and Compose-verified; physical exit validation deferred until hardware is available.** The PostgreSQL/S3-compatible Flask service, authenticated Protocol v2 ingestion, clock offset/drift estimation, immutable raw storage, PostgreSQL-backed processing, polling dashboard, deterministic dual-device simulation, research export manifests, backup verification, and cloud-ready containers are implemented. On 13 August 2026 the live Compose integration test passed with healthy API, PostgreSQL, and MinIO services; the worker completed processing, six packets from two simulated devices remained idempotent, inference abstained against an incomplete model contract, and a hashed export was retrieved. Firmware connection, simultaneous real-device timing, outage recovery, and sensor/module independence remain named physical validation gates rather than unfinished server work.
 
 ### Arjun
 
