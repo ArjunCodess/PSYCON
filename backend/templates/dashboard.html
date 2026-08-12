@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>PSYCON Session Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css', v='week4-complete') }}">
+</head>
+<body>
+  <main class="page-shell">
+    <header class="masthead">
+      <a class="brand" href="/" aria-label="PSYCON session console home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>PSYCON / SESSION CONSOLE</span>
+      </a>
+      <span class="local-label">LOCAL RESEARCH WORKSPACE</span>
+    </header>
+
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">Week 4 / synchronized research sessions</p>
+        <h1 id="page-title">See both devices on one timeline.</h1>
+      </div>
+      <div class="intro-side">
+        <p class="intro-copy">Receive Wrist and Audio Protocol v2 packets, inspect clock quality and device health, process stored signals, and build a traceable research export.</p>
+        <div class="service-state" aria-live="polite">
+          <span id="health-dot" class="decision-dot"></span>
+          <div>
+            <span class="service-label">Backend status</span>
+            <strong id="health-label">Checking</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace" aria-label="Session controls">
+      <div class="session-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="section-index">01 / Sessions</p>
+            <h2>Choose a recording session</h2>
+            <p class="helper">The simulator and future hardware use the same authenticated server endpoints. Select a session to inspect the stored result.</p>
+          </div>
+          <button id="refresh-button" class="secondary-button compact-button" type="button">Refresh list</button>
+        </div>
+
+        <div id="session-list" class="session-list" aria-live="polite">
+          <div class="skeleton skeleton--wide"></div>
+          <div class="skeleton"></div>
+          <div class="skeleton"></div>
+        </div>
+
+        <details class="create-panel">
+          <summary>Create a simulated session</summary>
+          <form id="session-form" class="create-form">
+            <label class="field-label" for="anonymous-code">Anonymous participant code</label>
+            <input id="anonymous-code" name="anonymous_code" required maxlength="80" placeholder="DEMO-2026-08">
+            <p class="field-helper">Use a pseudonymous research code. Do not enter a participant's name.</p>
+            <button class="analyze-button" type="submit"><span>Create session</span><span aria-hidden="true">+</span></button>
+          </form>
+        </details>
+      </div>
+
+      <aside class="method-panel" aria-labelledby="access-title">
+        <p class="section-index">02 / Access</p>
+        <h2 id="access-title">Connect as operator</h2>
+        <p class="helper">The local token unlocks session controls. Cloud deployments must replace it with a secret provisioned outside source control.</p>
+        <label class="field-label" for="operator-token">Bearer token</label>
+        <input id="operator-token" type="password" value="psycon-local-operator" autocomplete="off">
+        <button id="connect-button" class="analyze-button" type="button"><span>Connect</span><span aria-hidden="true">→</span></button>
+
+        <ol class="method-list">
+          <li><span>01</span><p>Authenticate each physical module with its own session-scoped credential.</p></li>
+          <li><span>02</span><p>Preserve original device time while estimating common-epoch offset, drift, and uncertainty.</p></li>
+          <li><span>03</span><p>Store immutable packets before running quality-gated features and inference decisions.</p></li>
+        </ol>
+      </aside>
+    </section>
+
+    <div id="notice" class="success-message" role="status" hidden></div>
+
+    <section id="empty-state" class="empty-state" aria-labelledby="empty-title">
+      <p class="section-index">03 / Session result</p>
+      <div>
+        <h2 id="empty-title">No session selected</h2>
+        <p class="helper">Select an existing session above or send a deterministic dual-device recording through the real HTTP path.</p>
+      </div>
+      <code>python -m backend.simulator --scenario normal</code>
+    </section>
+
+    <section id="session-content" class="results" hidden aria-labelledby="session-title">
+      <div class="result-heading">
+        <div>
+          <p id="session-code" class="section-index"></p>
+          <h2 id="session-title">Session result</h2>
+        </div>
+        <div class="actions">
+          <button id="process-button" class="secondary-button" type="button">Process</button>
+          <button id="export-button" class="secondary-button" type="button">Build export</button>
+          <button id="close-button" class="secondary-button warning-button" type="button">Close</button>
+          <button id="delete-button" class="secondary-button danger-button" type="button">Delete</button>
+        </div>
+      </div>
+      <p id="session-id" class="result-summary mono"></p>
+
+      <dl class="recording-facts">
+        <div><dt>Session state</dt><dd id="metric-state">—</dd></div>
+        <div><dt>Stored chunks</dt><dd id="metric-chunks">0</dd></div>
+        <div><dt>Active devices</dt><dd id="metric-devices">0</dd></div>
+        <div><dt>Feature records</dt><dd id="metric-features">0</dd></div>
+      </dl>
+
+      <section class="result-section" aria-labelledby="streams-title">
+        <div class="subsection-heading">
+          <div><p class="section-index">Acquisition</p><h3 id="streams-title">Synchronized streams</h3></div>
+          <span class="local-label">REFRESHES EVERY 5 SECONDS</span>
+        </div>
+        <div id="stream-list" class="window-table-wrap"></div>
+      </section>
+
+      <div class="paired-sections">
+        <section class="result-section" aria-labelledby="health-title">
+          <div class="subsection-heading"><div><p class="section-index">Latest</p><h3 id="health-title">Device health</h3></div></div>
+          <div id="status-list" class="detail-list"></div>
+        </section>
+        <section class="result-section" aria-labelledby="jobs-title">
+          <div class="subsection-heading"><div><p class="section-index">Pipeline</p><h3 id="jobs-title">Processing jobs</h3></div></div>
+          <div id="job-list" class="detail-list"></div>
+        </section>
+      </div>
+
+      <section class="result-section" aria-labelledby="features-title">
+        <div class="subsection-heading"><div><p class="section-index">Derived data</p><h3 id="features-title">Feature decisions</h3></div></div>
+        <div id="feature-list" class="feature-list"></div>
+      </section>
+
+      <section class="result-section" aria-labelledby="inference-title">
+        <div class="subsection-heading"><div><p class="section-index">Model gate</p><h3 id="inference-title">Inference decisions</h3></div></div>
+        <div id="inference-list" class="feature-list"></div>
+      </section>
+    </section>
+
+    <section class="scope-note">
+      <p class="section-index">04 / Scope</p>
+      <h2>Research signals, not a diagnosis.</h2>
+      <p>This console reports packet integrity, synchronization, signal features, model scores, confidence, and explicit abstentions. It does not establish or diagnose a psychological or medical condition.</p>
+    </section>
+
+    <footer class="page-footer">
+      <span>PSYCON research prototype</span>
+      <a href="http://127.0.0.1:5000">Open the audio analysis demo</a>
+    </footer>
+  </main>
+  <script src="{{ url_for('static', filename='dashboard.js', v='week4-complete') }}" defer></script>
+</body>
+</html>
