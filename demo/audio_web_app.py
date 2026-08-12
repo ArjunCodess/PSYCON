@@ -31,6 +31,11 @@ from ml.src.transcription import (
     not_requested_transcription,
     transcribe_usable_regions,
 )
+from ml.src.voice_quality import (
+    analyze_sustained_vowel,
+    not_supplied_sustained_vowel,
+    unavailable_vocal_jitter,
+)
 
 
 MAX_UPLOAD_BYTES = 12 * 1024 * 1024
@@ -106,6 +111,27 @@ def create_app(
                         transcription = not_requested_transcription()
                     result["transcription"] = transcription.to_dict()
                     result["language_features"] = extract_language_features(transcription)
+                    vowel_upload = request.files.get("sustained_vowel")
+                    if vowel_upload is not None and vowel_upload.filename:
+                        vowel_source = vowel_upload.read()
+                        try:
+                            vowel_decoded = decode_audio(vowel_source)
+                        except AudioRecordingError:
+                            sustained_vowel = unavailable_vocal_jitter(
+                                "sustained_vowel_unreadable",
+                                context="controlled_sustained_vowel",
+                            )
+                        else:
+                            sustained_vowel = analyze_sustained_vowel(
+                                vowel_decoded.samples, vowel_decoded.sample_rate_hz
+                            )
+                        sustained_vowel["filename"] = Path(vowel_upload.filename).name
+                        sustained_vowel["source_sha256"] = hashlib.sha256(vowel_source).hexdigest()
+                    else:
+                        sustained_vowel = not_supplied_sustained_vowel()
+                    result["voice_quality"] = {
+                        "sustained_vowel_jitter": sustained_vowel,
+                    }
                     if request.form.get("speakers") == "yes":
                         if request.form.get("biometric_consent") != "yes":
                             result["speaker_analysis"] = unavailable_speaker_analysis(

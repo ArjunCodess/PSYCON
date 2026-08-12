@@ -304,7 +304,7 @@ h3 {
 .status-tag--no_speech, .status-tag--skipped_quality, .status-tag--transcription_unavailable,
 .status-tag--failed_transcription { color: var(--warning); }
 
-.transcript-section, .language-section, .speaker-section {
+.transcript-section, .language-section, .speaker-section, .voice-quality-section {
   margin-top: 52px;
   padding-top: 38px;
   border-top: 1px solid var(--ink);

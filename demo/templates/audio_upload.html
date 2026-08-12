@@ -72,6 +72,12 @@
 
           <audio id="local-preview" class="audio-preview" controls hidden></audio>
 
+          <label class="drop-zone" for="vowel-input">
+            <span class="drop-title">Optional sustained /a/ vowel</span>
+            <span class="drop-detail">Upload a steady 3–8 second WAV, MP3, or OGG sample for controlled vocal jitter.</span>
+            <input id="vowel-input" name="sustained_vowel" type="file" accept=".wav,.mp3,.ogg,.oga,audio/wav,audio/mpeg,audio/ogg">
+          </label>
+
           {% if error %}
           <div class="error-message" role="alert">
             <strong>Could not analyze this file.</strong>
@@ -91,7 +97,7 @@
             </label>
             <label class="check-row">
               <input name="speakers" type="checkbox" value="yes" checked>
-              <span>Run local speaker identification, conversation timing, and per-speaker jitter analysis.</span>
+              <span>Run local speaker identification, conversation timing, and conversational vocal-jitter estimates.</span>
             </label>
             <label class="check-row">
               <input name="biometric_consent" type="checkbox" value="yes">
@@ -295,6 +301,35 @@
           <div class="result-notice">
             <strong>Speaker analysis was not produced.</strong>
             <span>{{ result.speaker_analysis.reasons | join(', ') | replace('_', ' ') }}</span>
+          </div>
+          {% endif %}
+        </section>
+
+        <section class="voice-quality-section" aria-labelledby="voice-quality-title">
+          {% set vowel = result.voice_quality.sustained_vowel_jitter %}
+          <div class="subsection-heading">
+            <div>
+              <p class="section-index">07 / VOICE QUALITY</p>
+              <h3 id="voice-quality-title">Controlled sustained-vowel jitter</h3>
+            </div>
+            <span class="status-tag status-tag--{{ vowel.status }}">{{ vowel.status | replace('_', ' ') }}</span>
+          </div>
+          {% if vowel.status == 'complete' %}
+          <dl class="transcript-facts">
+            <div><dt>Local jitter</dt><dd>{{ "%.3f" | format(vowel.local_relative * 100) }}%</dd></div>
+            <div><dt>Absolute jitter</dt><dd>{{ "%.2f" | format(vowel.local_absolute_s * 1000000) }} µs</dd></div>
+            <div><dt>RAP</dt><dd>{{ "%.3f" | format(vowel.rap * 100) }}%</dd></div>
+            <div><dt>PPQ5</dt><dd>{{ "%.3f" | format(vowel.ppq5 * 100) }}%</dd></div>
+            <div><dt>DDP</dt><dd>{{ "%.3f" | format(vowel.ddp * 100) }}%</dd></div>
+            <div><dt>Valid periods</dt><dd>{{ vowel.valid_period_count }}</dd></div>
+            <div><dt>Selected region</dt><dd>{{ "%.2f" | format(vowel.selected_start_s) }}–{{ "%.2f" | format(vowel.selected_end_s) }} s</dd></div>
+            <div><dt>Voiced coverage</dt><dd>{{ "%.1f" | format(vowel.selected_voiced_fraction * 100) }}%</dd></div>
+          </dl>
+          <p class="language-warning">This is a controlled research measurement from a steady vowel. It is not a diagnosis and is not compared with a universal “normal” threshold.</p>
+          {% else %}
+          <div class="result-notice">
+            <strong>Controlled vowel jitter was not produced.</strong>
+            <span>{{ vowel.reasons | join(', ') | replace('_', ' ') }}</span>
           </div>
           {% endif %}
         </section>
