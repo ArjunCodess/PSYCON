@@ -15,13 +15,13 @@ from typing import Any, Protocol
 import numpy as np
 
 from ml.src.transcription import TranscriptWord, TranscriptionResult
+from ml.src.voice_quality import analyze_vocal_jitter_regions
 
 
 SPEAKER_ANALYZER = "psycon_speaker_analysis"
 MIN_ENROLLMENT_CLIP_S = 5.0
 MAX_ENROLLMENT_CLIP_S = 10.0
 MIN_CLUSTER_SPEECH_S = 3.0
-MIN_JITTER_REGION_S = 1.0
 
 
 @dataclass(frozen=True)
@@ -448,7 +448,8 @@ def _speaker_metrics(
         speech_duration = sum(turn.duration_s for turn in turns)
         word_count = sum(word["speaker_id"] == speaker for word in words)
         turn_durations = [turn.duration_s for turn in turns]
-        jitter = _jitter_metrics(samples, sample_rate_hz, turns, regular)
+        clean_intervals = _subtract_other_speaker_overlaps(turns, regular, speaker)
+        jitter = analyze_vocal_jitter_regions(samples, sample_rate_hz, clean_intervals)
         metrics[speaker] = {
             "speaking_duration_s": speech_duration,
             "speaking_share": speech_duration / recording_duration_s if recording_duration_s else 0.0,
@@ -525,64 +526,33 @@ def _merge_intervals(intervals: list[tuple[float, float]]) -> list[tuple[float, 
     return merged
 
 
-def _jitter_metrics(
-    samples: np.ndarray,
-    sample_rate_hz: int,
+def _subtract_other_speaker_overlaps(
     turns: tuple[SpeakerTurn, ...],
     regular: tuple[SpeakerTurn, ...],
-) -> dict[str, Any]:
-    regions: list[tuple[float, dict[str, float]]] = []
-    rejection_reasons: set[str] = set()
-    for turn in turns:
-        if turn.duration_s < MIN_JITTER_REGION_S or _overlap_duration(turn, regular) > 1e-6:
-            rejection_reasons.add("insufficient_clean_continuous_speech")
-            continue
-        region = np.asarray(
-            samples[round(turn.start_s * sample_rate_hz) : round(turn.end_s * sample_rate_hz)],
-            dtype=np.int16,
-        )
-        reason = _signal_rejection_reason(region)
-        if reason:
-            rejection_reasons.add(reason)
-            continue
-        try:
-            import parselmouth
-            from parselmouth.praat import call
+    speaker: str,
+) -> tuple[tuple[float, float], ...]:
+    """Return continuous portions of a speaker's turns with simultaneous voices removed."""
 
-            sound = parselmouth.Sound(region.astype(np.float64) / 32768.0, sample_rate_hz)
-            points = call(sound, "To PointProcess (periodic, cc)", 70.0, 400.0)
-            values = {
-                "local_absolute_s": float(call(points, "Get jitter (local, absolute)", 0, 0, 0.0001, 0.02, 1.3)),
-                "local_relative": float(call(points, "Get jitter (local)", 0, 0, 0.0001, 0.02, 1.3)),
-                "rap": float(call(points, "Get jitter (rap)", 0, 0, 0.0001, 0.02, 1.3)),
-                "ppq5": float(call(points, "Get jitter (ppq5)", 0, 0, 0.0001, 0.02, 1.3)),
-                "ddp": float(call(points, "Get jitter (ddp)", 0, 0, 0.0001, 0.02, 1.3)),
-            }
-            if all(math.isfinite(value) for value in values.values()):
-                regions.append((turn.duration_s, values))
-            else:
-                rejection_reasons.add("insufficient_pitch_periods")
-        except ImportError:
-            return {"status": "unavailable", "reasons": ["install_praat_parselmouth"]}
-        except Exception:
-            rejection_reasons.add("insufficient_pitch_periods")
-    if not regions:
-        return {
-            "status": "unavailable",
-            "reasons": sorted(rejection_reasons or {"no_valid_voiced_regions"}),
-            "valid_region_count": 0,
-            "coverage_s": 0.0,
-        }
-    total_duration = sum(duration for duration, _ in regions)
-    aggregate = {
-        name: sum(duration * values[name] for duration, values in regions) / total_duration
-        for name in regions[0][1]
-    }
-    return {
-        "status": "complete",
-        **aggregate,
-        "pitch_jitter_relative": aggregate["local_relative"],
-        "valid_region_count": len(regions),
-        "coverage_s": total_duration,
-        "reasons": sorted(rejection_reasons),
-    }
+    blockers = _merge_intervals(
+        [
+            (turn.start_s, turn.end_s)
+            for turn in regular
+            if turn.speaker_id != speaker and turn.end_s > turn.start_s
+        ]
+    )
+    clean: list[tuple[float, float]] = []
+    for turn in turns:
+        fragments = [(turn.start_s, turn.end_s)]
+        for block_start, block_end in blockers:
+            next_fragments: list[tuple[float, float]] = []
+            for start, end in fragments:
+                if block_end <= start or block_start >= end:
+                    next_fragments.append((start, end))
+                    continue
+                if block_start > start:
+                    next_fragments.append((start, min(block_start, end)))
+                if block_end < end:
+                    next_fragments.append((max(block_end, start), end))
+            fragments = next_fragments
+        clean.extend((start, end) for start, end in fragments if end > start)
+    return tuple(clean)
