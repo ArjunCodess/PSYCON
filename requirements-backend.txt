@@ -1,0 +1,6 @@
+Flask>=3.0,<4
+gunicorn>=23,<24
+numpy>=2.0
+psycopg[binary]>=3.2,<4
+psycopg-pool>=3.2,<4
+boto3>=1.35,<2
