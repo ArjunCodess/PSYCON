@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import sys
 from pathlib import Path
 
 import av
@@ -20,6 +21,7 @@ from ml.src.speaker_analysis import (
     VoiceProfileError,
     VoiceProfileStore,
     _subtract_other_speaker_overlaps,
+    _remove_speechbrain_deprecated_redirects,
     analyze_speakers,
     enroll_wearer,
 )
@@ -58,6 +60,18 @@ class FakeDiarizer:
 def test_pyannote_token_is_trimmed_and_blank_values_are_missing() -> None:
     assert PyannoteDiarizer(token="  hf_example  ").token == "hf_example"
     assert PyannoteDiarizer(token="   ").token is None
+
+
+def test_removes_speechbrain_lazy_redirects_that_trigger_optional_k2_import() -> None:
+    from speechbrain.utils.importutils import LazyModule
+
+    module_name = "speechbrain.test_optional_redirect"
+    sys.modules[module_name] = LazyModule(module_name, "missing_optional_package", None)
+    try:
+        _remove_speechbrain_deprecated_redirects()
+        assert module_name not in sys.modules
+    finally:
+        sys.modules.pop(module_name, None)
 
 
 class SignEmbedder:

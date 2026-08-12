@@ -7,6 +7,7 @@ import hashlib
 import json
 import math
 import os
+import sys
 import tempfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -131,11 +132,25 @@ class SpeechBrainEmbedder:
         if self._model is None:
             from speechbrain.inference.speaker import EncoderClassifier
 
+            _remove_speechbrain_deprecated_redirects()
             self._model = EncoderClassifier.from_hparams(
                 source="speechbrain/spkrec-ecapa-voxceleb",
                 run_opts={"device": self.device},
             )
+            _remove_speechbrain_deprecated_redirects()
         return self._model
+
+
+def _remove_speechbrain_deprecated_redirects() -> None:
+    """Prevent Windows inspect calls from importing optional SpeechBrain integrations."""
+
+    try:
+        from speechbrain.utils.importutils import LazyModule
+    except ImportError:
+        return
+    for module_name, module in tuple(sys.modules.items()):
+        if module_name.startswith("speechbrain.") and isinstance(module, LazyModule):
+            sys.modules.pop(module_name, None)
 
 
 @dataclass(frozen=True)
