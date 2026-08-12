@@ -64,7 +64,7 @@
             <p class="helper">WAV, MP3, or OGG, up to {{ max_upload_mb }} MB and five minutes. The server keeps it in memory and does not save it.</p>
           </div>
 
-          <label class="drop-zone" for="audio-input">
+          <label class="drop-zone" id="audio-drop-zone" for="audio-input">
             <span class="drop-title">Select a WAV, MP3, or OGG file</span>
             <span class="drop-detail" id="file-name">or drop it here</span>
             <input id="audio-input" name="audio" type="file" accept=".wav,.mp3,.ogg,.oga,audio/wav,audio/mpeg,audio/ogg" required>
@@ -72,11 +72,13 @@
 
           <audio id="local-preview" class="audio-preview" controls hidden></audio>
 
-          <label class="drop-zone" for="vowel-input">
+          <label class="drop-zone" id="vowel-drop-zone" for="vowel-input">
             <span class="drop-title">Optional sustained /a/ vowel</span>
-            <span class="drop-detail">Upload a steady 3–8 second WAV, MP3, or OGG sample for controlled vocal jitter.</span>
+            <span class="drop-detail" id="vowel-file-name">Select or drop a steady 3–8 second WAV, MP3, or OGG file</span>
             <input id="vowel-input" name="sustained_vowel" type="file" accept=".wav,.mp3,.ogg,.oga,audio/wav,audio/mpeg,audio/ogg">
           </label>
+
+          <audio id="vowel-preview" class="audio-preview" controls hidden></audio>
 
           {% if error %}
           <div class="error-message" role="alert">
@@ -314,6 +316,10 @@
             </div>
             <span class="status-tag status-tag--{{ vowel.status }}">{{ vowel.status | replace('_', ' ') }}</span>
           </div>
+          {% if vowel_audio_data_url %}
+          <p class="helper"><strong>{{ vowel.filename }}</strong> · sustained-vowel recording</p>
+          <audio class="audio-preview result-audio" controls src="{{ vowel_audio_data_url }}"></audio>
+          {% endif %}
           {% if vowel.status == 'complete' %}
           <dl class="transcript-facts">
             <div><dt>Local jitter</dt><dd>{{ "%.3f" | format(vowel.local_relative * 100) }}%</dd></div>
@@ -357,27 +363,53 @@
   </div>
 
   <script>
-    const input = document.querySelector('#audio-input');
-    const fileName = document.querySelector('#file-name');
-    const preview = document.querySelector('#local-preview');
-    let previewUrl = null;
+    const previewUrls = [];
 
-    input.addEventListener('change', () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      const file = input.files[0];
-      if (!file) {
-        fileName.textContent = 'or drop it here';
-        preview.hidden = true;
-        return;
-      }
-      fileName.textContent = `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB`;
-      previewUrl = URL.createObjectURL(file);
-      preview.src = previewUrl;
-      preview.hidden = false;
-    });
+    function connectAudioUpload(inputId, fileNameId, previewId, dropZoneId, emptyText) {
+      const input = document.querySelector(`#${inputId}`);
+      const fileName = document.querySelector(`#${fileNameId}`);
+      const preview = document.querySelector(`#${previewId}`);
+      const dropZone = document.querySelector(`#${dropZoneId}`);
+      let previewUrl = null;
+
+      const showSelection = () => {
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        const file = input.files[0];
+        if (!file) {
+          fileName.textContent = emptyText;
+          preview.removeAttribute('src');
+          preview.hidden = true;
+          dropZone.classList.remove('drop-zone--selected');
+          return;
+        }
+        fileName.textContent = `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+        previewUrl = URL.createObjectURL(file);
+        previewUrls.push(previewUrl);
+        preview.src = previewUrl;
+        preview.hidden = false;
+        dropZone.classList.add('drop-zone--selected');
+      };
+
+      input.addEventListener('change', showSelection);
+      dropZone.addEventListener('dragover', (event) => {
+        event.preventDefault();
+        dropZone.classList.add('drop-zone--dragging');
+      });
+      dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drop-zone--dragging'));
+      dropZone.addEventListener('drop', (event) => {
+        event.preventDefault();
+        dropZone.classList.remove('drop-zone--dragging');
+        if (!event.dataTransfer.files.length) return;
+        input.files = event.dataTransfer.files;
+        showSelection();
+      });
+    }
+
+    connectAudioUpload('audio-input', 'file-name', 'local-preview', 'audio-drop-zone', 'or drop it here');
+    connectAudioUpload('vowel-input', 'vowel-file-name', 'vowel-preview', 'vowel-drop-zone', 'Select or drop a steady 3–8 second WAV, MP3, or OGG file');
 
     window.addEventListener('pagehide', () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
     });
 
     document.querySelector('#audio-form').addEventListener('submit', () => {

@@ -81,6 +81,7 @@ def create_app(
         result = None
         error = None
         audio_data_url = None
+        vowel_audio_data_url = None
         status_code = 200
         message = request.args.get("message")
         if request.method == "POST":
@@ -114,6 +115,9 @@ def create_app(
                     vowel_upload = request.files.get("sustained_vowel")
                     if vowel_upload is not None and vowel_upload.filename:
                         vowel_source = vowel_upload.read()
+                        vowel_audio_data_url = _audio_data_url(
+                            vowel_source, vowel_upload.filename
+                        )
                         try:
                             vowel_decoded = decode_audio(vowel_source)
                         except AudioRecordingError:
@@ -161,14 +165,7 @@ def create_app(
                         result["speaker_analysis"] = unavailable_speaker_analysis(
                             "speaker_analysis_not_requested"
                         )
-                    encoded = base64.b64encode(source).decode("ascii")
-                    suffix = Path(upload.filename).suffix.lower()
-                    media_type = {
-                        ".mp3": "audio/mpeg",
-                        ".ogg": "audio/ogg",
-                        ".oga": "audio/ogg",
-                    }.get(suffix, "audio/wav")
-                    audio_data_url = f"data:{media_type};base64,{encoded}"
+                    audio_data_url = _audio_data_url(source, upload.filename)
                 except AudioRecordingError as analysis_error:
                     error = str(analysis_error)
                     status_code = 400
@@ -177,6 +174,7 @@ def create_app(
             result=result,
             error=error,
             audio_data_url=audio_data_url,
+            vowel_audio_data_url=vowel_audio_data_url,
             max_upload_mb=MAX_UPLOAD_BYTES // (1024 * 1024),
             profile=profile_view(),
             message=message,
@@ -190,6 +188,7 @@ def create_app(
                 result=None,
                 error="Confirm consent before creating a biometric wearer profile.",
                 audio_data_url=None,
+                vowel_audio_data_url=None,
                 max_upload_mb=MAX_UPLOAD_BYTES // (1024 * 1024),
                 profile=profile_view(),
                 message=None,
@@ -214,6 +213,7 @@ def create_app(
             result=None,
             error=error,
             audio_data_url=None,
+            vowel_audio_data_url=None,
             max_upload_mb=MAX_UPLOAD_BYTES // (1024 * 1024),
             profile=profile_view(),
             message=None,
@@ -236,12 +236,24 @@ def create_app(
             result=None,
             error=f"The recording is larger than {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.",
             audio_data_url=None,
+            vowel_audio_data_url=None,
             max_upload_mb=MAX_UPLOAD_BYTES // (1024 * 1024),
             profile=profile_view(),
             message=None,
         ), 413
 
     return app
+
+
+def _audio_data_url(source: bytes, filename: str) -> str:
+    suffix = Path(filename).suffix.lower()
+    media_type = {
+        ".mp3": "audio/mpeg",
+        ".ogg": "audio/ogg",
+        ".oga": "audio/ogg",
+    }.get(suffix, "audio/wav")
+    encoded = base64.b64encode(source).decode("ascii")
+    return f"data:{media_type};base64,{encoded}"
 
 
 def main() -> None:

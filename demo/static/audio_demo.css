@@ -153,6 +153,11 @@ h3 {
   transform: translateY(-2px);
 }
 
+.drop-zone--dragging, .drop-zone--selected {
+  border-color: var(--accent);
+  background: rgba(36, 118, 107, .08);
+}
+
 .drop-title { font-size: 20px; font-weight: 700; }
 .drop-detail { margin-top: 8px; color: var(--muted); font-size: 13px; }
 .drop-zone input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }

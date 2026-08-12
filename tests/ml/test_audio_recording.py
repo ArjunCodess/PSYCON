@@ -137,6 +137,8 @@ def test_web_page_renders_upload_and_results() -> None:
     empty_page = client.get("/")
     assert empty_page.status_code == 200
     assert b"Select a WAV, MP3, or OGG file" in empty_page.data
+    assert b'id="vowel-file-name"' in empty_page.data
+    assert b'id="vowel-preview"' in empty_page.data
 
     response = client.post(
         "/",
@@ -194,20 +196,22 @@ def test_web_page_accepts_ogg_upload() -> None:
 
 
 @pytest.mark.parametrize(
-    ("filename", "source"),
+    ("filename", "source", "media_type"),
     [
         pytest.param(
-            "vowel.wav", _wav_bytes(tone(16_000, duration_s=4.0)), id="wav"
+            "vowel.wav", _wav_bytes(tone(16_000, duration_s=4.0)), "audio/wav", id="wav"
         ),
         pytest.param(
-            "vowel.mp3", _mp3_bytes(tone(16_000, duration_s=4.0)), id="mp3"
+            "vowel.mp3", _mp3_bytes(tone(16_000, duration_s=4.0)), "audio/mpeg", id="mp3"
         ),
         pytest.param(
-            "vowel.ogg", _ogg_bytes(tone(48_000, duration_s=4.0)), id="ogg"
+            "vowel.ogg", _ogg_bytes(tone(48_000, duration_s=4.0)), "audio/ogg", id="ogg"
         ),
     ],
 )
-def test_web_page_analyzes_optional_sustained_vowel(filename: str, source: bytes) -> None:
+def test_web_page_analyzes_optional_sustained_vowel(
+    filename: str, source: bytes, media_type: str
+) -> None:
     client = create_app(testing=True).test_client()
     response = client.post(
         "/",
@@ -223,6 +227,8 @@ def test_web_page_analyzes_optional_sustained_vowel(filename: str, source: bytes
     assert b"Controlled sustained-vowel jitter" in response.data
     assert b"Valid periods" in response.data
     assert b"normal" in response.data
+    assert filename.encode() in response.data
+    assert f"data:{media_type};base64".encode() in response.data
 
 
 def test_bad_optional_vowel_does_not_block_conversation_analysis() -> None:
@@ -240,6 +246,8 @@ def test_bad_optional_vowel_does_not_block_conversation_analysis() -> None:
     assert response.status_code == 200
     assert b"voice.wav" in response.data
     assert b"sustained vowel unreadable" in response.data
+    assert b"vowel.ogg" in response.data
+    assert b"data:audio/ogg;base64" in response.data
 
 
 def test_web_page_requests_reenrollment_after_profile_key_change(tmp_path) -> None:
