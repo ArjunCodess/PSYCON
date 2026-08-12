@@ -60,6 +60,7 @@ These are measurements required by Chapters 4, 5, 8, 13, 14, and 28, not unanswe
 - Can the project-controlled server access the gated `pyannote/speaker-diarization-community-1` model, and who will provision its `HF_TOKEN` without committing the token?
 - Which consented multilingual, multi-speaker recordings may be used to calibrate wearer-match thresholds, ambiguity margins, diarization error, and false-match/false-rejection rates?
 - What are the measured INMP441 noise floor, clipping limit, clock accuracy, microphone placement, and channel/sign/shift settings on the assembled Audio Module?
+- Can Saksham capture the ADC/I2S path recording a known laboratory tone so sampling-clock sidebands can be measured separately from human vocal jitter?
 - Does the intended server GPU have enough memory and throughput to run local Whisper, pyannote diarization, and ECAPA speaker embeddings for the expected recording length and concurrency?
 
 ## Definition of done
@@ -169,7 +170,8 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 9. Enroll one wearer from three quality-checked 5--10 second clips, retain only an encrypted averaged ECAPA embedding, and provide replacement and deletion controls.
 10. Identify at most one participant only above the verification threshold and ambiguity margin; otherwise return `not_enrolled`, `not_identified`, `ambiguous_match`, or `insufficient_speech`, and keep other speakers anonymous.
 11. Report per-speaker speaking duration/share, turn statistics, articulation/session rates, within-speaker pauses, response gaps, signed transition latency, overlaps, and interruptions.
-12. Calculate Praat local absolute and relative jitter, RAP, PPQ5, and DDP only on continuous quality-accepted voiced non-overlapping regions, including coverage and abstention reasons.
+12. Calculate Praat local absolute and relative jitter, RAP, PPQ5, and DDP through raw-cross-correlation pitch and waveform-aligned pulses. Label quality-gated conversation results as research estimates, and aggregate clean regions by valid pulse count.
+13. Accept an optional 3--8 second steady `/a/` vowel, select a clean central two-second region, and report the controlled jitter result separately with engine provenance and abstention reasons.
 
 ### Saksham
 
@@ -182,7 +184,8 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 
 ### Exit gate
 
-- A consented real multi-speaker WAV, MP3, OGG, or live capture passes quality review and produces word-timestamped transcription, acoustic/language features, anonymous diarization, a conservative wearer-match decision, conversation gaps/overlaps/interruptions, speaking rates, and quality-gated jitter in the local webpage.
+- A consented real multi-speaker WAV, MP3, OGG, or live capture passes quality review and produces word-timestamped transcription, acoustic/language features, anonymous diarization, a conservative wearer-match decision, conversation gaps/overlaps/interruptions, speaking rates, and quality-gated conversational jitter estimates in the local webpage.
+- A separate consented 3--8 second steady `/a/` vowel produces a controlled Praat measurement, while a missing or inadequate vowel abstains without blocking conversation analysis.
 - Enrollment persists only an encrypted averaged embedding; replacement and deletion work, and enrollment audio or raw embeddings never appear in storage, responses, or logs.
 - Silence, noise, clipping, missing audio, corrupt packets, no speech, and failed transcription never produce a normal inference input.
 - The integrated Audio Module records cleanly for the PRD one-hour stress test with no dropped buffers, while TEMT6000 readings vary smoothly and remain timestamp-aligned.
