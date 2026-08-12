@@ -19,6 +19,7 @@ from ml.src.speaker_analysis import (
     VoiceProfile,
     VoiceProfileError,
     VoiceProfileStore,
+    _subtract_other_speaker_overlaps,
     analyze_speakers,
     enroll_wearer,
 )
@@ -181,6 +182,15 @@ def test_praat_jitter_distinguishes_stable_and_modulated_pitch() -> None:
     assert modulated_jitter["status"] == "complete"
     assert modulated_jitter["local_relative"] > stable_jitter["local_relative"]
     assert modulated_jitter["ddp"] == pytest.approx(3 * modulated_jitter["rap"])
+
+
+def test_conversational_jitter_subtracts_overlap_instead_of_rejecting_turn() -> None:
+    turns = (SpeakerTurn(0.0, 4.0, "A"),)
+    regular = (SpeakerTurn(0.0, 4.0, "A"), SpeakerTurn(1.5, 2.0, "B"))
+
+    clean = _subtract_other_speaker_overlaps(turns, regular, "A")
+
+    assert clean == ((0.0, 1.5), (2.0, 4.0))
 
 
 def test_enrollment_is_encrypted_and_raw_audio_is_not_stored(tmp_path) -> None:

@@ -193,6 +193,55 @@ def test_web_page_accepts_ogg_upload() -> None:
     assert b"data:audio/ogg;base64" in response.data
 
 
+@pytest.mark.parametrize(
+    ("filename", "source"),
+    [
+        pytest.param(
+            "vowel.wav", _wav_bytes(tone(16_000, duration_s=4.0)), id="wav"
+        ),
+        pytest.param(
+            "vowel.mp3", _mp3_bytes(tone(16_000, duration_s=4.0)), id="mp3"
+        ),
+        pytest.param(
+            "vowel.ogg", _ogg_bytes(tone(48_000, duration_s=4.0)), id="ogg"
+        ),
+    ],
+)
+def test_web_page_analyzes_optional_sustained_vowel(filename: str, source: bytes) -> None:
+    client = create_app(testing=True).test_client()
+    response = client.post(
+        "/",
+        data={
+            "audio": (io.BytesIO(_wav_bytes(tone(16_000, duration_s=2.0))), "voice.wav"),
+            "sustained_vowel": (io.BytesIO(source), filename),
+            "consent": "yes",
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 200
+    assert b"Controlled sustained-vowel jitter" in response.data
+    assert b"Valid periods" in response.data
+    assert b"normal" in response.data
+
+
+def test_bad_optional_vowel_does_not_block_conversation_analysis() -> None:
+    client = create_app(testing=True).test_client()
+    response = client.post(
+        "/",
+        data={
+            "audio": (io.BytesIO(_wav_bytes(tone(16_000, duration_s=2.0))), "voice.wav"),
+            "sustained_vowel": (io.BytesIO(b"not audio"), "vowel.ogg"),
+            "consent": "yes",
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 200
+    assert b"voice.wav" in response.data
+    assert b"sustained vowel unreadable" in response.data
+
+
 def test_web_page_requests_reenrollment_after_profile_key_change(tmp_path) -> None:
     profile_path = tmp_path / "wearer.enc"
     VoiceProfileStore(profile_path, "first sufficiently long test-only encryption secret").save(
