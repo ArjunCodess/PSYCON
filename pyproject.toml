@@ -8,4 +8,7 @@ requires-python = ">=3.11"
 pythonpath = ["."]
 testpaths = ["tests"]
 addopts = "-q"
+markers = [
+  "integration: requires a running PostgreSQL, MinIO, API, and worker stack",
+]
 
