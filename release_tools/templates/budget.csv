@@ -1,0 +1,14 @@
+category,item,manufacturer_part,quantity,vendor,unit_price,currency,shipping,tax,total,purchase_date,invoice_reference,status
+controller,esp32 devkit v1,,2,,,,,,,,,not_priced
+wrist,max30102,,1,,,,,,,,,not_priced
+wrist,ads1115,,1,,,,,,,,,not_priced
+wrist,mpu6050,,1,,,,,,,,,not_priced
+wrist,mcp9808,,1,,,,,,,,,not_priced
+wrist,gsr electrode pair,,1,,,,,,,,,not_priced
+audio,inmp441,,1,,,,,,,,,not_priced
+audio,temt6000,,1,,,,,,,,,not_priced
+power,tp4056 protected charger module,,2,,,,,,,,,not_priced
+power,protected 500 mah lipo cell,,3,,,,,,,,,not_priced
+mechanical,enclosure and strap materials,,,,,,,,,,,not_priced
+assembly,wires connectors insulation strain relief,,,,,,,,,,,not_priced
+backup,backup hardware and storage,,,,,,,,,,,not_priced
