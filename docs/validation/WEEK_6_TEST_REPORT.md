@@ -15,7 +15,10 @@
 
 | Check | Result | Scope |
 | --- | --- | --- |
-| Validation unit tests | 24 passed before the export-integrity addition; the export-specific suite then passed 11 tests | Evidence validation, ordered gates, scenario assessment, stress metrics, reports, and risk rules |
+| Validation unit tests | 25 passed | Evidence validation, ordered gates, scenario assessment, stress metrics, reports, export verification, and risk rules |
+| Full Python suite | 145 passed, 5 skipped out of 150 collected | All runnable repository tests passed; skips cover optional external data or services |
+| Protocol suite | 20 passed; TypeScript type-check passed | Cross-language packet and contract behavior remains valid |
+| Engineering PRD | Passed | MiKTeX/latexmk generated a 40-page PDF with no errors, undefined references, or overfull boxes |
 | Live Compose validation | Blocked | Docker Desktop's Linux engine pipe was unavailable on this workstation, so the live scenarios and timed stress runner were not rerun |
 | Physical sensor stages | Blocked | No hardware revision, operator record, measurement log, serial log, or instrument artifact was supplied |
 | Assembly and enclosure QC | Blocked | No completed checklist, inspection photographs, or mechanical measurements were supplied |
@@ -23,8 +26,6 @@
 | One-hour physical stress | Blocked | No physical runtime record was supplied |
 | Six-hour battery runtime | Blocked | No battery-powered runtime record was supplied |
 | Full physical end to end | Blocked | No synchronized session from both physical modules was supplied |
-
-The complete repository test suite and PRD rebuild are rerun when this report is finalized. Their final results belong in the commit handoff, not in this table until observed.
 
 ## Open risk evidence
 
