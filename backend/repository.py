@@ -353,7 +353,8 @@ class Repository:
                 """
                 SELECT device_id, stream_type, count(*) AS count, min(sequence) AS first_sequence,
                        max(sequence) AS last_sequence, max(received_at) AS last_received_at,
-                       max(sync_uncertainty_us) AS max_sync_uncertainty_us
+                       max(sync_uncertainty_us) AS max_sync_uncertainty_us,
+                       (max(sequence) - min(sequence) + 1 - count(*)) AS missing_sequence_count
                 FROM chunks WHERE session_id=%s GROUP BY device_id, stream_type ORDER BY device_id
                 """,
                 (session_id,),

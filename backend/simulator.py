@@ -64,6 +64,10 @@ def wrist_packet(device_id: int, sequence: int, timestamp_us: int) -> bytes:
 
 
 def run(base_url: str, operator_token: str, scenario: str) -> str:
+    return str(run_detailed(base_url, operator_token, scenario)["session_id"])
+
+
+def run_detailed(base_url: str, operator_token: str, scenario: str) -> dict:
     operator = Client(base_url, operator_token)
     session = operator.json("POST", "/api/v1/sessions", {"anonymous_code": f"DEMO-{int(time.time())}", "versions": VERSIONS, "metadata": {"source": "deterministic simulator", "scenario": scenario}})["session"]
     session_id = session["id"]
@@ -90,24 +94,43 @@ def run(base_url: str, operator_token: str, scenario: str) -> str:
     clients[devices[1][0]].json("POST", f"/api/v1/sessions/{session_id}/status", {"device_id": devices[1][0], "event_type": "light", "device_timestamp_us": 5_500_000, "payload": {"ambient_light_raw": 1837, "battery_mv": 3908, "microphone_ok": True}})
     wrist = clients[devices[0][0]]
     audio = clients[devices[1][0]]
-    for sequence in range(3):
+    chunk_responses = []
+    sequences = (0, 2, 3) if scenario == "communication-loss" else range(3)
+    for sequence in sequences:
         timestamp = 6_000_000 + sequence * 1_000_000
-        wrist.chunk(session_id, wrist_packet(devices[0][0], sequence, timestamp))
+        status, response = wrist.chunk(session_id, wrist_packet(devices[0][0], sequence, timestamp))
+        chunk_responses.append({"device": "wrist", "sequence": sequence, "status": status, "response": response})
         if scenario != "missing-audio":
-            audio.chunk(session_id, audio_packet(devices[1][0], sequence, timestamp, corrupt=scenario == "corrupt" and sequence == 1))
+            status, response = audio.chunk(session_id, audio_packet(devices[1][0], sequence, timestamp, corrupt=scenario == "corrupt" and sequence == 1))
+            chunk_responses.append({"device": "audio", "sequence": sequence, "status": status, "response": response})
     if scenario == "duplicate":
-        wrist.chunk(session_id, wrist_packet(devices[0][0], 2, 8_000_000))
+        status, response = wrist.chunk(session_id, wrist_packet(devices[0][0], 2, 8_000_000))
+        chunk_responses.append({"device": "wrist", "sequence": 2, "status": status, "response": response})
     if scenario == "overrun":
         wrist.json("POST", f"/api/v1/sessions/{session_id}/status", {"device_id": devices[0][0], "event_type": "overrun", "device_timestamp_us": 9_000_000, "payload": {"queue_depth": 16, "overruns": 1, "dropped_chunks": 1}})
+    if scenario == "sensor-failure":
+        wrist.json("POST", f"/api/v1/sessions/{session_id}/status", {"device_id": devices[0][0], "event_type": "sensor_error", "device_timestamp_us": 9_000_000, "payload": {"sensor": "ads1115", "isolated": True, "other_sensors_running": True}})
+    if scenario == "communication-loss":
+        for device_id, _ in devices:
+            clients[device_id].json("POST", f"/api/v1/sessions/{session_id}/status", {"device_id": device_id, "event_type": "reconnect", "device_timestamp_us": 10_000_000, "payload": {"gap_visible": True, "buffer_replayed": True}})
+    if scenario == "watchdog":
+        wrist.json("POST", f"/api/v1/sessions/{session_id}/status", {"device_id": devices[0][0], "event_type": "watchdog_reset", "device_timestamp_us": 9_000_000, "payload": {"reset_count": 1, "recovered": True}})
     operator.json("POST", f"/api/v1/sessions/{session_id}/process", {})
-    return session_id
+    post_close = None
+    if scenario == "shutdown":
+        for device_id, _ in devices:
+            clients[device_id].json("POST", f"/api/v1/sessions/{session_id}/status", {"device_id": device_id, "event_type": "shutdown", "device_timestamp_us": 10_000_000, "payload": {"reason": "operator", "buffers_flushed": True}})
+        operator.json("POST", f"/api/v1/sessions/{session_id}/close", {})
+        status, response = wrist.chunk(session_id, wrist_packet(devices[0][0], 9, 15_000_000))
+        post_close = {"status": status, "response": response}
+    return {"session_id": session_id, "device_ids": {"wrist": devices[0][0], "audio": devices[1][0]}, "chunk_responses": chunk_responses, "post_close": post_close}
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Send a deterministic dual-device session through the PSYCON HTTP API")
     parser.add_argument("--url", default="http://localhost:8000")
     parser.add_argument("--operator-token", default="psycon-local-operator")
-    parser.add_argument("--scenario", choices=["normal", "duplicate", "corrupt", "missing-audio", "overrun"], default="normal")
+    parser.add_argument("--scenario", choices=["normal", "duplicate", "corrupt", "missing-audio", "overrun", "sensor-failure", "communication-loss", "watchdog", "shutdown"], default="normal")
     args = parser.parse_args()
     print(run(args.url, args.operator_token, args.scenario))
 
