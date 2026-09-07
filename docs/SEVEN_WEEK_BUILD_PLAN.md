@@ -325,6 +325,13 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 - Every SRS acceptance item and Chapter 33 checklist item links to evidence or is explicitly identified as an unmet limitation.
 - Live and recorded demonstrations both show the complete PRD sequence and all outputs remain clearly non-diagnostic.
 
+### Current implementation and blockers
+
+- `release_tools/versions.json` freezes `psycon-1.0.0-rc1` as a candidate and names every remaining blocker. `release_tools/package.py` creates and verifies a deterministic tracked-file archive with sizes and SHA-256 hashes while excluding audio, secrets, study paths, and release output.
+- `docs/release/` contains the user manual, software and firmware commands, one-set circle procedure, assembly and maintenance guide, recovery steps, competition package, verified official links, AI model card, dataset card, evidence matrix, release checklist, and live and recorded demonstration runbook. Budget and demonstration templates are under `release_tools/templates/`.
+- The Engineering PRD and root documentation include the Week 7 release state. Software tests and archive verification can establish the candidate package, but they cannot freeze absent hardware, calibration, participant data, model results, or demonstrations.
+- Final hardware and PCB files, real Wrist acquisition, physical Week 6 evidence, a priced BOM, approved PSYCON sessions, the final model and external validation, third-person reproduction, backup hardware, and live and recorded demonstration evidence remain blocked. The release tool rejects `final` while blockers remain.
+
 ## PRD coverage map for Weeks 3–7
 
 | Week | Engineering PRD coverage |
@@ -352,7 +359,7 @@ Every update states what became true, its evidence, the acceptance criterion adv
 
 ## Completion calculation
 
-The approximately 55% score is recomputed with fixed weights:
+The approximately 59% score is recomputed with fixed weights:
 
 | Workstream | Weight | Completion rule |
 | --- | ---: | --- |
