@@ -6,19 +6,19 @@ PSYCON is a research and screening prototype, not a medical device. It must not 
 
 ## Current completion
 
-**Overall project completion: approximately 55% as of 8 September 2026.** This weighted estimate measures progress toward the PRD's competition-ready integrated prototype. It credits the Compose-verified Week 4 server and the prepared Week 5 research pipeline, but records no Week 5 dataset or model result.
+**Overall project completion: approximately 58% as of 8 September 2026.** This weighted estimate measures progress toward the PRD's competition-ready integrated prototype. It credits the Compose-verified Week 4 server, the prepared Week 5 research pipeline, and the Week 6 validation tooling, but records no Week 5 dataset result or Week 6 physical pass.
 
 | Workstream | Weight | Completion | Contribution | Evidence and remaining gap |
 | --- | ---: | ---: | ---: | --- |
 | Requirements and engineering documentation | 15% | 95% | 14.25% | The tracked 34-chapter PRD, current PDF, reproducibility matrix, protocol specification, device-feature contract, and complete audio/transcription/language contract are present. Verified bibliography sources and completed physical records remain open. |
 | Hardware, electrical, and mechanical | 20% | 35% | 7.0% | Components and wiring are documented and reported as individually checked. There is no repository evidence of an integrated wearable, calibrated GSR front end, measured rails/current/temperature, enclosure, or runtime test. |
 | Device firmware and acquisition | 20% | 30% | 6.0% | Both firmware targets compile. Audio I2S/BLE and wrist I2C/BLE bring-up exist, but wrist values are placeholders and continuous sensing, quality, storage, recovery, power, and watchdog behavior are absent. |
-| Protocol, backend, and synchronization | 15% | 65% | 9.75% | Protocol v2 has cross-language fixtures; the PostgreSQL/S3-compatible Flask service provides authenticated idempotent ingestion, clock correction, jobs, exports, backups, a dashboard, and deterministic device simulation. The live Compose path passes; physical-device integration remains open. |
+| Protocol, backend, and synchronization | 15% | 72% | 10.8% | Protocol v2 has cross-language fixtures; the PostgreSQL/S3-compatible Flask service provides authenticated idempotent ingestion, clock correction, jobs, exports, backups, a dashboard, deterministic device simulation, nine failure scenarios, export verification, and a timed load runner. The earlier live Compose path passes, but the new Week 6 scenarios need a running Docker service and physical-device integration remains open. |
 | Data science and research pipeline | 15% | 85% | 12.75% | Research questions and records, WESAD results, wrist and audio features, synchronized modality assembly, participant-safe splits, candidate training, grouped validation, confidence intervals, ablations, error analysis, and context/duration code exist. The psychologist marksheets, matching PSYCON sessions, real multimodal results, minimum-duration result, and external validation remain. |
-| Verification, safety, and release evidence | 15% | 37% | 5.55% | Repository checks, protocol fixtures, firmware builds, PRD compilation, backend integration, and audio tests pass. Physical calibration, runtime, safety, participant study, Week 5 model evidence, external validation, and device demonstrations remain. |
-| **Total** | **100%** |  | **55.3% ≈ 55%** | Week 4 server software and the Week 5 analysis code are verified; hardware transport, real synchronization, approved collection, and empirical Week 5 results remain open. |
+| Verification, safety, and release evidence | 15% | 45% | 6.75% | Evidence records, ordered stage gates, failure-scenario checks, stress tooling, risk rules, and runbooks are implemented. Physical calibration, runtime, electrical, safety, participant study, Week 5 model evidence, external validation, and device demonstrations remain. |
+| **Total** | **100%** |  | **57.6% ≈ 58%** | Week 4 server software, Week 5 analysis code, and Week 6 validation controls exist; hardware transport, real synchronization, physical measurements, approved collection, and empirical Week 5 results remain open. |
 
-The narrower end-to-end functional prototype is roughly **32% complete** because the server path runs with simulated devices and the research path has no real PSYCON dataset. Real sensor acquisition, hardware-to-server transport, power evidence, approved participant data, and external validation remain absent.
+The narrower end-to-end functional prototype is roughly **34% complete** because the server path runs with simulated devices and now has broader failure checks, but the research path has no real PSYCON dataset. Real sensor acquisition, hardware-to-server transport, power evidence, approved participant data, and external validation remain absent.
 
 ## Source of truth
 
@@ -99,6 +99,14 @@ The psychologist marksheet supplies 20 behavioral ratings, session context, reco
 
 See the complete [Week 5 implementation record](docs/WEEK_5_IMPLEMENTATION.md), [data handoff requirements](docs/research/DATA_REQUIREMENTS.md), and [research operating instructions](docs/research/README.md). Week 5 currently counts as implemented software and documentation with an open research exit gate.
 
+### Week 6 validation and integration
+
+Week 6 now has evidence-backed validation tooling, but it has not passed its physical exit gate. [`validation/evidence.py`](validation/evidence.py) records the operator, versions, conditions, measurements, artifacts, result, and corrective actions for each test. [`validation/stages.py`](validation/stages.py) enforces the five physical stages in order and rejects simulated evidence for physical passes. Templates cover build, electrical, runtime, assembly, and safety records.
+
+[`validation/api_validation.py`](validation/api_validation.py) tests normal ingestion, duplicate delivery, corrupt CRC, missing audio, overrun reporting, sensor failure, communication loss, watchdog recovery, and safe shutdown against a live backend. It also checks processing, synchronization, features, inference/confidence, dashboard access, and research-export hashes. [`validation/stress.py`](validation/stress.py) supplies a timed simulated load runner, while [`validation/report.py`](validation/report.py) and [`validation/risk.py`](validation/risk.py) compile accepted evidence and keep unsupported gates and risks open.
+
+The [Week 6 runbook](docs/validation/WEEK_6_RUNBOOK.md) defines calibration, assembly, electrical, runtime, safety, and end-to-end acceptance procedures. The [current test report](docs/validation/WEEK_6_TEST_REPORT.md) records that all physical gates remain blocked because no hardware measurements were supplied. A fresh live-stack Week 6 run is also pending because Docker Desktop was unavailable during this implementation; this does not invalidate the earlier Week 4 Compose result.
+
 ## Paper requirements versus implementation
 
 | Requirement | Evidence | Status |
@@ -112,6 +120,7 @@ See the complete [Week 5 implementation record](docs/WEEK_5_IMPLEMENTATION.md), 
 | FR-7 independent modules | Separate projects exist; physical independence is untested | Partial |
 | FR-8 expandability | Modular architecture is documented | Designed |
 | Six-hour minimum runtime | No current, discharge, thermal, or continuous-run record | Not demonstrated |
+| Week 6 validation controls | Evidence schema, ordered physical gates, failure scenarios, stress runner, report generator, risk mapping, and procedures exist | Implemented in software; physical gates open |
 | Backend and research export | Flask API, PostgreSQL metadata, immutable S3-compatible objects, processing jobs, dashboard, hashed ZIP export, and backup verification pass the live Compose test | Implemented in software |
 | Multimodal comparison | Participant-separated evaluation code exists; no psychologist marksheet dataset, matching PSYCON sessions, or real result | Partial |
 | Competition demonstration | Written plan only | Not demonstrated |
@@ -129,6 +138,7 @@ PSYCON/
   firmware/ear/                   # Compiling I2S/BLE audio scaffold
   protocol/                       # TypeScript protocol and inference tests
   tests/                          # Python ML and firmware static tests
+  validation/                     # Week 6 evidence, stage, scenario, stress, report, and risk tools
   paper/                          # Earlier short LaTeX scaffold
   docs/engineering_prd/           # Authoritative 34-chapter engineering PRD
   docs/SEVEN_WEEK_BUILD_PLAN.md   # Evidence-gated implementation plan
@@ -166,6 +176,18 @@ python -m platformio run --project-dir firmware/wrist
 ```
 
 Both builds pass; flashing, serial logs, real readings, recordings, and duration tests remain physical work.
+
+Run the Week 6 unit checks and, when Docker is running, the live scenario and timed simulated-load checks:
+
+```powershell
+python -m pytest tests/validation
+docker compose up --build -d
+python -m validation.api_validation --url http://localhost:8000
+python -m validation.stress --url http://localhost:8000 --duration-seconds 3600
+docker compose down
+```
+
+These commands validate software and the simulated transport path. They do not replace the physical one-hour stress, six-hour battery, calibration, electrical, GSR safety, assembly, or wearability records required by the [Week 6 runbook](docs/validation/WEEK_6_RUNBOOK.md).
 
 ## Safety, privacy, and study gate
 

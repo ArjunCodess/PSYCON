@@ -12,6 +12,10 @@ This matrix defines the software checks required from a clean checkout. Hardware
 | Real-audio upload page | `python -m demo.audio_web_app`, then open `http://127.0.0.1:5000` | The local page accepts consented WAV, MP3, and OGG uploads and reports quality, local transcription, speaker analysis, and language features; automated tests cover decoding, downmixing, resampling, quality gating, transcription states, speaker abstention, language abstention, successful analysis, and invalid-file errors |
 | Audio firmware | `python -m platformio run --project-dir firmware/ear` | ESP32 firmware compiles |
 | Wrist firmware | `python -m platformio run --project-dir firmware/wrist` | ESP32 firmware compiles |
+| Week 6 validation logic | `python -m pytest tests/validation` | Evidence-source rules, ordered integration gates, failure-scenario assessment, stress metrics, report generation, export verification, and risk mappings pass |
+| Week 6 live API scenarios | Start Compose, then run `python -m validation.api_validation --url http://localhost:8000` | Nine simulated scenarios, processing, synchronization, features, inference, dashboard access, and export integrity pass; this cannot satisfy a physical gate |
+| Week 6 simulated stress | Start Compose, then run `python -m validation.stress --url http://localhost:8000 --duration-seconds 3600` | The simulated transport path completes its requested duration without rejected packets; device memory, radio, temperature, battery, and physical loss remain unmeasured |
+| Week 6 evidence report | `python -m validation.report --evidence <evidence.json> --output-dir validation-output/report` | JSON and Markdown reports are produced; exit code 2 is expected while required evidence or ordered stages remain open |
 | Engineering PRD | Compile `docs/engineering_prd/main.tex` using the commands in its README | PDF rebuild succeeds; placeholder bibliography items remain a release blocker |
 
 ## External WESAD data
@@ -33,6 +37,12 @@ The repository contains no Week 5 study dataset or generated metric. `python -m 
 Approved participant files belong in the encrypted study store rather than this repository; `data/studies/` and `results/studies/` are ignored as a second guard against accidental commits.
 
 `docs/WEEK_5_IMPLEMENTATION.md` records the implemented behavior, file ownership, build-plan coverage, current test evidence, and open empirical gates.
+
+## Week 6 physical evidence
+
+`docs/validation/WEEK_6_RUNBOOK.md` defines the five ordered integration stages, calibration procedures, assembly checks, electrical measurements, one-hour stress test, six-hour battery test, safety rules, and evidence fields. The checked-in templates contain no measurements and do not establish a pass.
+
+Keep raw photographs, serial captures, instrument exports, and runtime logs in the controlled project evidence store. Supply a JSON array of completed records to `validation.report`; a physical procedure passes only with `physical_measurement` evidence tied to a real hardware revision and artifacts.
 
 ## Protocol fixtures
 

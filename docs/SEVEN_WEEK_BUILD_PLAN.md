@@ -290,6 +290,14 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 - Electrical, mechanical, wearability, calibration, GSR, battery, charging, shutdown, and safety checks pass with completed test logs and corrective actions.
 - Hardware, firmware, backend, dashboard, AI, export, and failure handling pass one end-to-end validation session.
 
+### Current implementation and blockers
+
+- `validation/evidence.py`, `validation/stages.py`, `validation/report.py`, and `validation/risk.py` now provide validated evidence records, ordered physical stage gates, an exit report, and evidence-linked risk status.
+- `validation/api_validation.py` covers normal operation, duplicates, corrupt input, missing audio, overruns, isolated sensor failure, communication loss, watchdog recovery, shutdown, dashboard access, processing, synchronization, inference, and research-export integrity against a live stack.
+- `validation/stress.py` supplies the one-hour-capable simulated backend load runner and labels its output as non-physical. It cannot satisfy firmware memory, radio, temperature, battery, charging, or physical packet-loss requirements.
+- `validation/templates/` contains build, electrical, runtime, assembly, and safety record templates. `docs/validation/WEEK_6_RUNBOOK.md` defines the measurement and calibration procedures, and `docs/validation/WEEK_6_TEST_REPORT.md` records current evidence.
+- Validation unit tests pass. A fresh live-stack Week 6 run is blocked on the unavailable local Docker service, and all five physical stages, enclosure/assembly checks, electrical/GSR safety checks, one-hour physical stress, six-hour battery runtime, and physical end-to-end session remain blocked until completed records and artifacts are supplied.
+
 ## Week 7: Freeze, reproduce, and demonstrate
 
 **Goal:** Freeze the complete PRD deliverable package and prove that it can be maintained, reproduced, presented, and demonstrated.
