@@ -15,6 +15,28 @@ For each sensor, the following should be documented:
     \item Results
 \end{itemize}
 
+\Cref{tab:week6-calibration-methods} fixes the Week 6 calibration scope. Every record must also identify the reference instrument or resistor, raw artifact, hardware revision, acceptance decision, and corrective action for a failure.
+
+\begin{table*}[t]
+\centering
+\caption{Week 6 sensor calibration and functional-check methods.}
+\label{tab:week6-calibration-methods}
+\small
+\begin{tabularx}{\textwidth}{@{}l Y Y@{}}
+\toprule
+\textbf{Sensor} & \textbf{Method} & \textbf{Required result} \\
+\midrule
+MAX30102 & Compare raw red/IR contact, loss-of-contact, saturation, motion response, and pulse timing with an identified reference & Stable address and waveform, visible contact state, recorded reference agreement; no medical-accuracy claim \\
+ADS1115/GSR & Apply open circuit and known resistors across the intended range; measure excitation, current limiting, and fault behavior before human contact & Monotonic unsaturated response, detectable contact loss, and electrically reviewed safe excitation \\
+MCP9808 & Compare equilibrated values at two or more stable temperatures with an identified reference thermometer & Offset, repeatability, stabilization time, and conditions recorded \\
+TEMT6000 & Compare covered, indoor, and controlled-bright conditions, with a lux reference where available & Monotonic response without rail saturation in the intended range \\
+MPU6050 & Record stationary readings in known axis orientations and apply slow known rotations & Expected gravity axis/sign, recorded bias/noise, and correct motion response \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
 \begin{requirementbox}
 Recalibration is required after hardware modifications or sensor replacement.
 \end{requirementbox}
+
+Enclosure changes affecting optical contact, airflow, microphone placement, electrodes, or sensor orientation also require recalibration. As of 8 September 2026, methods and record templates exist, but no completed calibration measurement is present.

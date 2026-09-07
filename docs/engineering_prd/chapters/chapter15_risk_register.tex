@@ -28,3 +28,9 @@ Data corruption & \highriskTag & Checksums and sequence numbers \\
 \bottomrule
 \end{tabularx}
 \end{table*}
+
+\subsection{Evidence status}
+
+The Week 6 risk evaluator links each risk to named procedures. Battery depletion requires the six-hour runtime and safe-shutdown records; sensor disconnect requires initialization and error-recovery records; I\textsuperscript{2}C failure requires address-scan and one-hour bus-stability records; motion artifacts require MPU6050 and Wrist-continuity records; audio noise requires INMP441 and audio-continuity records; GSR contact loss requires GSR functional and safety records; firmware crash requires watchdog and memory-stability records; wireless interruption requires communication-recovery and one-hour stress records; and data corruption requires missing/corrupt-input and export-integrity records.
+
+As of 8 September 2026, all nine risks remain open because no accepted Week 6 evidence file has been supplied. Software or simulated-stack evidence may close the data-corruption controls, but the other listed controls require physical measurements.

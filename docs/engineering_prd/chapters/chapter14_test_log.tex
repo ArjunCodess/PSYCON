@@ -27,6 +27,11 @@ Runtime \\
 Charging time \\
 Communication status \\
 Notes and corrective actions \\
+Evidence source and artifact references \\
+Conditions and instrument identifiers \\
+Procedure result: passed, failed, blocked, or not run \\
 \bottomrule
 \end{tabularx}
 \end{table}
+
+The machine-readable Week 6 schema additionally requires a record ID, procedure ID, UTC timestamp, category, source, operator, hardware revision, firmware versions, conditions, measurements, artifacts, notes, and corrective actions. Failed records are retained and require a corrective action; retests create later records rather than replacing the original result. Physical procedures can pass only with measured evidence tied to a real hardware revision.

@@ -10,6 +10,10 @@
 
 Integration occurs in five stages, illustrated in \Cref{fig:integration-stages}. Every stage must pass before proceeding to the next.
 
+\begin{validationbox}
+As of 8 September 2026, the repository implements machine-readable evidence records and ordered gate evaluation in \texttt{validation/evidence.py} and \texttt{validation/stages.py}. These controls prevent simulated results from passing physical procedures. No physical measurement records have been supplied, so all five integration stages remain open.
+\end{validationbox}
+
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[
@@ -173,6 +177,8 @@ Calibration procedures are documented for MAX30102, GSR, MCP9808, TEMT6000, and 
     \item Logging system operates.
     \item Error recovery works.
 \end{checklist}
+
+The Week 6 live-stack runner covers normal ingestion, duplicate delivery, corrupt CRC, missing audio, buffer overrun, isolated sensor failure, temporary communication loss, watchdog recovery, safe shutdown, dashboard access, feature processing, inference, and research-export integrity. The timed stress runner labels its result as simulated and cannot satisfy physical runtime, memory, radio, thermal, electrical, or battery criteria. A fresh run of these tools was blocked because the local Docker service was unavailable; this is an environment blocker rather than physical or live-stack evidence.
 
 \subsection{AI Validation}
 \label{sec:ai-validation-ch8}

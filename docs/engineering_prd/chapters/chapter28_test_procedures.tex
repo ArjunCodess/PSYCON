@@ -24,3 +24,19 @@ Mechanical & Wearability; strap integrity; enclosure fit; cable strain relief; b
 \bottomrule
 \end{tabularx}
 \end{table*}
+
+\subsection{Week 6 execution and acceptance}
+
+The detailed procedure, calibration methods, safety stops, measurement fields, and acceptance rules are maintained in \texttt{docs/validation/WEEK\_6\_RUNBOOK.md}. Evidence is evaluated with:
+
+\begin{verbatim}
+python -m validation.report
+  --evidence <file.json>
+  --output-dir validation-output/report
+\end{verbatim}
+
+The report returns a nonzero status while required evidence is missing or a stage is open. Software checks run through \texttt{python -m pytest tests/validation}; a running backend can additionally execute \texttt{validation.api\_validation} and \texttt{validation.stress}. Simulated results are useful for transport and failure handling but cannot substitute for the complete-system one-hour physical stress test or six-hour battery-powered test.
+
+\begin{warningbox}
+No charger or wired external power may be connected while the device is worn, and charging is prohibited whenever GSR electrodes are attached. Human GSR contact is prohibited until excitation, current limiting, insulation, and fault behavior pass electrical review on the exact hardware revision.
+\end{warningbox}

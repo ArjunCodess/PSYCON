@@ -80,12 +80,12 @@ pdflatex -interaction=nonstopmode main.tex
 This project was last compiled with MiKTeX 25.12 using pdfLaTeX and Biber,
 with **zero errors, zero undefined references, and zero
 overfull boxes** after the full four-pass sequence above, across all
-38 pages, 34 chapters, and 5 volumes. This is the complete PSYCON Engineering Design
+40 pages, 34 chapters, and 5 volumes. This is the complete PSYCON Engineering Design
 Document.
 
 ## Current implementation note
 
-Week 5 now has an implemented metadata, synchronized-dataset, participant-split, model-comparison, and reporting path. The repository contains no completed psychologist marksheet dataset or matching PSYCON participant recordings, so it reports no Week 5 model metric. `docs/WEEK_5_IMPLEMENTATION.md` records the exact work, and `docs/research/DATA_REQUIREMENTS.md` defines the data handoff required before training.
+Week 5 has an implemented metadata, synchronized-dataset, participant-split, model-comparison, and reporting path, but no completed psychologist marksheet dataset or matching PSYCON participant recordings. Week 6 adds evidence records, five ordered physical stage gates, backend failure scenarios, timed simulated stress tooling, validation reports, calibration procedures, and risk-evidence rules. No physical measurements have been supplied, so the Week 6 exit gate remains open; `docs/validation/WEEK_6_RUNBOOK.md` defines the required handoff.
 
 ## Design Conventions Used
 
@@ -174,7 +174,7 @@ Week 5 now has an implemented metadata, synchronized-dataset, participant-split,
 | 34 — Conclusion | ✅ Converted |
 
 **The complete PSYCON Engineering Design Document is now fully converted** —
-all 34 chapters across 5 volumes, 37 pages, compiling cleanly with zero
+all 34 chapters across 5 volumes, 40 pages, compiling cleanly with zero
 errors and zero overfull boxes. If further chapters, appendices, or a
 revised volume follow, paste them and they will be converted and appended
 in the same style, maintaining consistent numbering, cross-references, and
