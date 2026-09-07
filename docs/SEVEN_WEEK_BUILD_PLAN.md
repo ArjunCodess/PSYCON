@@ -1,10 +1,10 @@
 # PSYCON Seven-Week Build Plan
 
-**Assessment date:** 13 August 2026
+**Assessment date:** 7 September 2026
 
 **Owners:** Arjun Vijay Prakash, software and research; Saksham Yadav, hardware and device firmware
 
-**Current completion:** 50% overall; approximately 22% of end-to-end functional acceptance demonstrated
+**Current completion:** approximately 57% overall; approximately 35% of end-to-end functional acceptance demonstrated
 
 This plan implements the 34-chapter engineering design in `docs/engineering_prd/`. It covers the complete Wrist Module, Audio Module, shared protocol, backend, multimodal study, electrical validation, safety, documentation, and competition demonstration.
 
@@ -27,8 +27,8 @@ Documentation proves documentation only. A diagram of a driver, backend, calibra
 | Audio firmware | Scaffold | Compiles and initializes 16 kHz I2S; capture is discontinuous and TEMT6000 is absent |
 | Protocol | Versioned transport and server ingestion implemented | Protocol v2 fixtures decode identically in Python, TypeScript, and C++; authenticated Flask ingestion preserves immutable packet identity and synchronization metadata |
 | Backend | Week 4 software complete | PostgreSQL, S3-compatible storage, authentication, validation, synchronization, jobs, dashboard, export, backup verification, containers, and deterministic device simulation pass the live Compose smoke test |
-| ML | Wrist and implemented Week 3 software baselines | WESAD models/artifacts, acoustic analysis, word-timestamped transcription, English language features, speaker diarization adapters, encrypted wearer enrollment, conversation timing, and Praat jitter analysis exist; recorded-participant validation, fusion evaluation, and external validation remain absent |
-| Validation | Software checks plus audio demos | Repository checks, deterministic speaker/model fakes, encrypted-profile tests, synthetic quality demo, upload-page tests, and an actual local-model transcription test pass; gated diarization and physical microphone validation remain open |
+| ML | Week 5 research software implemented | WESAD models/artifacts, audio and language analysis, synchronized multimodal assembly, participant-safe splits, candidate selection, group cross-validation, confidence intervals, ablations, context/duration slices, and deterministic fixture evidence exist; approved participant, hardware, and external validation remain absent |
+| Validation | Software checks and fixture studies | Repository checks, deterministic speaker/model fakes, audio and upload-page tests, local-model transcription, and the Week 5 synthetic study pass; gated diarization, approved participant data, external validation, and physical-device validation remain open |
 
 ## PRD-resolved implementation decisions
 
@@ -225,6 +225,8 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 
 **Goal:** Execute the PRD study and compare physiology-only, speech-only, and combined models without clinical claims.
 
+**Implementation status:** the research questions, study workflow, consent and data-management materials, anonymous metadata validation, synchronized dataset builder, participant-level split, candidate training, grouped validation, statistical outputs, ablations, context and duration analyses, model lifecycle, and deterministic fixture package are complete. The approved human study and hardware steps are blocked by ethics approval, consented recordings, physical calibration, earlier electrical-safety gates, and a compatible external dataset. Fixture metrics prove software behavior only and do not satisfy the exit gate.
+
 ### Arjun
 
 1. Freeze the research questions: multimodal improvement, environmental robustness, motion effects, and minimum duration for stable features.
@@ -250,6 +252,13 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 - A reproducible report compares physiology-only, speech-only, and combined models on participant-separated data and includes the PRD statistical analyses and external validation.
 - Missing, corrupted, low-quality, or untranscribable signals are identified and handled explicitly.
 - Results report overall performance, error analysis, environmental and motion effects, minimum useful duration, limitations, and no diagnostic claim.
+
+### Current evidence and blockers
+
+- `docs/research/` contains the frozen questions, approved-order session procedure, consent draft, data controls, and model lifecycle. `research/templates/` contains session, calibration, and operator records.
+- `research/` validates anonymous approved metadata, preserves bad and missing modalities, builds identical modality views, freezes participant assignments, evaluates two candidate model families, and produces the required metrics and analyses.
+- `data/research_fixture/v1/` and `results/week5_fixture/` are reproducible synthetic evidence with raw tables, synchronized features, metadata, manifests, run records, predictions, explicit errors, statistics, intervals, matrices, ROC curves, ablations, slices, limitations, and version IDs.
+- Participant collection, physical calibration, real device configuration evidence, backup verification for human data, real multimodal comparison, stable minimum duration, and external validation remain blocked. The owners must complete these with approved participants, the assembled devices, and a named compatible external dataset; no repository fixture can replace that evidence.
 
 ## Week 6: Integration, calibration, runtime, and safety
 
@@ -334,7 +343,7 @@ Every update states what became true, its evidence, the acceptance criterion adv
 
 ## Completion calculation
 
-The 50% score is recomputed with fixed weights:
+The approximately 57% score is recomputed with fixed weights:
 
 | Workstream | Weight | Completion rule |
 | --- | ---: | --- |

@@ -20,6 +20,9 @@ dist/
 
 # Local datasets and generated research artifacts
 data/raw/wesad/
+# Approved human-study data must remain in the encrypted study store.
+data/studies/
+results/studies/
 
 # Firmware build outputs
 .pio/
