@@ -6,9 +6,9 @@ from typing import Any
 
 def write_markdown_report(path: Path, report: dict[str, Any], *, dataset_version: str, model_version: str) -> None:
     lines = [
-        "# Week 5 fixture evaluation",
+        "# Week 5 model evaluation",
         "",
-        "This report verifies the research software with deterministic synthetic records. It does not contain participant or hardware data, does not satisfy external validation, and does not support a clinical claim.",
+        "This report compares physiology, speech, and combined models on the named dataset. Results are experimental research indicators and do not support a clinical claim.",
         "",
         "## Versions and split",
         "",
@@ -38,7 +38,7 @@ def write_markdown_report(path: Path, report: dict[str, Any], *, dataset_version
         "",
         "The combined-minus-physiology F1 difference is "
         f"{ablation['combined_minus_physiology_f1']:.3f}; the combined-minus-speech difference is {ablation['combined_minus_speech_f1']:.3f}. "
-        "These fixture differences verify the ablation calculation and say nothing about real multimodal benefit.",
+        "A positive difference favors the combined model on this test set. It does not establish clinical validity or performance in another population.",
         "",
         "## Data quality and analysis coverage",
         "",

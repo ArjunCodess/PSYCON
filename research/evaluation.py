@@ -81,7 +81,7 @@ def evaluate_modalities(
         "external_validation": {"status": "blocked", "reason": "no separate external dataset supplied"},
         "limitations": [
             "Outputs are research indicators and are not clinical diagnoses.",
-            "Performance on fixture or public data does not validate PSYCON hardware or a target participant population.",
+            "Performance on one dataset does not validate PSYCON hardware or another participant population.",
             "Context slices are descriptive and may be unreliable when participant or class counts are small.",
         ],
     }
