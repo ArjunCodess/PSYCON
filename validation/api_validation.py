@@ -3,10 +3,13 @@ from __future__ import annotations
 import argparse
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
+import hashlib
+import io
 import json
 from pathlib import Path
 import time
 from urllib.request import urlopen
+import zipfile
 
 from backend.simulator import Client, run_detailed
 
@@ -63,10 +66,18 @@ def run_api_validation(base_url: str, operator_token: str, output: Path) -> dict
     with urlopen(base_url.rstrip("/") + "/", timeout=15) as response:
         dashboard_status = response.status
     results: list[ScenarioResult] = []
+    normal_session_id = ""
     for scenario in SCENARIOS:
         details = run_detailed(base_url, operator_token, scenario)
         snapshot = _wait_for_processing(operator, str(details["session_id"]))
         results.append(assess_scenario(scenario, details, snapshot))
+        if scenario == "normal":
+            normal_session_id = str(details["session_id"])
+    created = operator.json("POST", f"/api/v1/sessions/{normal_session_id}/exports", {})
+    latest = operator.json("GET", f"/api/v1/sessions/{normal_session_id}/exports/latest")
+    with urlopen(latest["download_url"], timeout=15) as response:
+        archive_bytes = response.read()
+    export_checks = assess_export(archive_bytes, created["export"]["sha256"], normal_session_id)
     report = {
         "schema_version": "1.0.0",
         "source": "simulated_stack",
@@ -74,13 +85,31 @@ def run_api_validation(base_url: str, operator_token: str, output: Path) -> dict
         "health": health,
         "ready": ready,
         "dashboard_http_status": dashboard_status,
+        "export_checks": export_checks,
         "scenarios": [asdict(item) for item in results],
-        "passed": health.get("status") == "ok" and ready.get("status") == "ready" and dashboard_status == 200 and all(item.passed for item in results),
+        "passed": health.get("status") == "ok" and ready.get("status") == "ready" and dashboard_status == 200 and all(export_checks.values()) and all(item.passed for item in results),
         "claim_limit": "This validates the simulated API path and does not pass a physical integration, runtime, electrical, or safety gate.",
     }
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return report
+
+
+def assess_export(archive_bytes: bytes, expected_sha256: str, session_id: str) -> dict[str, bool]:
+    checks = {"archive_hash_matches": hashlib.sha256(archive_bytes).hexdigest() == expected_sha256}
+    try:
+        with zipfile.ZipFile(io.BytesIO(archive_bytes)) as archive:
+            manifest = json.loads(archive.read("manifest.json"))
+            checks["manifest_session_matches"] = manifest.get("session_id") == session_id
+            checks["manifest_files_match"] = all(
+                len(archive.read(name)) == expected["size"]
+                and hashlib.sha256(archive.read(name)).hexdigest() == expected["sha256"]
+                for name, expected in manifest.get("files", {}).items()
+            )
+    except (KeyError, OSError, ValueError, zipfile.BadZipFile):
+        checks["manifest_session_matches"] = False
+        checks["manifest_files_match"] = False
+    return checks
 
 
 def _wait_for_processing(operator: Client, session_id: str) -> dict:
@@ -105,4 +134,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import pytest
+import hashlib
+import io
+import json
+import zipfile
 
-from validation.api_validation import SCENARIOS, assess_scenario
+from validation.api_validation import SCENARIOS, assess_export, assess_scenario
 
 
 def snapshot(event: str = "heartbeat", *, missing: int = 0, state: str = "open", streams: tuple[str, ...] = ("wrist_batch", "audio_pcm")) -> dict:
@@ -43,3 +47,14 @@ def test_scenario_acceptance(scenario: str, run_details: dict, state: dict) -> N
 def test_all_declared_scenarios_have_acceptance_logic() -> None:
     assert set(SCENARIOS) == {"normal", "duplicate", "corrupt", "missing-audio", "overrun", "sensor-failure", "communication-loss", "watchdog", "shutdown"}
 
+
+def test_export_assessment_checks_archive_manifest_and_payloads() -> None:
+    payload = b"source"
+    manifest = {"session_id": "session-1", "files": {"raw/source.bin": {"size": len(payload), "sha256": hashlib.sha256(payload).hexdigest()}}}
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr("raw/source.bin", payload)
+        archive.writestr("manifest.json", json.dumps(manifest))
+    archive_bytes = buffer.getvalue()
+    checks = assess_export(archive_bytes, hashlib.sha256(archive_bytes).hexdigest(), "session-1")
+    assert all(checks.values())
