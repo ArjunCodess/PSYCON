@@ -77,7 +77,9 @@ def test_artifact_writer_creates_tables_and_charts(tmp_path: Path) -> None:
     write_evaluation_artifacts(tmp_path, report, predictions, assignments, windows)
     assert (tmp_path / "evaluation.json").is_file()
     assert (tmp_path / "predictions.csv").is_file()
+    assert (tmp_path / "errors.csv").is_file()
     assert (tmp_path / "descriptive_statistics.csv").is_file()
     assert (tmp_path / "correlations.csv").is_file()
     assert (tmp_path / "charts" / "modality_f1.png").is_file()
     assert len(list((tmp_path / "charts").glob("confusion_matrix_*.png"))) == 3
+    assert len(list((tmp_path / "charts").glob("roc_curve_*.png"))) == 3

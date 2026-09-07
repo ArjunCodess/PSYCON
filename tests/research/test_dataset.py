@@ -89,6 +89,7 @@ def test_assembly_preserves_bad_and_missing_modalities() -> None:
 
     assert windows["speech__quality_state"].tolist() == ["usable", "missing"]
     assert windows["physiology__usable"].tolist() == [True, False]
+    assert pd.isna(windows.loc[1, "physiology__eda_mean"])
     assert windows["usable_modality_count"].tolist() == [3, 1]
     assert windows["missing_or_bad"].tolist() == [False, True]
 
@@ -129,4 +130,3 @@ def test_manifest_hashes_only_explicit_files_inside_root(tmp_path: Path) -> None
     assert len(loaded["files"][0]["sha256"]) == 64
     with pytest.raises(ValueError, match="outside dataset root"):
         build_dataset_manifest(tmp_path, [Path(__file__)], dataset_version="x", protocol_version="x", source_kind="fixture")
-

@@ -12,7 +12,7 @@ from sklearn.base import BaseEstimator
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_fscore_support, roc_auc_score
+from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_fscore_support, roc_auc_score, roc_curve
 from sklearn.model_selection import GroupKFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -187,6 +187,7 @@ def write_evaluation_artifacts(
     charts_dir.mkdir(exist_ok=True)
     (output_dir / "evaluation.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     predictions.to_csv(output_dir / "predictions.csv", index=False)
+    predictions[predictions["label"] != predictions["prediction"]].to_csv(output_dir / "errors.csv", index=False)
     assignments.to_csv(output_dir / "split_assignments.csv", index=False)
     _descriptive_statistics(windows).to_csv(output_dir / "descriptive_statistics.csv", index=False)
     _correlations(windows).to_csv(output_dir / "correlations.csv", index=False)
@@ -411,6 +412,20 @@ def _write_charts(report: dict[str, Any], predictions: pd.DataFrame, charts_dir:
         fig.savefig(charts_dir / f"confusion_matrix_{modality}.png", dpi=160)
         plt.close(fig)
 
+        if subset["label"].nunique() == 2:
+            false_positive_rate, true_positive_rate, _ = roc_curve(subset["label"], subset["probability"])
+            fig, axis = plt.subplots(figsize=(4, 4))
+            axis.plot(false_positive_rate, true_positive_rate, color="#315c8c")
+            axis.plot([0, 1], [0, 1], linestyle="--", color="#777777")
+            axis.set_xlim(0, 1)
+            axis.set_ylim(0, 1)
+            axis.set_xlabel("False-positive rate")
+            axis.set_ylabel("True-positive rate")
+            axis.set_title(f"{modality} ROC curve")
+            fig.tight_layout()
+            fig.savefig(charts_dir / f"roc_curve_{modality}.png", dpi=160)
+            plt.close(fig)
+
 
 def _validate_split(frame: pd.DataFrame) -> None:
     if frame.duplicated(KEY_COLUMNS).any():
@@ -433,4 +448,3 @@ def _require_binary_labels(frame: pd.DataFrame, name: str) -> None:
 def _assignment_hash(assignments: pd.DataFrame) -> str:
     canonical = assignments.sort_values("participant_id").to_csv(index=False, lineterminator="\n")
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-

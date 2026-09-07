@@ -63,6 +63,8 @@ def assemble_feature_windows(
         merged[f"{modality}__available"] = present
         merged[f"{modality}__usable"] = present & ~quality.isin(UNUSABLE_STATES)
         merged[f"{modality}__quality_state"] = quality.where(present, "missing")
+        unusable = present & quality.isin(UNUSABLE_STATES)
+        merged.loc[unusable, feature_columns] = np.nan
 
     usable_columns = [f"{modality}__usable" for modality in MODALITIES]
     merged["usable_modality_count"] = merged[usable_columns].sum(axis=1).astype(int)
