@@ -27,7 +27,7 @@ The run contains 180 windows from 15 synthetic participants. It preserves 39 win
 
 ## Open gates
 
-External validation remains blocked because no separate compatible dataset was supplied. Approved participant collection remains blocked by ethics approval, consent, physical calibration, and the earlier hardware safety gates. The duration analysis is descriptive until the approved protocol freezes its stability tolerance.
+External validation remains blocked because no separate compatible dataset was supplied. Approved participant collection still requires ethics approval, consent, physical calibration, and the earlier hardware safety gates. The duration analysis is descriptive until the approved protocol freezes its stability tolerance.
 
 ## Limitations
 

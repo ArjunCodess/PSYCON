@@ -100,6 +100,7 @@ def build_dataset_manifest(
     dataset_version: str,
     protocol_version: str,
     source_kind: str,
+    created_at_utc: str | None = None,
 ) -> dict[str, object]:
     """Hash an explicit file list without reading files outside the dataset root."""
     resolved_root = root.resolve()
@@ -121,7 +122,7 @@ def build_dataset_manifest(
         "dataset_version": dataset_version,
         "protocol_version": protocol_version,
         "source_kind": source_kind,
-        "created_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "created_at_utc": created_at_utc or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "files": entries,
     }
 

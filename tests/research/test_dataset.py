@@ -122,11 +122,13 @@ def test_manifest_hashes_only_explicit_files_inside_root(tmp_path: Path) -> None
         dataset_version="fixture-1.0.0",
         protocol_version="1.0.0",
         source_kind="fixture",
+        created_at_utc="2026-09-07T00:00:00Z",
     )
     output = tmp_path / "manifest.json"
     write_manifest(output, manifest)
     loaded = json.loads(output.read_text(encoding="utf-8"))
     assert loaded["files"][0]["path"] == "raw/sample.json"
+    assert loaded["created_at_utc"] == "2026-09-07T00:00:00Z"
     assert len(loaded["files"][0]["sha256"]) == 64
     with pytest.raises(ValueError, match="outside dataset root"):
         build_dataset_manifest(tmp_path, [Path(__file__)], dataset_version="x", protocol_version="x", source_kind="fixture")

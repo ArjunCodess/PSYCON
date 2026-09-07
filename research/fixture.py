@@ -123,7 +123,7 @@ def write_fixture_dataset(root: Path) -> pd.DataFrame:
         dataset_version=DATASET_VERSION,
         protocol_version=PROTOCOL_VERSION,
         source_kind="synthetic_fixture",
+        created_at_utc="2026-09-07T00:00:00Z",
     )
     write_manifest(root / "manifest.json", manifest)
     return windows
-
