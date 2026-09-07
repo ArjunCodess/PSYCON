@@ -32,6 +32,8 @@ The repository contains no Week 5 study dataset or generated metric. `python -m 
 
 Approved participant files belong in the encrypted study store rather than this repository; `data/studies/` and `results/studies/` are ignored as a second guard against accidental commits.
 
+`docs/WEEK_5_IMPLEMENTATION.md` records the implemented behavior, file ownership, build-plan coverage, current test evidence, and open empirical gates.
+
 ## Protocol fixtures
 
 Run `python protocol/tools/generate_fixtures.py` to regenerate the canonical binary fixtures. The generator is deterministic, and Python, TypeScript, and C++ tests consume the same files under `protocol/fixtures/`.

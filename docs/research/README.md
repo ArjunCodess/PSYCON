@@ -2,7 +2,7 @@
 
 The Week 5 research code is prepared, but the repository has no PSYCON participant dataset and therefore has no valid Week 5 model result. Training starts after completed psychologist marksheets and their matching device sessions are available.
 
-The marksheets provide human observations and possible target variables. They do not contain the physiological and speech inputs needed to train the PSYCON sensor model. See `DATA_REQUIREMENTS.md` for the exact handoff.
+The marksheets provide human observations and possible target variables. They do not contain the physiological and speech inputs needed to train the PSYCON sensor model. See `DATA_REQUIREMENTS.md` for the exact handoff and `../WEEK_5_IMPLEMENTATION.md` for the implementation record.
 
 ## What is ready
 
@@ -46,4 +46,3 @@ The psychologist and research lead must freeze the target score, primary metric,
 - `research/templates/` contains session, calibration, and operator records.
 
 Participant collection remains blocked until the relevant reviewer approves the protocol and consent text. Worn collection also remains blocked until physical calibration and electrical safety checks pass.
-

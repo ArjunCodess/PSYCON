@@ -255,6 +255,7 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 
 ### Current evidence and blockers
 
+- `docs/WEEK_5_IMPLEMENTATION.md` maps every Week 5 item to its code, documentation, current evidence, and blocker.
 - `docs/research/` contains the frozen questions, approved-order session procedure, consent draft, data controls, and model lifecycle. `research/templates/` contains session, calibration, and operator records.
 - `research/` validates anonymous approved metadata, preserves bad and missing modalities, builds identical modality views, freezes participant assignments, evaluates two candidate model families, and produces the required metrics and analyses.
 - `docs/research/DATA_REQUIREMENTS.md` defines the psychologist marksheet fields, matching device records, synchronization keys, delivery layout, privacy checks, and analysis sequence required before evaluation.

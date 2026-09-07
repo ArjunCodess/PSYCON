@@ -91,7 +91,13 @@ There is no approved recorded-speech dataset, synchronized device dataset, real 
 
 ### Week 5 research workflow
 
-[`research/`](research/) validates anonymous approved session metadata, synchronizes physiology, speech, and context windows, retains missing and low-quality states, creates one participant split for every modality, trains logistic-regression and random-forest candidates, and can report grouped cross-validation, test metrics, participant-level intervals, errors, correlations, ablations, context slices, and duration summaries. [`docs/research/DATA_REQUIREMENTS.md`](docs/research/DATA_REQUIREMENTS.md) explains the marksheet and device-data handoff required before those results can be produced.
+Week 5 built the study controls and the full analysis path, but it produced no PSYCON study result. The repository has no completed psychologist marksheets or matching participant recordings, and the previously generated fake-data results were removed.
+
+[`research/schema.py`](research/schema.py) validates anonymous session metadata, approval, consent, withdrawal state, calibration references, timestamps, and synchronization quality. [`research/dataset.py`](research/dataset.py) joins physiology, speech, and context on common time windows, rejects conflicting labels and duplicate windows, and preserves missing or unusable inputs. [`research/evaluation.py`](research/evaluation.py) freezes one participant-level split across all comparisons, trains logistic-regression and random-forest candidates, selects by validation F1, and prepares grouped cross-validation, participant-level intervals, errors, ablations, environment and motion slices, duration summaries, confusion matrices, and ROC curves. [`research/run_study.py`](research/run_study.py) connects those stages for approved data and hashes every source file used by a run.
+
+The psychologist marksheet supplies 20 behavioral ratings, session context, recording quality, and evidence timestamps. It does not supply the physiological and speech inputs needed for a PSYCON model. We can analyze the marksheets alone, but model training requires matching wrist and audio records with the same participant and session IDs.
+
+See the complete [Week 5 implementation record](docs/WEEK_5_IMPLEMENTATION.md), [data handoff requirements](docs/research/DATA_REQUIREMENTS.md), and [research operating instructions](docs/research/README.md). Week 5 currently counts as implemented software and documentation with an open research exit gate.
 
 ## Paper requirements versus implementation
 
