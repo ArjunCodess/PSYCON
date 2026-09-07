@@ -16,16 +16,18 @@ The references in \Cref{tab:datasheet-index} should be maintained as part of the
 \toprule
 \textbf{Component} & \textbf{Primary Documentation} \\
 \midrule
-ESP32-WROOM-32 & Espressif ESP32 datasheet \& technical reference manual \\
-MAX30102 & Maxim Integrated datasheet \\
-MPU6050 & InvenSense register map \& datasheet \\
-ADS1115 & Texas Instruments ADS1115 datasheet \\
-MCP9808 & Microchip MCP9808 datasheet \\
-INMP441 & InvenSense INMP441 datasheet \\
-TEMT6000 & Vishay TEMT6000 datasheet \\
-TP4056 & TP4056 charger IC datasheet \\
-DW01A & Battery protection IC datasheet \\
-FS8205A & Dual MOSFET datasheet \\
+ESP32-WROOM-32 & Espressif ESP32 Series Datasheet \cite{espressif_esp32_2026}; exact development-board schematic still required \\
+MAX30102 & Analog Devices MAX30102 Datasheet \cite{adi_max30102_2018} \\
+MPU6050 & TDK InvenSense MPU-6000/MPU-6050 Product Specification \cite{tdk_mpu6050_2013} \\
+ADS1115 & Texas Instruments ADS111x Datasheet \cite{ti_ads1115_2025} \\
+MCP9808 & Microchip MCP9808 Datasheet DS20005095 \cite{microchip_mcp9808} \\
+INMP441 & TDK InvenSense INMP441 Datasheet \cite{tdk_inmp441_2014} \\
+TEMT6000 & Vishay TEMT6000X01 Datasheet \cite{vishay_temt6000_2011} \\
+TP4056 & Nanjing Top Power ASIC TP4056 document \cite{toppower_tp4056}; purchased module must be identified \\
+DW01A & Not verified because the purchased protection device and manufacturer have not been supplied \\
+FS8205A & Not verified because the purchased MOSFET and manufacturer have not been supplied \\
 \bottomrule
 \end{tabularx}
 \end{table*}
+
+The official links were checked on 8 September 2026. A component datasheet does not establish the circuit used on an unidentified breakout board. The exact cell, charger/protection module, ESP32 board, GSR electrodes, connectors, and enclosure materials remain release-record gaps.

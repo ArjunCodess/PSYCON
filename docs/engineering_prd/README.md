@@ -16,7 +16,7 @@ Material & Project Closure** (Chapters 24–34, the final chapter).
 docs/engineering_prd/
 ├── main.tex                    # Document driver: title, abstract, chapter includes
 ├── preamble.tex                 # All packages, page geometry, custom environments
-├── references.bib               # Bibliography (TODO placeholders — no fabricated citations)
+├── references.bib               # Verified core component, ethics, and WESAD references
 ├── chapters/
 │   ├── chapter1_overview.tex        # Ch. 1 — Project Overview
 │   ├── chapter2_srs.tex             # Ch. 2 — System Requirements Specification
@@ -79,13 +79,13 @@ pdflatex -interaction=nonstopmode main.tex
 
 This project was last compiled with MiKTeX 25.12 using pdfLaTeX and Biber,
 with **zero errors, zero undefined references, and zero
-overfull boxes** after the full four-pass sequence above, across all
+overfull boxes** after the full build sequence above, across all
 40 pages, 34 chapters, and 5 volumes. This is the complete PSYCON Engineering Design
 Document.
 
 ## Current implementation note
 
-Week 5 has an implemented metadata, synchronized-dataset, participant-split, model-comparison, and reporting path, but no completed psychologist marksheet dataset or matching PSYCON participant recordings. Week 6 adds evidence records, five ordered physical stage gates, backend failure scenarios, timed simulated stress tooling, validation reports, calibration procedures, and risk-evidence rules. No physical measurements have been supplied, so the Week 6 exit gate remains open; `docs/validation/WEEK_6_RUNBOOK.md` defines the required handoff.
+Week 7 adds the candidate version freeze, deterministic archive and hash verification, operating and assembly guides, competition package, AI cards, evidence matrix, official references, release checklist, and demonstration procedure. `psycon-1.0.0-rc1` remains a candidate because the physical hardware, complete firmware, Week 6 evidence, PSYCON study, external validation, and demonstrations are not complete.
 
 ## Design Conventions Used
 
@@ -120,10 +120,7 @@ Week 5 has an implemented metadata, synchronized-dataset, participant-split, mod
   Two custom list styles are also available for checklist-style content:
   - `checklist` — pending items, marked with ☐ (`\begin{checklist}...\end{checklist}`)
   - `donelist` — completed items, marked with a green ✓ (`\begin{donelist}...\end{donelist}`)
-- **Bibliography:** `biblatex` + `biber`, numeric-compact style. No citations
-  were present in the source content, so `references.bib` contains clearly
-  labeled `TODO` placeholder entries only — replace these with verified
-  sources before submission. No citations are fabricated anywhere in the text.
+- **Bibliography:** `biblatex` + `biber`, numeric-compact style. The bibliography contains verified manufacturer documents for the named core components plus ICMR, WHO, and WESAD sources. Exact purchased-board, protection-device, cell, electrode, connector, and enclosure references remain open.
 - **Content fidelity:** all technical content from the source document is
   preserved, and dated implementation notes are appended where repository
   evidence changed. Confirmed vs. pending-validation engineering status is kept
