@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0.0",
+  "session_id": "SESSION-EXAMPLE",
+  "participant_id": "P-EXAMPLE",
+  "protocol_version": "pending-approval",
+  "approval_id": "pending-approval",
+  "consent_version": "pending-approval",
+  "consent": {
+    "physiology": false,
+    "audio": false,
+    "transcription": false,
+    "voice_profile": false,
+    "withdrawn": false
+  },
+  "demographics": {
+    "age_group": "not_collected",
+    "biological_sex": "not_collected"
+  },
+  "recording": {
+    "started_at_utc": "2000-01-01T00:00:00Z",
+    "duration_seconds": 0,
+    "environment": "not_recorded",
+    "motion_condition": "not_recorded",
+    "stop_reason": "template_only"
+  },
+  "device": {
+    "hardware_revision": "not_recorded",
+    "wrist_firmware_version": "not_recorded",
+    "audio_firmware_version": "not_recorded",
+    "battery_start_volts": {},
+    "battery_end_volts": {},
+    "sensor_status": {},
+    "error_codes": [],
+    "calibration_record_ids": []
+  },
+  "synchronization": {
+    "common_epoch": "backend_utc",
+    "max_uncertainty_ms": null,
+    "quality": "not_measured"
+  },
+  "eligibility": {
+    "included": false,
+    "reason_codes": ["template_only"]
+  },
+  "operator_id": "not_recorded",
+  "notes": "Do not include identifying information."
+}
