@@ -24,6 +24,7 @@ data/raw/wesad/
 data/studies/
 results/studies/
 validation-output/
+release-output/
 
 # Firmware build outputs
 .pio/
