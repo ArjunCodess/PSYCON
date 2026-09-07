@@ -20,3 +20,14 @@ Potential analyses include:
 \begin{observationbox}
 Both overall performance and limitations should be reported.
 \end{observationbox}
+
+\subsection{Implemented Evaluation Procedure}
+\label{sec:implemented-evaluation-procedure}
+
+The Week 5 evaluator creates one deterministic participant-level train, validation, and test assignment and reuses it for physiology-only, speech-only, and combined comparisons. Preprocessing is fitted inside each training pipeline. Logistic regression and random forest are the current candidates, validation F1 selects the candidate, and the chosen pipeline is refitted on the training and validation participants before one held-out test evaluation.
+
+The output contract includes accuracy, precision, recall, F1, ROC-AUC when both classes are present, confusion matrices, false-positive and false-negative counts, grouped cross-validation, participant-level bootstrap confidence intervals, descriptive statistics, feature correlations, prediction and error rows, modality ablations, data-quality coverage, environment and motion slices, and 10, 30, and 60-second duration summaries. External validation rejects participant overlap and incompatible feature columns.
+
+\begin{observationbox}
+These procedures are implemented and covered by unit tests, but no Week 5 metric is reported because no completed marksheet and matching PSYCON recording dataset is available. The target definition, primary metric, \texttt{N/O} handling, exclusions, and duration-stability tolerance must be frozen before the test set is opened.
+\end{observationbox}

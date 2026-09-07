@@ -126,3 +126,14 @@ System & Timestamp; session ID; firmware version; sensor status; error logs \\
     \item Implanted medical devices, if required by the safety review.
     \item Participants unwilling to consent to physiological or audio recording.
 \end{itemize}
+
+\subsection{Week 5 Implementation Status}
+\label{sec:week5-research-status}
+
+The study questions, workflow, metadata contract, session checklist, consent draft, and analysis runner are implemented. The psychologist marksheet records 20 observable behavior domains from A through T on a 1--5 scale, with \texttt{N/O} retained as missing evidence. It also records session context, recording quality, and evidence timestamps.
+
+The marksheet does not contain the physiological and speech inputs used by the PSYCON model. A valid evaluation therefore requires completed marksheets and matching wrist, audio, light, motion, quality, and error records joined by anonymous participant ID, session ID, and synchronized time. Marksheets alone support rating distributions, domain relationships, and rater-agreement analysis, but not sensor-model training.
+
+\begin{validationbox}
+No Week 5 participant dataset or model result is currently available. Training and reporting remain pending until approved marksheets and matching calibrated-device sessions are supplied.
+\end{validationbox}

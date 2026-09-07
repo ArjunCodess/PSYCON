@@ -121,7 +121,7 @@ The \texttt{psycon\_language} baseline implements the English features specified
 \subsection{Week 3 Speaker and Conversation Analysis}
 \label{sec:week3-speaker-analysis}
 
-The server-side \texttt{psycon\_speaker\_analysis} stage uses the locally hosted \texttt{pyannote/speaker-diarization-community-1} pipeline. Regular diarization supplies overlap evidence, while exclusive diarization supplies one speaker label for transcript alignment. Faster Whisper word timestamps are assigned to the exclusive turn with at least 50\% temporal overlap; unresolved boundary words remain unknown. Pyannote model access is gated and requires an operator-provisioned Hugging Face token that must never enter source control.
+The server-side \texttt{psycon\_speaker\_analysis} stage uses the locally hosted \nolinkurl{pyannote/speaker-diarization-community-1} pipeline. Regular diarization supplies overlap evidence, while exclusive diarization supplies one speaker label for transcript alignment. Faster Whisper word timestamps are assigned to the exclusive turn with at least 50\% temporal overlap; unresolved boundary words remain unknown. Pyannote model access is gated and requires an operator-provisioned Hugging Face token that must never enter source control.
 
 The system manages one consenting wearer profile. Enrollment requires exactly three clean recordings of 5--10 seconds. A SpeechBrain ECAPA-TDNN embedding is calculated for each recording, normalized, averaged, encrypted with a deployment secret, and stored without the source audio. The interface provides explicit enrollment consent, replacement, and deletion. Raw embeddings are excluded from responses and logs.
 

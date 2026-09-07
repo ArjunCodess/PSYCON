@@ -28,3 +28,10 @@ If recording speech, clearly explain what is collected, how it is processed, how
 Speaker verification is biometric processing and requires consent separate from permission to process the conversation recording. Week~3 supports one local wearer profile created from three quality-checked recordings. Only the normalized averaged voice embedding and non-identifying enrollment metadata may be retained; the source enrollment recordings must be discarded immediately after processing. The profile must be encrypted using an operator-provisioned secret, excluded from logs and API responses, and replaceable or deletable by the operator.
 
 The profile may identify only the enrolled wearer. Other voices remain anonymous recording-local speaker labels, and an uncertain comparison must abstain rather than select the nearest voice. Production deployment additionally requires authenticated access, encrypted transport, audit logging, a documented retention period, and measured false-match and false-rejection rates across the intended languages, microphones, and environments.
+
+\subsection{Week 5 Consent Gate}
+\label{sec:week5-consent-gate}
+
+The Week 5 consent draft separates permission for physiological sensing, audio recording, transcription, and creation of a biometric wearer profile. It also states the approved purpose, access group, retention periods, withdrawal route, deletion process, bystander procedure, and limits on released data. A participant may refuse an optional audio, transcription, or voice-profile use without that refusal being converted into consent.
+
+The study runner accepts only anonymous metadata with an approved protocol and consent version. It rejects withdrawn sessions and rejects transcription or voice-profile processing when audio consent is absent. These software checks do not replace ethics review, signed consent, electrical safety, or operator compliance during collection.

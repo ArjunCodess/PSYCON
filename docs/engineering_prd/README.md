@@ -77,11 +77,15 @@ pdflatex -interaction=nonstopmode main.tex
 pdflatex -interaction=nonstopmode main.tex
 ```
 
-This project has been test-compiled locally with TeX Live 2023 (pdfTeX,
-Biber 2.19) with **zero errors, zero undefined references, and zero
+This project was last compiled with MiKTeX 25.12 using pdfLaTeX and Biber,
+with **zero errors, zero undefined references, and zero
 overfull boxes** after the full four-pass sequence above, across all
-37 pages / 34 chapters / 5 volumes — the complete PSYCON Engineering Design
+38 pages, 34 chapters, and 5 volumes. This is the complete PSYCON Engineering Design
 Document.
+
+## Current implementation note
+
+Week 5 now has an implemented metadata, synchronized-dataset, participant-split, model-comparison, and reporting path. The repository contains no completed psychologist marksheet dataset or matching PSYCON participant recordings, so it reports no Week 5 model metric. `docs/WEEK_5_IMPLEMENTATION.md` records the exact work, and `docs/research/DATA_REQUIREMENTS.md` defines the data handoff required before training.
 
 ## Design Conventions Used
 
@@ -121,8 +125,8 @@ Document.
   labeled `TODO` placeholder entries only — replace these with verified
   sources before submission. No citations are fabricated anywhere in the text.
 - **Content fidelity:** all technical content from the source document is
-  preserved in full; only formatting, structure, and presentation were
-  changed. Confirmed vs. pending-validation engineering status is kept
+  preserved, and dated implementation notes are appended where repository
+  evidence changed. Confirmed vs. pending-validation engineering status is kept
   explicit (see `validationbox` / `requirementbox` in Chapter 1).
 
 ## Status

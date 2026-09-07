@@ -17,6 +17,15 @@ The following should be maintained:
     \item Logs
 \end{itemize}
 
+\subsection{Implemented Research Data Controls}
+\label{sec:implemented-research-data-controls}
+
+The Week 5 metadata validator rejects direct-identifier fields, pending approval or consent versions, withdrawn sessions, invalid consent dependencies, missing calibration references, malformed timestamps, and incomplete participant-session coverage. Human-study files remain outside the repository in an approved encrypted store. The repository ignores the local \texttt{data/studies/} and \texttt{results/studies/} paths to reduce accidental commits.
+
+Dataset manifests hash an explicit file list with SHA-256 and reject paths outside the selected dataset directory. Each model run records the dataset version, model version, participant-split hash, source-file hashes, and random seed. Corrections create a new immutable version rather than rewriting an earlier manifest.
+
+The detailed handoff, retention, access, withdrawal, deletion, backup-verification, and release rules are maintained in \texttt{docs/research/}. These controls are implemented or documented; no participant-data backup has been verified because no participant dataset has been supplied.
+
 \begin{engnote}
 Use regular backups and version control.
 \end{engnote}
