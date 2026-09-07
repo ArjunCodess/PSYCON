@@ -48,7 +48,7 @@ def write_markdown_report(path: Path, report: dict[str, Any], *, dataset_version
         "",
         "## Open gates",
         "",
-        "External validation remains blocked because no separate compatible dataset was supplied. Approved participant collection remains blocked by ethics approval, consent, physical calibration, and the earlier hardware safety gates. The duration analysis is descriptive until the approved protocol freezes its stability tolerance.",
+        _open_gates_text(report),
         "",
         "## Limitations",
         "",
@@ -58,3 +58,14 @@ def write_markdown_report(path: Path, report: dict[str, Any], *, dataset_version
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines), encoding="utf-8")
 
+
+def _open_gates_text(report: dict[str, Any]) -> str:
+    external = report["external_validation"]
+    if external["status"] == "evaluated":
+        external_text = f"The run evaluated a separate dataset with {external['participant_count']} participants."
+    else:
+        external_text = "External validation remains blocked because no separate compatible dataset was supplied."
+    return (
+        f"{external_text} Approved participant collection still requires ethics approval, consent, physical calibration, and the earlier hardware safety gates. "
+        "The duration analysis is descriptive until the approved protocol freezes its stability tolerance."
+    )
