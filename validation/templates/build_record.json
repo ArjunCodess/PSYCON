@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0.0",
+  "build_id": "BUILD-EXAMPLE",
+  "recorded_at_utc": "2000-01-01T00:00:00Z",
+  "tester_id": "not_recorded",
+  "hardware_revision": "not_recorded",
+  "firmware_versions": {
+    "wrist": "not_recorded",
+    "audio": "not_recorded"
+  },
+  "sensor_initialization": {},
+  "i2c_scan": [],
+  "battery_voltage": {},
+  "runtime_seconds": null,
+  "charging_time_seconds": null,
+  "communication_status": "not_tested",
+  "notes": "",
+  "corrective_actions": []
+}

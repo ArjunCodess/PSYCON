@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "record_id": "ELECTRICAL-EXAMPLE",
+  "recorded_at_utc": "2000-01-01T00:00:00Z",
+  "operator_id": "not_recorded",
+  "hardware_revision": "not_recorded",
+  "instrument_ids": [],
+  "conditions": {
+    "ambient_temperature_c": null,
+    "wireless_mode": "not_recorded",
+    "power_source": "not_recorded"
+  },
+  "measurements": {
+    "supply_rail_v": null,
+    "idle_current_ma": null,
+    "peak_wireless_current_ma": null,
+    "charger_current_ma": null,
+    "brownout_voltage_v": null,
+    "maximum_device_temperature_c": null
+  },
+  "result": "not_run",
+  "artifacts": [],
+  "corrective_actions": []
+}

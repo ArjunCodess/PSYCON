@@ -1,0 +1,24 @@
+{
+  "schema_version": "1.0.0",
+  "record_id": "RUNTIME-EXAMPLE",
+  "recorded_at_utc": "2000-01-01T00:00:00Z",
+  "operator_id": "not_recorded",
+  "hardware_revision": "not_recorded",
+  "firmware_versions": {},
+  "battery_powered": false,
+  "charging_connected": false,
+  "gsr_attached": false,
+  "target_duration_seconds": 21600,
+  "actual_duration_seconds": 0,
+  "samples": [],
+  "summary": {
+    "packet_loss_count": null,
+    "unexpected_reset_count": null,
+    "minimum_battery_v": null,
+    "maximum_temperature_c": null,
+    "minimum_free_heap_bytes": null
+  },
+  "result": "not_run",
+  "artifacts": [],
+  "corrective_actions": []
+}
