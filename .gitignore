@@ -23,6 +23,7 @@ data/raw/wesad/
 # Approved human-study data must remain in the encrypted study store.
 data/studies/
 results/studies/
+validation-output/
 
 # Firmware build outputs
 .pio/
