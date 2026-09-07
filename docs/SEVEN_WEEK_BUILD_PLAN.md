@@ -4,7 +4,7 @@
 
 **Owners:** Arjun Vijay Prakash, software and research; Saksham Yadav, hardware and device firmware
 
-**Current completion:** approximately 57% overall; approximately 35% of end-to-end functional acceptance demonstrated
+**Current completion:** approximately 55% overall; approximately 32% of end-to-end functional acceptance demonstrated
 
 This plan implements the 34-chapter engineering design in `docs/engineering_prd/`. It covers the complete Wrist Module, Audio Module, shared protocol, backend, multimodal study, electrical validation, safety, documentation, and competition demonstration.
 
@@ -27,8 +27,8 @@ Documentation proves documentation only. A diagram of a driver, backend, calibra
 | Audio firmware | Scaffold | Compiles and initializes 16 kHz I2S; capture is discontinuous and TEMT6000 is absent |
 | Protocol | Versioned transport and server ingestion implemented | Protocol v2 fixtures decode identically in Python, TypeScript, and C++; authenticated Flask ingestion preserves immutable packet identity and synchronization metadata |
 | Backend | Week 4 software complete | PostgreSQL, S3-compatible storage, authentication, validation, synchronization, jobs, dashboard, export, backup verification, containers, and deterministic device simulation pass the live Compose smoke test |
-| ML | Week 5 research software implemented | WESAD models/artifacts, audio and language analysis, synchronized multimodal assembly, participant-safe splits, candidate selection, group cross-validation, confidence intervals, ablations, context/duration slices, and deterministic fixture evidence exist; approved participant, hardware, and external validation remain absent |
-| Validation | Software checks and fixture studies | Repository checks, deterministic speaker/model fakes, audio and upload-page tests, local-model transcription, and the Week 5 synthetic study pass; gated diarization, approved participant data, external validation, and physical-device validation remain open |
+| ML | Week 5 research pipeline prepared | WESAD models/artifacts, audio and language analysis, synchronized multimodal assembly, participant-safe splits, candidate selection, group cross-validation, confidence intervals, ablations, and context/duration analysis code exist; psychologist marksheets, matching PSYCON sessions, real multimodal results, and external validation remain absent |
+| Validation | Software checks only for Week 5 | Repository checks, deterministic model unit tests, audio and upload-page tests, and local-model transcription pass; no synthetic Week 5 dataset or generated metric is retained as study evidence |
 
 ## PRD-resolved implementation decisions
 
@@ -225,7 +225,7 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 
 **Goal:** Execute the PRD study and compare physiology-only, speech-only, and combined models without clinical claims.
 
-**Implementation status:** the research questions, study workflow, consent and data-management materials, anonymous metadata validation, synchronized dataset builder, participant-level split, candidate training, grouped validation, statistical outputs, ablations, context and duration analyses, model lifecycle, and deterministic fixture package are complete. The approved human study and hardware steps are blocked by ethics approval, consented recordings, physical calibration, earlier electrical-safety gates, and a compatible external dataset. Fixture metrics prove software behavior only and do not satisfy the exit gate.
+**Implementation status:** the research questions, study workflow, consent and data-management materials, anonymous metadata validation, synchronized dataset builder, participant-level split, candidate training, grouped validation, statistical outputs, ablations, context and duration analyses, and model lifecycle are implemented. No Week 5 dataset or model result is claimed. Evaluation waits for completed psychologist marksheets and their matching synchronized PSYCON sessions; collection also depends on ethics approval, consent, calibration, and the earlier electrical-safety gates.
 
 ### Arjun
 
@@ -257,8 +257,8 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 
 - `docs/research/` contains the frozen questions, approved-order session procedure, consent draft, data controls, and model lifecycle. `research/templates/` contains session, calibration, and operator records.
 - `research/` validates anonymous approved metadata, preserves bad and missing modalities, builds identical modality views, freezes participant assignments, evaluates two candidate model families, and produces the required metrics and analyses.
-- `data/research_fixture/v1/` and `results/week5_fixture/` are reproducible synthetic evidence with raw tables, synchronized features, metadata, manifests, run records, predictions, explicit errors, statistics, intervals, matrices, ROC curves, ablations, slices, limitations, and version IDs.
-- Participant collection, physical calibration, real device configuration evidence, backup verification for human data, real multimodal comparison, stable minimum duration, and external validation remain blocked. The owners must complete these with approved participants, the assembled devices, and a named compatible external dataset; no repository fixture can replace that evidence.
+- `docs/research/DATA_REQUIREMENTS.md` defines the psychologist marksheet fields, matching device records, synchronization keys, delivery layout, privacy checks, and analysis sequence required before evaluation.
+- Participant collection, physical calibration, real device configuration evidence, backup verification for human data, real multimodal comparison, stable minimum duration, and external validation remain blocked. The owners must complete these with approved marksheets, matching device sessions, the assembled devices, and a named compatible external dataset.
 
 ## Week 6: Integration, calibration, runtime, and safety
 
@@ -343,7 +343,7 @@ Every update states what became true, its evidence, the acceptance criterion adv
 
 ## Completion calculation
 
-The approximately 57% score is recomputed with fixed weights:
+The approximately 55% score is recomputed with fixed weights:
 
 | Workstream | Weight | Completion rule |
 | --- | ---: | --- |

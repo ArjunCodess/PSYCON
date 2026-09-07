@@ -1,23 +1,18 @@
 # Week 5 research workflow
 
-Week 5 now has two paths. The deterministic fixture path is safe to run from a clean checkout and verifies the complete software workflow. The approved-study path accepts synchronized records only after its metadata passes consent, approval, eligibility, and anonymity checks.
+The Week 5 research code is prepared, but the repository has no PSYCON participant dataset and therefore has no valid Week 5 model result. Training starts after completed psychologist marksheets and their matching device sessions are available.
 
-Neither path turns PSYCON into a diagnostic system. Fixture results test code, and participant results would remain experimental research indicators.
+The marksheets provide human observations and possible target variables. They do not contain the physiological and speech inputs needed to train the PSYCON sensor model. See `DATA_REQUIREMENTS.md` for the exact handoff.
 
-## Reproduce the checked-in fixture
+## What is ready
 
-```powershell
-python -m research.run_fixture_study
-python -m pytest tests/research
-```
+The approved-study runner validates session metadata, joins physiology, speech, and context features on common time windows, preserves missing and low-quality signals, assigns whole participants to train, validation, and test sets, compares logistic-regression and random-forest candidates, and produces cross-validation, confidence intervals, error analysis, ablations, context slices, duration analysis, confusion matrices, and ROC curves.
 
-The run regenerates `data/research_fixture/v1/` and `results/week5_fixture/`. Its manifest hashes raw, metadata, and synchronized feature files. The result package contains frozen participant assignments, predictions, explicit errors, descriptive statistics, correlations, candidate and grouped cross-validation metrics, confidence intervals, confusion matrices, ROC curves, context slices, duration analysis, and a readable report.
+No generated dataset or generated model metrics are checked into the repository. Unit tests use small artificial values to verify code behavior, but those values are never presented as research evidence.
 
-The fixture contains 15 synthetic participant-like groups and deliberate missing or low-quality signals. It contains no human recording and no device measurement, so it cannot satisfy hardware calibration, participant collection, multimodal benefit, or external-validation claims.
+## Run after the data handoff
 
-## Approved-study inputs
-
-Do not put participant data in this repository. Store encrypted source files in the approved study location, then run:
+Keep participant data in the approved encrypted study location outside this repository. Once the input tables and metadata pass review, run:
 
 ```powershell
 python -m research.run_study `
@@ -31,32 +26,24 @@ python -m research.run_study `
   --seed 42
 ```
 
-Each feature CSV has these keys:
+Each feature CSV uses `participant_id`, `session_id`, `window_start_ms`, `window_end_ms`, `label`, and `quality_state`. Labels must agree across modalities. Physiology and speech feature columns must be numeric. Context records may also contain environment and motion categories for descriptive analysis.
 
-- `participant_id`, `session_id`, `window_start_ms`, and `window_end_ms` identify a synchronized common-epoch window.
-- `label` is the frozen binary research target and must agree across modalities.
-- `quality_state` is `usable`, `corrupt`, `missing`, `low_quality`, `untranscribable`, or `unsynchronized`.
-- The remaining columns are modality features. Physiology and speech model inputs must be numeric. Context may also contain `environment` and `motion_condition` for descriptive slices.
+The metadata file is a JSON array with one record per participant and session. Start from `research/templates/session_metadata.json`. The validator rejects pending approvals, direct identifiers, invalid consent combinations, withdrawn sessions, missing calibration references, and incomplete session coverage.
 
-The synchronizer keeps the union of windows. It masks feature values from unusable modalities, adds availability and quality fields, and lets the model's training-only imputer handle missing numeric inputs. This makes loss visible in the report instead of quietly deleting it.
+## Analysis rules
 
-The metadata file is a JSON array with one record per participant and session. Start from `research/templates/session_metadata.json`, then use only approved values. The validator rejects pending approvals, direct-identifier field names, invalid consent dependencies, withdrawn sessions, missing calibration references, and incomplete session coverage.
+One seeded participant assignment is reused for physiology, speech, and combined models. Preprocessing and model selection use development participants only. Confidence intervals resample participants rather than treating repeated windows from one person as independent observations.
 
-## Participant separation and model selection
-
-The runner creates one seeded participant assignment and reuses it for physiology, speech, and combined models. It fits logistic-regression and random-forest candidates on training participants, selects by validation F1, refits on training plus validation participants, and opens the held-out test participants once. Group cross-validation uses only development participants.
-
-Confidence intervals resample test participants rather than individual windows, so repeated windows from one person do not masquerade as independent samples. Environment, motion, and duration results are descriptive slices. The approved protocol must freeze the primary metric, stability tolerance, and slice categories before collection.
-
-Supply all three `--external-*` arguments to evaluate a separate compatible dataset. The runner rejects participant overlap and mismatched feature columns. Without a separate dataset, the report records external validation as blocked.
+The psychologist and research lead must freeze the target score, primary metric, handling of `N/O`, minimum evidence per domain, stability tolerance, and any exclusion rules before opening the test set. A marksheet total must not become the target automatically because its 20 domains describe different behaviors and may require separate analysis.
 
 ## Records and gates
 
-- `STUDY_PROTOCOL.md` freezes the research questions, approved-order session procedure, variables, eligibility, analysis, and reporting rules.
+- `STUDY_PROTOCOL.md` defines the research questions, session procedure, variables, eligibility, analysis, and reporting rules.
 - `INFORMED_CONSENT_TEMPLATE.md` separates physiology, audio, transcription, voice-profile, retention, access, and withdrawal choices.
+- `DATA_REQUIREMENTS.md` defines the marksheet and device-data handoff.
 - `DATA_MANAGEMENT.md` defines protected storage, access, manifests, backups, withdrawal, and release handling.
 - `MODEL_LIFECYCLE.md` defines dataset review, training, validation, approval, versioning, release, and rollback.
-- `research/templates/` contains session, calibration, and operator checklist records.
+- `research/templates/` contains session, calibration, and operator records.
 
-Actual participant collection remains blocked until the relevant reviewer approves the final protocol and consent text. Worn collection also remains blocked until the physical calibration and electrical safety gates from earlier weeks pass.
+Participant collection remains blocked until the relevant reviewer approves the protocol and consent text. Worn collection also remains blocked until physical calibration and electrical safety checks pass.
 

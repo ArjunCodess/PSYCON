@@ -6,7 +6,7 @@ PSYCON is a research and screening prototype, not a medical device. It must not 
 
 ## Current completion
 
-**Overall project completion: approximately 57% as of 7 September 2026.** This weighted estimate measures progress toward the PRD's competition-ready integrated prototype. It credits the Compose-verified Week 4 server and the Week 5 research software, but does not count fixture results as physical-device, participant, or external validation.
+**Overall project completion: approximately 55% as of 8 September 2026.** This weighted estimate measures progress toward the PRD's competition-ready integrated prototype. It credits the Compose-verified Week 4 server and the prepared Week 5 research pipeline, but records no Week 5 dataset or model result.
 
 | Workstream | Weight | Completion | Contribution | Evidence and remaining gap |
 | --- | ---: | ---: | ---: | --- |
@@ -14,11 +14,11 @@ PSYCON is a research and screening prototype, not a medical device. It must not 
 | Hardware, electrical, and mechanical | 20% | 35% | 7.0% | Components and wiring are documented and reported as individually checked. There is no repository evidence of an integrated wearable, calibrated GSR front end, measured rails/current/temperature, enclosure, or runtime test. |
 | Device firmware and acquisition | 20% | 30% | 6.0% | Both firmware targets compile. Audio I2S/BLE and wrist I2C/BLE bring-up exist, but wrist values are placeholders and continuous sensing, quality, storage, recovery, power, and watchdog behavior are absent. |
 | Protocol, backend, and synchronization | 15% | 65% | 9.75% | Protocol v2 has cross-language fixtures; the PostgreSQL/S3-compatible Flask service provides authenticated idempotent ingestion, clock correction, jobs, exports, backups, a dashboard, and deterministic device simulation. The live Compose path passes; physical-device integration remains open. |
-| Data science and research pipeline | 15% | 90% | 13.5% | Research questions and records, WESAD results, wrist and audio features, synchronized modality assembly, participant-safe splits, candidate training, grouped validation, confidence intervals, ablations, error analysis, and context/duration slices exist. Approved participant, hardware, minimum-duration, and external validation remain. |
-| Verification, safety, and release evidence | 15% | 41% | 6.15% | Repository checks, protocol fixtures, firmware builds, PRD compilation, backend integration, audio tests, and a reproducible Week 5 synthetic study pass. Physical calibration, runtime, safety, participant study, external validation, and device demonstrations remain. |
-| **Total** | **100%** |  | **56.65% ≈ 57%** | Week 4 server software and Week 5 research software are verified with simulated or synthetic inputs; hardware transport, real synchronization, approved collection, and physical validation remain open. |
+| Data science and research pipeline | 15% | 85% | 12.75% | Research questions and records, WESAD results, wrist and audio features, synchronized modality assembly, participant-safe splits, candidate training, grouped validation, confidence intervals, ablations, error analysis, and context/duration code exist. The psychologist marksheets, matching PSYCON sessions, real multimodal results, minimum-duration result, and external validation remain. |
+| Verification, safety, and release evidence | 15% | 37% | 5.55% | Repository checks, protocol fixtures, firmware builds, PRD compilation, backend integration, and audio tests pass. Physical calibration, runtime, safety, participant study, Week 5 model evidence, external validation, and device demonstrations remain. |
+| **Total** | **100%** |  | **55.3% ≈ 55%** | Week 4 server software and the Week 5 analysis code are verified; hardware transport, real synchronization, approved collection, and empirical Week 5 results remain open. |
 
-The narrower end-to-end functional prototype is roughly **35% complete** because the server and research paths now run with simulated or synthetic inputs, while real sensor acquisition, hardware-to-server transport, power evidence, approved participant data, and external validation remain absent. The overall figure gives reusable credit to the specification, verified software contracts, firmware scaffolds, analysis code, backend, and research workflow.
+The narrower end-to-end functional prototype is roughly **32% complete** because the server path runs with simulated devices and the research path has no real PSYCON dataset. Real sensor acquisition, hardware-to-server transport, power evidence, approved participant data, and external validation remain absent.
 
 ## Source of truth
 
@@ -87,13 +87,11 @@ Both PlatformIO targets compile. Compilation proves source/toolchain compatibili
 
 The checked-in processed table contains **13,698 windows from 15 subjects**: 8,760 calm and 4,938 high-stress. The best recorded accuracy is 0.932 for EDA XGBoost; the exported multimodal-wrist logistic run records 0.915 accuracy, 0.895 F1, 0.995 recall, and 0.130 false-positive rate on one grouped holdout. These are WESAD development results, not PSYCON hardware or clinical validation.
 
-There is no approved recorded-speech dataset, synchronized device dataset, real physiology/audio/fusion result, or external validation. The Week 5 fixture exercises grouped validation, ablation, and confidence-interval code without satisfying those empirical gates. Raw WESAD pickles are absent, so preprocessing cannot be reproduced from a clean checkout without separately obtaining WESAD.
+There is no approved recorded-speech dataset, synchronized device dataset, real physiology/audio/fusion result, or external validation. Raw WESAD pickles are absent, so preprocessing cannot be reproduced from a clean checkout without separately obtaining WESAD.
 
 ### Week 5 research workflow
 
-[`research/`](research/) now validates anonymous approved session metadata, synchronizes physiology, speech, and context windows, retains missing and low-quality states, creates one participant split for every modality, trains logistic-regression and random-forest candidates, and reports grouped cross-validation, test metrics, participant-level intervals, errors, correlations, ablations, context slices, and duration summaries. [`docs/research/`](docs/research/) contains the study protocol, consent draft, data-management rules, model lifecycle, and operating instructions.
-
-[`results/week5_fixture/REPORT.md`](results/week5_fixture/REPORT.md) records a deterministic 15-group synthetic run, including a negative combined-versus-physiology ablation. The fixture proves the software and reporting path only. Human collection, physical calibration, minimum useful duration, real multimodal performance, and external validation remain blocked.
+[`research/`](research/) validates anonymous approved session metadata, synchronizes physiology, speech, and context windows, retains missing and low-quality states, creates one participant split for every modality, trains logistic-regression and random-forest candidates, and can report grouped cross-validation, test metrics, participant-level intervals, errors, correlations, ablations, context slices, and duration summaries. [`docs/research/DATA_REQUIREMENTS.md`](docs/research/DATA_REQUIREMENTS.md) explains the marksheet and device-data handoff required before those results can be produced.
 
 ## Paper requirements versus implementation
 
@@ -109,7 +107,7 @@ There is no approved recorded-speech dataset, synchronized device dataset, real 
 | FR-8 expandability | Modular architecture is documented | Designed |
 | Six-hour minimum runtime | No current, discharge, thermal, or continuous-run record | Not demonstrated |
 | Backend and research export | Flask API, PostgreSQL metadata, immutable S3-compatible objects, processing jobs, dashboard, hashed ZIP export, and backup verification pass the live Compose test | Implemented in software |
-| Multimodal comparison | Full participant-separated software evaluation and synthetic fixture report; no approved human, hardware, or external result | Implemented in software |
+| Multimodal comparison | Participant-separated evaluation code exists; no psychologist marksheet dataset, matching PSYCON sessions, or real result | Partial |
 | Competition demonstration | Written plan only | Not demonstrated |
 
 ## Repository layout
@@ -138,7 +136,6 @@ The clean-checkout expectations are maintained in [`docs/REPRODUCIBILITY.md`](do
 python -m pip install -r requirements.txt
 python -m pytest
 python -m demo.audio_demo
-python -m research.run_fixture_study
 python -m demo.audio_web_app
 ```
 
