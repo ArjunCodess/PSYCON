@@ -1,0 +1,12 @@
+feature,label_pearson_correlation
+physiology__eda_mean,0.9350835682167467
+physiology__heart_rate,0.9319970593729273
+physiology__temperature_mean,-0.6576461337463415
+physiology__motion_rms,-0.005119840489832806
+speech__pitch_mean,0.7907558005210841
+speech__speaking_rate,0.7010558466086756
+speech__pause_fraction,-0.6983654992682399
+speech__negative_word_rate,0.9453741215601039
+context__ambient_light,0.0025163390278441227
+usable_modality_count,0.011019660081788148
+data_quality_score,0.01101966008178812

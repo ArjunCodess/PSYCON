@@ -1,0 +1,39 @@
+{
+  "created_at_utc": "2026-09-07T18:12:07.356523Z",
+  "dataset_version": "week5-fixture-1.0.0",
+  "files": [
+    {
+      "bytes": 50556,
+      "path": "features/synchronized_windows.csv",
+      "sha256": "b1d9cf7fb42e3e6769549ae9d9d2aed9a636eba23f3b72b01af65474767addae"
+    },
+    {
+      "bytes": 3310,
+      "path": "metadata/sessions.json",
+      "sha256": "9123acd318d84a1d5cd6321dab6511f06d094353f3383d628550a0dd955da189"
+    },
+    {
+      "bytes": 320,
+      "path": "metadata/versions.json",
+      "sha256": "18bce5bae213e1e84d22e08e65d7d7a255d27be292d2ad2170494493025bbb07"
+    },
+    {
+      "bytes": 15207,
+      "path": "raw/context.csv",
+      "sha256": "b253130944ddf358944762452b302f233327e69b00a38fd8aeff7a3b74a3860d"
+    },
+    {
+      "bytes": 21580,
+      "path": "raw/physiology.csv",
+      "sha256": "866700efc14724c6ec07e90053bee469f9e4acc54ad50b82f40676f81bcfa297"
+    },
+    {
+      "bytes": 21604,
+      "path": "raw/speech.csv",
+      "sha256": "0a924e54b7d697e883eff726920b6721e12250dd5c5846a199420b1004dc8ffd"
+    }
+  ],
+  "protocol_version": "1.0.0",
+  "schema_version": "1.0.0",
+  "source_kind": "synthetic_fixture"
+}

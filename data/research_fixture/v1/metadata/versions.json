@@ -1,0 +1,10 @@
+{
+  "dataset_version": "week5-fixture-1.0.0",
+  "protocol_version": "1.0.0",
+  "generator_seed": 20260907,
+  "source_kind": "synthetic_fixture",
+  "claim_limits": [
+    "No record came from a person or PSYCON hardware.",
+    "Results test software behavior only and do not count as external validation."
+  ]
+}

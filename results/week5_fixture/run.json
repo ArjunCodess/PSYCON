@@ -1,0 +1,13 @@
+{
+  "command": "python -m research.run_fixture_study",
+  "dataset_version": "week5-fixture-1.0.0",
+  "external_validation": "blocked: no separate compatible dataset supplied",
+  "model_version": "week5-fixture-model-1.0.0",
+  "runtime": {
+    "numpy": "2.4.0",
+    "pandas": "2.3.3",
+    "python": "3.14.0",
+    "scikit_learn": "1.8.0"
+  },
+  "seed": 20260907
+}

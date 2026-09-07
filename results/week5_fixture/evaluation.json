@@ -1,0 +1,950 @@
+{
+  "ablation": {
+    "combined_minus_physiology_f1": 0.072972972972973,
+    "combined_minus_speech_f1": 0.031796502384737746
+  },
+  "data_integrity": {
+    "duplicate_windows": 0,
+    "missing_labels": 0,
+    "nonfinite_numeric_values": 0,
+    "participants": 15,
+    "sessions": 15,
+    "windows": 180,
+    "windows_with_missing_or_bad_modality": 39
+  },
+  "dataset_version": "week5-fixture-1.0.0",
+  "external_validation": {
+    "reason": "no separate external dataset supplied",
+    "status": "blocked"
+  },
+  "limitations": [
+    "Outputs are research indicators and are not clinical diagnoses.",
+    "Performance on fixture or public data does not validate PSYCON hardware or a target participant population.",
+    "Context slices are descriptive and may be unreliable when participant or class counts are small."
+  ],
+  "modalities": {
+    "combined": {
+      "candidates": {
+        "logistic_regression": {
+          "accuracy": 0.9722222222222222,
+          "confusion_matrix": [
+            [
+              17,
+              1
+            ],
+            [
+              0,
+              18
+            ]
+          ],
+          "f1": 0.972972972972973,
+          "false_negative": 0,
+          "false_positive": 1,
+          "group_cross_validation": {
+            "f1_mean": 0.9720823798627002,
+            "f1_std": 0.023038376107374317,
+            "folds": 5,
+            "scores": [
+              1.0,
+              0.9473684210526315,
+              1.0,
+              0.9565217391304348,
+              0.9565217391304348
+            ]
+          },
+          "precision": 0.9473684210526315,
+          "recall": 1.0,
+          "roc_auc": 1.0,
+          "samples": 36,
+          "true_negative": 17,
+          "true_positive": 18
+        },
+        "random_forest": {
+          "accuracy": 1.0,
+          "confusion_matrix": [
+            [
+              18,
+              0
+            ],
+            [
+              0,
+              18
+            ]
+          ],
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "group_cross_validation": {
+            "f1_mean": 0.9807780320366133,
+            "f1_std": 0.02371928333153308,
+            "folds": 5,
+            "scores": [
+              1.0,
+              0.9473684210526315,
+              1.0,
+              0.9565217391304348,
+              1.0
+            ]
+          },
+          "precision": 1.0,
+          "recall": 1.0,
+          "roc_auc": 1.0,
+          "samples": 36,
+          "true_negative": 18,
+          "true_positive": 18
+        }
+      },
+      "duration_analysis": {
+        "durations_seconds": {
+          "10": {
+            "accuracy": 1.0,
+            "confusion_matrix": [
+              [
+                1,
+                0
+              ],
+              [
+                0,
+                2
+              ]
+            ],
+            "f1": 1.0,
+            "false_negative": 0,
+            "false_positive": 0,
+            "mean_probability_difference_from_full_session": 0.4459346064814815,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "samples": 3,
+            "true_negative": 1,
+            "true_positive": 2
+          },
+          "30": {
+            "accuracy": 1.0,
+            "confusion_matrix": [
+              [
+                3,
+                0
+              ],
+              [
+                0,
+                6
+              ]
+            ],
+            "f1": 1.0,
+            "false_negative": 0,
+            "false_positive": 0,
+            "mean_probability_difference_from_full_session": 0.43343460648148147,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "samples": 9,
+            "true_negative": 3,
+            "true_positive": 6
+          },
+          "60": {
+            "accuracy": 1.0,
+            "confusion_matrix": [
+              [
+                9,
+                0
+              ],
+              [
+                0,
+                9
+              ]
+            ],
+            "f1": 1.0,
+            "false_negative": 0,
+            "false_positive": 0,
+            "mean_probability_difference_from_full_session": 0.4534722222222223,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "samples": 18,
+            "true_negative": 9,
+            "true_positive": 9
+          }
+        },
+        "stability_tolerance": "must be frozen in the approved protocol before participant collection",
+        "status": "descriptive"
+      },
+      "environment_slices": {
+        "slices": {
+          "conversation_noise": {
+            "accuracy": 0.9166666666666666,
+            "confusion_matrix": [
+              [
+                5,
+                1
+              ],
+              [
+                0,
+                6
+              ]
+            ],
+            "f1": 0.9230769230769231,
+            "false_negative": 0,
+            "false_positive": 1,
+            "precision": 0.8571428571428571,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "samples": 12,
+            "true_negative": 5,
+            "true_positive": 6
+          },
+          "quiet_indoor": {
+            "accuracy": 1.0,
+            "confusion_matrix": [
+              [
+                12,
+                0
+              ],
+              [
+                0,
+                12
+              ]
+            ],
+            "f1": 1.0,
+            "false_negative": 0,
+            "false_positive": 0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "samples": 24,
+            "true_negative": 12,
+            "true_positive": 12
+          }
+        },
+        "status": "descriptive"
+      },
+      "features": [
+        "physiology__eda_mean",
+        "physiology__heart_rate",
+        "physiology__temperature_mean",
+        "physiology__motion_rms",
+        "speech__pitch_mean",
+        "speech__speaking_rate",
+        "speech__pause_fraction",
+        "speech__negative_word_rate",
+        "context__ambient_light"
+      ],
+      "motion_slices": {
+        "slices": {
+          "seated": {
+            "accuracy": 1.0,
+            "confusion_matrix": [
+              [
+                13,
+                0
+              ],
+              [
+                0,
+                14
+              ]
+            ],
+            "f1": 1.0,
+            "false_negative": 0,
+            "false_positive": 0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "samples": 27,
+            "true_negative": 13,
+            "true_positive": 14
+          },
+          "walking": {
+            "accuracy": 0.8888888888888888,
+            "confusion_matrix": [
+              [
+                4,
+                1
+              ],
+              [
+                0,
+                4
+              ]
+            ],
+            "f1": 0.8888888888888888,
+            "false_negative": 0,
+            "false_positive": 1,
+            "precision": 0.8,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "samples": 9,
+            "true_negative": 4,
+            "true_positive": 4
+          }
+        },
+        "status": "descriptive"
+      },
+      "quality": {
+        "complete_windows": 27,
+        "incomplete_windows": 9,
+        "mean_data_quality_score": 0.9074074074074073
+      },
+      "selected_model": "random_forest",
+      "selection_metric": "validation_f1",
+      "test": {
+        "accuracy": 0.9722222222222222,
+        "confidence_intervals_95": {
+          "accuracy": [
+            0.9166666666666666,
+            1.0
+          ],
+          "f1": [
+            0.9230769230769231,
+            1.0
+          ],
+          "precision": [
+            0.8571428571428571,
+            1.0
+          ],
+          "recall": [
+            1.0,
+            1.0
+          ],
+          "roc_auc": [
+            1.0,
+            1.0
+          ]
+        },
+        "confusion_matrix": [
+          [
+            17,
+            1
+          ],
+          [
+            0,
+            18
+          ]
+        ],
+        "f1": 0.972972972972973,
+        "false_negative": 0,
+        "false_positive": 1,
+        "precision": 0.9473684210526315,
+        "recall": 1.0,
+        "roc_auc": 1.0,
+        "samples": 36,
+        "true_negative": 17,
+        "true_positive": 18
+      }
+    },
+    "physiology": {
+      "candidates": {
+        "logistic_regression": {
+          "accuracy": 0.9444444444444444,
+          "confusion_matrix": [
+            [
+              16,
+              2
+            ],
+            [
+              0,
+              18
+            ]
+          ],
+          "f1": 0.9473684210526315,
+          "false_negative": 0,
+          "false_positive": 2,
+          "group_cross_validation": {
+            "f1_mean": 0.8938461538461541,
+            "f1_std": 0.047766691373107774,
+            "folds": 5,
+            "scores": [
+              0.8,
+              0.9,
+              0.9230769230769231,
+              0.9230769230769231,
+              0.9230769230769231
+            ]
+          },
+          "precision": 0.9,
+          "recall": 1.0,
+          "roc_auc": 0.9876543209876543,
+          "samples": 36,
+          "true_negative": 16,
+          "true_positive": 18
+        },
+        "random_forest": {
+          "accuracy": 0.9444444444444444,
+          "confusion_matrix": [
+            [
+              16,
+              2
+            ],
+            [
+              0,
+              18
+            ]
+          ],
+          "f1": 0.9473684210526315,
+          "false_negative": 0,
+          "false_positive": 2,
+          "group_cross_validation": {
+            "f1_mean": 0.8938461538461541,
+            "f1_std": 0.047766691373107774,
+            "folds": 5,
+            "scores": [
+              0.8,
+              0.9,
+              0.9230769230769231,
+              0.9230769230769231,
+              0.9230769230769231
+            ]
+          },
+          "precision": 0.9,
+          "recall": 1.0,
+          "roc_auc": 0.9876543209876543,
+          "samples": 36,
+          "true_negative": 16,
+          "true_positive": 18
+        }
+      },
+      "duration_analysis": {
+        "durations_seconds": {
+          "10": {
+            "accuracy": 1.0,
+            "confusion_matrix": [
+              [
+                1,
+                0
+              ],
+              [
+                0,
+                2
+              ]
+            ],
+            "f1": 1.0,
+            "false_negative": 0,
+            "false_positive": 0,
+            "mean_probability_difference_from_full_session": 0.39326137473431705,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "samples": 3,
+            "true_negative": 1,
+            "true_positive": 2
+          },
+          "30": {
+            "accuracy": 1.0,
+            "confusion_matrix": [
+              [
+                3,
+                0
+              ],
+              [
+                0,
+                6
+              ]
+            ],
+            "f1": 1.0,
+            "false_negative": 0,
+            "false_positive": 0,
+            "mean_probability_difference_from_full_session": 0.3972866578277366,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "samples": 9,
+            "true_negative": 3,
+            "true_positive": 6
+          },
+          "60": {
+            "accuracy": 0.8888888888888888,
+            "confusion_matrix": [
+              [
+                7,
+                2
+              ],
+              [
+                0,
+                9
+              ]
+            ],
+            "f1": 0.9,
+            "false_negative": 0,
+            "false_positive": 2,
+            "mean_probability_difference_from_full_session": 0.39708709879757037,
+            "precision": 0.8181818181818182,
+            "recall": 1.0,
+            "roc_auc": 0.9876543209876543,
+            "samples": 18,
+            "true_negative": 7,
+            "true_positive": 9
+          }
+        },
+        "stability_tolerance": "must be frozen in the approved protocol before participant collection",
+        "status": "descriptive"
+      },
+      "environment_slices": {
+        "slices": {
+          "conversation_noise": {
+            "accuracy": 0.8333333333333334,
+            "confusion_matrix": [
+              [
+                4,
+                2
+              ],
+              [
+                0,
+                6
+              ]
+            ],
+            "f1": 0.8571428571428571,
+            "false_negative": 0,
+            "false_positive": 2,
+            "precision": 0.75,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "samples": 12,
+            "true_negative": 4,
+            "true_positive": 6
+          },
+          "quiet_indoor": {
+            "accuracy": 0.9166666666666666,
+            "confusion_matrix": [
+              [
+                10,
+                2
+              ],
+              [
+                0,
+                12
+              ]
+            ],
+            "f1": 0.9230769230769231,
+            "false_negative": 0,
+            "false_positive": 2,
+            "precision": 0.8571428571428571,
+            "recall": 1.0,
+            "roc_auc": 0.9861111111111112,
+            "samples": 24,
+            "true_negative": 10,
+            "true_positive": 12
+          }
+        },
+        "status": "descriptive"
+      },
+      "features": [
+        "physiology__eda_mean",
+        "physiology__heart_rate",
+        "physiology__temperature_mean",
+        "physiology__motion_rms"
+      ],
+      "motion_slices": {
+        "slices": {
+          "seated": {
+            "accuracy": 1.0,
+            "confusion_matrix": [
+              [
+                13,
+                0
+              ],
+              [
+                0,
+                14
+              ]
+            ],
+            "f1": 1.0,
+            "false_negative": 0,
+            "false_positive": 0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "samples": 27,
+            "true_negative": 13,
+            "true_positive": 14
+          },
+          "walking": {
+            "accuracy": 0.5555555555555556,
+            "confusion_matrix": [
+              [
+                1,
+                4
+              ],
+              [
+                0,
+                4
+              ]
+            ],
+            "f1": 0.6666666666666666,
+            "false_negative": 0,
+            "false_positive": 4,
+            "precision": 0.5,
+            "recall": 1.0,
+            "roc_auc": 0.8,
+            "samples": 9,
+            "true_negative": 1,
+            "true_positive": 4
+          }
+        },
+        "status": "descriptive"
+      },
+      "quality": {
+        "complete_windows": 27,
+        "incomplete_windows": 9,
+        "mean_data_quality_score": 0.9074074074074073
+      },
+      "selected_model": "logistic_regression",
+      "selection_metric": "validation_f1",
+      "test": {
+        "accuracy": 0.8888888888888888,
+        "confidence_intervals_95": {
+          "accuracy": [
+            0.8333333333333334,
+            1.0
+          ],
+          "f1": [
+            0.8571428571428571,
+            1.0
+          ],
+          "precision": [
+            0.75,
+            1.0
+          ],
+          "recall": [
+            1.0,
+            1.0
+          ],
+          "roc_auc": [
+            0.9876543209876543,
+            1.0
+          ]
+        },
+        "confusion_matrix": [
+          [
+            14,
+            4
+          ],
+          [
+            0,
+            18
+          ]
+        ],
+        "f1": 0.9,
+        "false_negative": 0,
+        "false_positive": 4,
+        "precision": 0.8181818181818182,
+        "recall": 1.0,
+        "roc_auc": 0.9876543209876543,
+        "samples": 36,
+        "true_negative": 14,
+        "true_positive": 18
+      }
+    },
+    "speech": {
+      "candidates": {
+        "logistic_regression": {
+          "accuracy": 1.0,
+          "confusion_matrix": [
+            [
+              18,
+              0
+            ],
+            [
+              0,
+              18
+            ]
+          ],
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "group_cross_validation": {
+            "f1_mean": 0.9392461197339246,
+            "f1_std": 0.05088389867811465,
+            "folds": 5,
+            "scores": [
+              1.0,
+              0.8780487804878049,
+              1.0,
+              0.9090909090909091,
+              0.9090909090909091
+            ]
+          },
+          "precision": 1.0,
+          "recall": 1.0,
+          "roc_auc": 1.0,
+          "samples": 36,
+          "true_negative": 18,
+          "true_positive": 18
+        },
+        "random_forest": {
+          "accuracy": 1.0,
+          "confusion_matrix": [
+            [
+              18,
+              0
+            ],
+            [
+              0,
+              18
+            ]
+          ],
+          "f1": 1.0,
+          "false_negative": 0,
+          "false_positive": 0,
+          "group_cross_validation": {
+            "f1_mean": 0.9392461197339246,
+            "f1_std": 0.05088389867811465,
+            "folds": 5,
+            "scores": [
+              1.0,
+              0.8780487804878049,
+              1.0,
+              0.9090909090909091,
+              0.9090909090909091
+            ]
+          },
+          "precision": 1.0,
+          "recall": 1.0,
+          "roc_auc": 1.0,
+          "samples": 36,
+          "true_negative": 18,
+          "true_positive": 18
+        }
+      },
+      "duration_analysis": {
+        "durations_seconds": {
+          "10": {
+            "accuracy": 1.0,
+            "confusion_matrix": [
+              [
+                1,
+                0
+              ],
+              [
+                0,
+                2
+              ]
+            ],
+            "f1": 1.0,
+            "false_negative": 0,
+            "false_positive": 0,
+            "mean_probability_difference_from_full_session": 0.4703534096507367,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "samples": 3,
+            "true_negative": 1,
+            "true_positive": 2
+          },
+          "30": {
+            "accuracy": 0.8888888888888888,
+            "confusion_matrix": [
+              [
+                3,
+                0
+              ],
+              [
+                1,
+                5
+              ]
+            ],
+            "f1": 0.9090909090909091,
+            "false_negative": 1,
+            "false_positive": 0,
+            "mean_probability_difference_from_full_session": 0.40464796599662084,
+            "precision": 1.0,
+            "recall": 0.8333333333333334,
+            "roc_auc": 1.0,
+            "samples": 9,
+            "true_negative": 3,
+            "true_positive": 5
+          },
+          "60": {
+            "accuracy": 0.8888888888888888,
+            "confusion_matrix": [
+              [
+                9,
+                0
+              ],
+              [
+                2,
+                7
+              ]
+            ],
+            "f1": 0.875,
+            "false_negative": 2,
+            "false_positive": 0,
+            "mean_probability_difference_from_full_session": 0.4068772678646091,
+            "precision": 1.0,
+            "recall": 0.7777777777777778,
+            "roc_auc": 0.9876543209876543,
+            "samples": 18,
+            "true_negative": 9,
+            "true_positive": 7
+          }
+        },
+        "stability_tolerance": "must be frozen in the approved protocol before participant collection",
+        "status": "descriptive"
+      },
+      "environment_slices": {
+        "slices": {
+          "conversation_noise": {
+            "accuracy": 1.0,
+            "confusion_matrix": [
+              [
+                6,
+                0
+              ],
+              [
+                0,
+                6
+              ]
+            ],
+            "f1": 1.0,
+            "false_negative": 0,
+            "false_positive": 0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "samples": 12,
+            "true_negative": 6,
+            "true_positive": 6
+          },
+          "quiet_indoor": {
+            "accuracy": 0.9166666666666666,
+            "confusion_matrix": [
+              [
+                12,
+                0
+              ],
+              [
+                2,
+                10
+              ]
+            ],
+            "f1": 0.9090909090909091,
+            "false_negative": 2,
+            "false_positive": 0,
+            "precision": 1.0,
+            "recall": 0.8333333333333334,
+            "roc_auc": 1.0,
+            "samples": 24,
+            "true_negative": 12,
+            "true_positive": 10
+          }
+        },
+        "status": "descriptive"
+      },
+      "features": [
+        "speech__pitch_mean",
+        "speech__speaking_rate",
+        "speech__pause_fraction",
+        "speech__negative_word_rate"
+      ],
+      "motion_slices": {
+        "slices": {
+          "seated": {
+            "accuracy": 0.9259259259259259,
+            "confusion_matrix": [
+              [
+                13,
+                0
+              ],
+              [
+                2,
+                12
+              ]
+            ],
+            "f1": 0.9230769230769231,
+            "false_negative": 2,
+            "false_positive": 0,
+            "precision": 1.0,
+            "recall": 0.8571428571428571,
+            "roc_auc": 0.9945054945054945,
+            "samples": 27,
+            "true_negative": 13,
+            "true_positive": 12
+          },
+          "walking": {
+            "accuracy": 1.0,
+            "confusion_matrix": [
+              [
+                5,
+                0
+              ],
+              [
+                0,
+                4
+              ]
+            ],
+            "f1": 1.0,
+            "false_negative": 0,
+            "false_positive": 0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "roc_auc": 1.0,
+            "samples": 9,
+            "true_negative": 5,
+            "true_positive": 4
+          }
+        },
+        "status": "descriptive"
+      },
+      "quality": {
+        "complete_windows": 27,
+        "incomplete_windows": 9,
+        "mean_data_quality_score": 0.9074074074074073
+      },
+      "selected_model": "logistic_regression",
+      "selection_metric": "validation_f1",
+      "test": {
+        "accuracy": 0.9444444444444444,
+        "confidence_intervals_95": {
+          "accuracy": [
+            0.9166666666666666,
+            1.0
+          ],
+          "f1": [
+            0.9090909090909091,
+            1.0
+          ],
+          "precision": [
+            1.0,
+            1.0
+          ],
+          "recall": [
+            0.8333333333333334,
+            1.0
+          ],
+          "roc_auc": [
+            0.9938271604938271,
+            1.0
+          ]
+        },
+        "confusion_matrix": [
+          [
+            18,
+            0
+          ],
+          [
+            2,
+            16
+          ]
+        ],
+        "f1": 0.9411764705882353,
+        "false_negative": 2,
+        "false_positive": 0,
+        "precision": 1.0,
+        "recall": 0.8888888888888888,
+        "roc_auc": 0.9938271604938271,
+        "samples": 36,
+        "true_negative": 18,
+        "true_positive": 16
+      }
+    }
+  },
+  "model_version": "week5-fixture-model-1.0.0",
+  "purpose": "non-clinical research comparison",
+  "schema_version": "1.0.0",
+  "split": {
+    "assignment_sha256": "6f8d0a1cb9508ec205280e603b7ff7a2c0fcc613fd7bfc697e64252ca6729e9f",
+    "leakage_detected": false,
+    "participant_counts": {
+      "test": 3,
+      "train": 9,
+      "validation": 3
+    }
+  }
+}
