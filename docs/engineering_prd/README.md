@@ -79,13 +79,13 @@ pdflatex -interaction=nonstopmode main.tex
 
 This project was last compiled with MiKTeX 25.12 using pdfLaTeX and Biber,
 with **zero errors, zero undefined references, and zero
-overfull boxes** after the full build sequence above, across all
+overfull boxes** after the full four-pass sequence above, across all
 40 pages, 34 chapters, and 5 volumes. This is the complete PSYCON Engineering Design
 Document.
 
 ## Current implementation note
 
-Week 7 adds the candidate version freeze, deterministic archive and hash verification, operating and assembly guides, competition package, AI cards, evidence matrix, official references, release checklist, and demonstration procedure. `psycon-1.0.0-rc1` remains a candidate because the physical hardware, complete firmware, Week 6 evidence, PSYCON study, external validation, and demonstrations are not complete.
+Week 5 has an implemented metadata, synchronized-dataset, participant-split, model-comparison, and reporting path, but no completed psychologist marksheet dataset or matching PSYCON participant recordings. Week 6 adds evidence records, five ordered physical stage gates, backend failure scenarios, timed simulated stress tooling, validation reports, calibration procedures, and risk-evidence rules. No physical measurements have been supplied, so the Week 6 exit gate remains open; `docs/validation/WEEK_6_RUNBOOK.md` defines the required handoff.
 
 ## Design Conventions Used
 

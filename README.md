@@ -6,17 +6,17 @@ PSYCON is a research and screening prototype, not a medical device. It must not 
 
 ## Current completion
 
-**Overall project completion: approximately 59% as of 8 September 2026.** This weighted estimate measures progress toward the PRD's competition-ready integrated prototype. It credits the Week 4 server, Week 5 research pipeline, Week 6 validation tooling, and Week 7 release package, but records no PSYCON dataset result, physical validation pass, or hardware demonstration.
+**Overall project completion: approximately 58% as of 8 September 2026.** This weighted estimate measures progress toward the PRD's competition-ready integrated prototype. It credits the Compose-verified Week 4 server, the prepared Week 5 research pipeline, and the Week 6 validation tooling, but records no Week 5 dataset result or Week 6 physical pass.
 
 | Workstream | Weight | Completion | Contribution | Evidence and remaining gap |
 | --- | ---: | ---: | ---: | --- |
-| Requirements and engineering documentation | 15% | 98% | 14.7% | The tracked 34-chapter PRD, reproducibility matrix, operating and assembly guides, competition package, evidence matrix, model and dataset cards, protocol specification, and official reference index are present. Exact purchased-part records and completed physical evidence remain open. |
+| Requirements and engineering documentation | 15% | 95% | 14.25% | The tracked 34-chapter PRD, current PDF, verified core references, reproducibility matrix, protocol specification, device-feature contract, and complete audio/transcription/language contract are present. Exact purchased-part records and completed physical evidence remain open. |
 | Hardware, electrical, and mechanical | 20% | 35% | 7.0% | Components and wiring are documented and reported as individually checked. There is no repository evidence of an integrated wearable, calibrated GSR front end, measured rails/current/temperature, enclosure, or runtime test. |
 | Device firmware and acquisition | 20% | 30% | 6.0% | Both firmware targets compile. Audio I2S/BLE and wrist I2C/BLE bring-up exist, but wrist values are placeholders and continuous sensing, quality, storage, recovery, power, and watchdog behavior are absent. |
-| Protocol, backend, and synchronization | 15% | 75% | 11.25% | Protocol v2 has cross-language fixtures; the PostgreSQL/S3-compatible Flask service provides authenticated idempotent ingestion, clock correction, jobs, exports, backups, a dashboard, deterministic simulation, nine failure scenarios, export verification, and a timed load runner. Release packaging now hashes the complete tracked software package. The new scenarios still need a running Docker service and physical-device integration remains open. |
-| Data science and research pipeline | 15% | 86% | 12.9% | Research questions and records, WESAD results, Wrist and audio features, synchronized input assembly, participant-safe splits, grouped evaluation, confidence intervals, ablations, error analysis, and model and dataset cards exist. Psychologist-approved targets, matching PSYCON sessions, real comparisons, minimum-duration results, and external validation remain. |
-| Verification, safety, and release evidence | 15% | 50% | 7.5% | Evidence gates, failure checks, stress tooling, runbooks, release checklist, deterministic archive, hashes, and demonstration procedure exist. Physical calibration, runtime, electrical, safety, participant study, external validation, and live and recorded demonstrations remain. |
-| **Total** | **100%** |  | **59.35% ≈ 59%** | The software and documentation can be packaged as a release candidate; hardware acquisition, physical synchronization, measurements, approved collection, PSYCON model results, and demonstrations still block a final release. |
+| Protocol, backend, and synchronization | 15% | 72% | 10.8% | Protocol v2 has cross-language fixtures; the PostgreSQL/S3-compatible Flask service provides authenticated idempotent ingestion, clock correction, jobs, exports, backups, a dashboard, deterministic device simulation, nine failure scenarios, export verification, and a timed load runner. The earlier live Compose path passes, but the new Week 6 scenarios need a running Docker service and physical-device integration remains open. |
+| Data science and research pipeline | 15% | 85% | 12.75% | Research questions and records, WESAD results, wrist and audio features, synchronized modality assembly, participant-safe splits, candidate training, grouped validation, confidence intervals, ablations, error analysis, and context/duration code exist. The psychologist marksheets, matching PSYCON sessions, real multimodal results, minimum-duration result, and external validation remain. |
+| Verification, safety, and release evidence | 15% | 45% | 6.75% | Evidence records, ordered stage gates, failure-scenario checks, stress tooling, risk rules, and runbooks are implemented. Physical calibration, runtime, electrical, safety, participant study, Week 5 model evidence, external validation, and device demonstrations remain. |
+| **Total** | **100%** |  | **57.6% ≈ 58%** | Week 4 server software, Week 5 analysis code, and Week 6 validation controls exist; hardware transport, real synchronization, physical measurements, approved collection, and empirical Week 5 results remain open. |
 
 The narrower end-to-end functional prototype is roughly **34% complete** because the server path runs with simulated devices and now has broader failure checks, but the research path has no real PSYCON dataset. Real sensor acquisition, hardware-to-server transport, power evidence, approved participant data, and external validation remain absent.
 
@@ -107,12 +107,6 @@ Week 6 now has evidence-backed validation tooling, but it has not passed its phy
 
 The [Week 6 runbook](docs/validation/WEEK_6_RUNBOOK.md) defines calibration, assembly, electrical, runtime, safety, and end-to-end acceptance procedures. The [current test report](docs/validation/WEEK_6_TEST_REPORT.md) records that all physical gates remain blocked because no hardware measurements were supplied. A fresh live-stack Week 6 run is also pending because Docker Desktop was unavailable during this implementation; this does not invalidate the earlier Week 4 Compose result.
 
-### Week 7 release package
-
-[`release_tools/package.py`](release_tools/package.py) creates a deterministic ZIP and JSON manifest from Git-tracked files. It records the source commit, tracked-change state, version IDs, blockers, sizes, and SHA-256 hashes, and it excludes checked-in audio plus private study paths. [`release_tools/versions.json`](release_tools/versions.json) freezes the current candidate versions and prevents promotion to `final` while blockers remain.
-
-The [Week 7 package index](docs/release/README.md) links the user manual, assembly and maintenance guide, competition package, demonstration runbook, model card, dataset card, official references, release checklist, and final evidence matrix. The one-hardware-set procedure rotates a single focal Wrist wearer across circle discussions; central audio does not become physiological evidence for every speaker.
-
 ## Paper requirements versus implementation
 
 | Requirement | Evidence | Status |
@@ -145,8 +139,6 @@ PSYCON/
   protocol/                       # TypeScript protocol and inference tests
   tests/                          # Python ML and firmware static tests
   validation/                     # Week 6 evidence, stage, scenario, stress, report, and risk tools
-  release_tools/                  # Week 7 version freeze, deterministic archive, hashes, and templates
-  docs/release/                   # User, assembly, competition, AI, evidence, and demo package
   paper/                          # Earlier short LaTeX scaffold
   docs/engineering_prd/           # Authoritative 34-chapter engineering PRD
   docs/SEVEN_WEEK_BUILD_PLAN.md   # Evidence-gated implementation plan
@@ -197,22 +189,13 @@ docker compose down
 
 These commands validate software and the simulated transport path. They do not replace the physical one-hour stress, six-hour battery, calibration, electrical, GSR safety, assembly, or wearability records required by the [Week 6 runbook](docs/validation/WEEK_6_RUNBOOK.md).
 
-Build and verify the Week 7 candidate archive with:
-
-```powershell
-python -m release_tools.package --output-dir release-output
-python -m release_tools.package --verify release-output/release-manifest.json
-```
-
-The candidate status is intentional. The packager refuses a final status while the version file contains unresolved hardware, firmware, study, validation, or demonstration blockers.
-
 ## Safety, privacy, and study gate
 
 Human recording requires the applicable ethics/school review, informed consent or guardian permission, withdrawal and deletion procedures, and a policy for bystander speech. Data handling must define pseudonymous IDs, access control, encryption, retention, deletion verification, backups, and version lineage.
 
 Before worn use, verify battery polarity/protection, LiPo condition, rails, GSR excitation, insulation, strain relief, charging, brownout, component temperatures, and controlled shutdown. Do not charge while worn or while electrodes are attached until an electrical review approves the exact build.
 
-## Remaining work and team
+## Next milestone and team
 
 The evidence-gated implementation sequence is in [`docs/SEVEN_WEEK_BUILD_PLAN.md`](docs/SEVEN_WEEK_BUILD_PLAN.md).
 
