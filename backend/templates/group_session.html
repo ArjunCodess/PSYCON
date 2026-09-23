@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>PSYCON Session Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css', v='week4-complete') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='group_session.css', v='group-console-1') }}">
+</head>
+<body>
+  <main class="page-shell">
+    <header class="masthead">
+      <a class="brand" href="/" aria-label="PSYCON session console home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>PSYCON / SESSION CONSOLE</span>
+      </a>
+      <span class="local-label">LOCAL RESEARCH WORKSPACE</span>
+    </header>
+
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">Week 5 / group observation</p>
+        <h1 id="page-title">One recording. One slot per student.</h1>
+      </div>
+      <div class="intro-side">
+        <p class="intro-copy">Upload one discussion video, number seats from the right side of the frame toward the left, and keep psychologist scores separate from model claims. The centre device is a shared microphone.</p>
+        <div class="service-state" aria-live="polite">
+          <span id="health-dot" class="decision-dot"></span>
+          <div>
+            <span class="service-label">Backend status</span>
+            <strong id="health-label">Checking</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace" aria-label="Group session controls">
+      <div class="session-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="section-index">01 / Sessions</p>
+            <h2>Choose a group recording</h2>
+            <p class="helper">Each session holds one video and two to ten anonymous participant slots. Names stay on the consent record.</p>
+          </div>
+          <button id="refresh-button" class="secondary-button compact-button" type="button">Refresh list</button>
+        </div>
+        <div id="session-list" class="session-list" aria-live="polite">
+          <div class="skeleton skeleton--wide"></div>
+          <div class="skeleton"></div>
+        </div>
+        <details class="create-panel">
+          <summary>Create a group session</summary>
+          <form id="session-form" class="create-form field-grid">
+            <div><label class="field-label" for="session-code">Session ID</label><input id="session-code" name="session_code" required maxlength="64" value="CLS-2026-09-23-A"></div>
+            <div><label class="field-label" for="session-date">Date</label><input id="session-date" name="session_date" required value="2026-09-23"></div>
+            <div><label class="field-label" for="class-name">Class</label><input id="class-name" name="class_name" required value="10"></div>
+            <div><label class="field-label" for="section-name">Section</label><input id="section-name" name="section" required value="A"></div>
+            <div><label class="field-label" for="topic">Topic</label><input id="topic" name="topic" required value="Shared water use"></div>
+            <div><label class="field-label" for="language">Language</label><input id="language" name="language" required value="en"></div>
+            <div><label class="field-label" for="moderator-code">Moderator code</label><input id="moderator-code" name="moderator_code" required value="MOD-1"></div>
+            <div><label class="field-label" for="camera-position">Camera position</label><input id="camera-position" name="camera_position" required value="front-center"></div>
+            <div><label class="field-label" for="camera-orientation">Camera orientation</label><input id="camera-orientation" name="camera_orientation" required value="facing participants"></div>
+            <div><label class="field-label" for="recording-start">Recording start</label><input id="recording-start" name="recording_start_time" required value="2026-09-23T09:00:00+05:30"></div>
+            <div><label class="field-label" for="consent-status">Consent status</label><select id="consent-status" name="consent_status"><option value="recorded">recorded</option><option value="pending">pending</option><option value="refused">refused</option></select></div>
+            <div><label class="field-label" for="participant-count">Participant slots</label><input id="participant-count" name="participant_count" type="number" min="2" max="10" value="4" required></div>
+            <p class="field-helper">Consent version group-consent-2.0. Use anonymous codes in the console. Do not type a legal name here.</p>
+            <button class="analyze-button" type="submit"><span>Create session</span><span aria-hidden="true">+</span></button>
+          </form>
+        </details>
+      </div>
+
+      <aside class="method-panel" aria-labelledby="access-title">
+        <p class="section-index">02 / Access</p>
+        <h2 id="access-title">Connect as a named account</h2>
+        <p class="helper">Ratings use a psychologist token, not the shared device-operator token. Reviewers and operators use their own accounts.</p>
+        <label class="field-label" for="account-token">Bearer token</label>
+        <input id="account-token" type="password" autocomplete="off">
+        <button id="connect-button" class="analyze-button" type="button"><span>Connect</span><span aria-hidden="true">→</span></button>
+        <p id="account-role" class="field-helper">Not connected.</p>
+        <ol class="method-list">
+          <li><span>01</span><p>Number seats from the right of the displayed frame toward the left.</p></li>
+          <li><span>02</span><p>Map each voice cluster by hand. A cluster label is not a participant number.</p></li>
+          <li><span>03</span><p>Enter marksheet 4.0 as 0–4 or N/O. Model claims never replace those scores.</p></li>
+        </ol>
+      </aside>
+    </section>
+
+    <div id="notice" class="success-message" role="status" hidden></div>
+
+    <section id="empty-state" class="empty-state" aria-labelledby="empty-title">
+      <p class="section-index">03 / Session result</p>
+      <div>
+        <h2 id="empty-title">No group session selected</h2>
+        <p class="helper">Select a session above. The shared recording stays one file. Each student gets a slot, a marksheet, and a separate model claim.</p>
+      </div>
+      <code>consent group-consent-2.0 / marksheet 4.0</code>
+    </section>
+
+    <section id="session-content" class="results" hidden aria-labelledby="session-title">
+      <div class="result-heading">
+        <div>
+          <p id="session-code" class="section-index"></p>
+          <h2 id="session-title">Group session</h2>
+        </div>
+        <div class="actions">
+          <button id="export-button" class="secondary-button" type="button">Build export</button>
+          <button id="predict-button" class="secondary-button" type="button">Compare answers</button>
+          <button id="delete-button" class="secondary-button danger-button" type="button">Delete</button>
+        </div>
+      </div>
+      <p id="session-summary" class="result-summary mono"></p>
+      <dl class="recording-facts">
+        <div><dt>Consent</dt><dd id="metric-consent">—</dd></div>
+        <div><dt>Participants</dt><dd id="metric-participants">0</dd></div>
+        <div><dt>Recording</dt><dd id="metric-recording">none</dd></div>
+        <div><dt>Processing</dt><dd id="metric-processing">—</dd></div>
+      </dl>
+
+      <section class="result-section" aria-labelledby="recording-title">
+        <div class="subsection-heading">
+          <div><p class="section-index">Capture</p><h3 id="recording-title">Video and reference frame</h3></div>
+        </div>
+        <div class="paired-sections">
+          <form id="upload-form" class="stack-form">
+            <label class="field-label" for="video-file">Discussion video</label>
+            <input id="video-file" type="file" accept="video/mp4,video/quicktime,video/webm,video/x-matroska">
+            <p class="field-helper">Approved containers only. The original audio track is required. This is not the five-minute demo upload.</p>
+            <button class="analyze-button" type="submit"><span>Upload video</span><span aria-hidden="true">→</span></button>
+          </form>
+          <form id="frame-form" class="stack-form">
+            <label class="field-label" for="frame-file">Frame with every student visible</label>
+            <input id="frame-file" type="file" accept="image/jpeg,image/png">
+            <button class="secondary-button" type="submit">Upload frame</button>
+          </form>
+        </div>
+        <div class="frame-stage">
+          <img id="frame" alt="Frame used to mark seats from right to left">
+          <p class="helper">Click the frame to drop a seat. Confirming assigns Participant 1 on the right and continues left.</p>
+          <button id="confirm-seats" class="secondary-button" type="button">Confirm seat order</button>
+          <ol id="seat-list" class="method-list"></ol>
+        </div>
+        <div class="actions">
+          <button id="open-video" class="secondary-button" type="button">Open recording</button>
+        </div>
+        <video id="playback" controls></video>
+      </section>
+
+      <section class="result-section" aria-labelledby="voice-title">
+        <div class="subsection-heading">
+          <div><p class="section-index">Audio</p><h3 id="voice-title">Anonymous voice clusters</h3></div>
+        </div>
+        <p class="helper">Leave a cluster unknown when the speaker is unclear. Nothing here copies Speaker 1 onto Participant 1.</p>
+        <form id="mapping-form" class="detail-list"></form>
+        <div id="transcript" class="detail-list"></div>
+      </section>
+
+      <section class="result-section" aria-labelledby="marksheet-title">
+        <div class="subsection-heading">
+          <div><p class="section-index">Marksheet 4.0</p><h3 id="marksheet-title">Items A–T</h3></div>
+          <label class="field-label" for="participant-select">Participant<select id="participant-select"></select></label>
+        </div>
+        <p id="save-status" class="helper">Drafts save on this named account.</p>
+        <div id="items"></div>
+        <div class="actions">
+          <button id="submit-marksheet" class="analyze-button inline-button" type="button"><span>Submit marksheet</span><span aria-hidden="true">→</span></button>
+        </div>
+        <form id="pdf-form" class="stack-form">
+          <label class="field-label" for="pdf-file">Paper marksheet PDF</label>
+          <input id="pdf-file" type="file" accept="application/pdf">
+          <p class="field-helper">The file stays with this slot for review. Its text is not a training label.</p>
+          <button class="secondary-button" type="submit">Attach PDF</button>
+        </form>
+        <iframe id="pdf-frame" title="Attached paper marksheet" hidden></iframe>
+      </section>
+
+      <section class="result-section" aria-labelledby="review-title">
+        <div class="subsection-heading">
+          <div><p class="section-index">Review</p><h3 id="review-title">Disagreements and adjudication</h3></div>
+        </div>
+        <button id="load-disagreements" class="secondary-button" type="button">Show disagreements</button>
+        <div id="disagreements" class="detail-list"></div>
+        <label class="field-label" for="review-reason">Adjudication reason</label>
+        <textarea id="review-reason" rows="3"></textarea>
+        <button id="submit-review" class="secondary-button" type="button">Record adjudicated answers</button>
+      </section>
+
+      <section class="result-section" aria-labelledby="answers-title">
+        <div class="subsection-heading">
+          <div><p class="section-index">Model gate</p><h3 id="answers-title">Psychologist and model</h3></div>
+        </div>
+        <div id="predictions" class="feature-list"></div>
+        <pre id="export-summary" class="export-summary" hidden></pre>
+      </section>
+    </section>
+
+    <section class="scope-note">
+      <p class="section-index">04 / Scope</p>
+      <h2>Research signals, not a diagnosis.</h2>
+      <p>Scores describe this recording. They do not establish a psychological condition, and a shared microphone does not assign physiology to one person.</p>
+    </section>
+
+    <footer class="page-footer">
+      <span>PSYCON research prototype</span>
+      <span>
+        <a href="/">Device sessions</a>
+        ·
+        <a href="http://127.0.0.1:5000">Open the audio analysis demo</a>
+      </span>
+    </footer>
+  </main>
+  <script src="{{ url_for('static', filename='group_session.js', v='group-console-1') }}" defer></script>
+</body>
+</html>
