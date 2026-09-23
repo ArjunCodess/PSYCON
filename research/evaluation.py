@@ -1,3 +1,9 @@
+"""Participant-level binary comparison for the earlier wrist and speech study.
+
+This module trains binary labels. It does not score the psychologist marksheet,
+which uses 0–4 or N/O. Group observation training lives in research.group_observation.
+"""
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
