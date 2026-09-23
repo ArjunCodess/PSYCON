@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import json
+
+import numpy as np
+
 from research.group_observation import (
     assign_group_splits,
     associate_turns,
@@ -125,6 +129,86 @@ def test_frequency_baseline_and_cited_interval_when_evidence_is_sufficient() -> 
     assert playback_fragment(prediction) == "#t=5.000,9.000"
     forged = dict(prediction, participant_id="someone-else")
     assert claim_is_valid(forged, "s0", turns) is False
+
+
+def test_evidence_intervals_and_speaker_errors_are_scored() -> None:
+    session_ids = [f"s{index}" for index in range(6)]
+    rows = []
+    for session_id in session_ids:
+        row = example(session_id, "3")
+        row["features"] = dict(row["features"])
+        row["features"]["cited_interval"] = [1.0, 4.0]
+        rows.append(row)
+    sessions = sessions_for(session_ids)
+    digest = split_hash(assign_group_splits(sessions, seed=3))
+    turns = [{"proposed_participant_id": "other", "confirmed_participant_id": "s0"}]
+    report = evaluate_group_observations(rows, sessions, frozen_split_hash=digest, seed=3, speaker_turns=turns)
+    assert report["items"]["A"]["test_metrics"]["evidence_interval_accuracy"] == 1
+    assert report["speaker_mapping_error"] == 1
+
+
+def test_group_study_runner_writes_a_frozen_split(tmp_path) -> None:
+    from research.run_group_study import run
+
+    session_ids = [f"s{index}" for index in range(6)]
+    rows = [example(session_id, "3") for session_id in session_ids]
+    sessions = sessions_for(session_ids)
+    examples_path = tmp_path / "examples.json"
+    sessions_path = tmp_path / "sessions.json"
+    examples_path.write_text(json.dumps(rows), encoding="utf-8")
+    sessions_path.write_text(json.dumps(sessions), encoding="utf-8")
+    report = run(examples_path=examples_path, sessions_path=sessions_path, output_dir=tmp_path / "out", seed=3)
+    assert (tmp_path / "out" / "split_assignment.json").exists()
+    assert (tmp_path / "out" / "evaluation.json").exists()
+    assert (tmp_path / "out" / "manifest.json").exists()
+    assert report["split_assignment_sha256"]
+
+
+def test_energy_segments_stay_anonymous_and_missing_ffmpeg_is_recorded(monkeypatch) -> None:
+    from backend.group.extract import _energy_segments, extract_group_recording
+
+    samples = np.zeros(16_000, dtype=np.int16)
+    samples[4_000:12_000] = 2_000
+    turns = _energy_segments(samples, 16_000)
+    assert turns
+    assert all(not turn["cluster_label"].lower().startswith("participant") for turn in turns)
+    monkeypatch.setattr("backend.group.extract.shutil.which", lambda _name: None)
+    derived = extract_group_recording(b"video", {"sha256": "abc", "duration_s": 60})
+    assert "audio_samples_not_extracted" in derived["failure_reasons"]
+    assert derived["audio_wav"] is None
+
+
+def test_ffmpeg_extracts_audio_and_a_thumbnail_without_naming_participants(monkeypatch, tmp_path) -> None:
+    import shutil
+    import subprocess
+
+    import pytest
+
+    from backend.group.extract import extract_group_recording
+
+    if shutil.which("ffmpeg") is None:
+        pytest.skip("ffmpeg is not installed")
+    monkeypatch.setattr("backend.group.extract._transcribe", lambda *_args, **_kwargs: [])
+    monkeypatch.setattr("backend.group.extract._diarize", lambda *_args, **_kwargs: (None, "diarization_unavailable:test"))
+    output = tmp_path / "talk.mp4"
+    completed = subprocess.run(
+        [
+            "ffmpeg", "-y",
+            "-f", "lavfi", "-i", "sine=frequency=440:duration=60",
+            "-f", "lavfi", "-i", "color=c=black:s=1280x720:r=1:d=60",
+            "-shortest", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac",
+            str(output),
+        ],
+        check=False,
+        capture_output=True,
+    )
+    if completed.returncode != 0:
+        pytest.skip("ffmpeg could not encode the rehearsal recording")
+    derived = extract_group_recording(output.read_bytes(), {"sha256": "abc", "duration_s": 60})
+    assert derived["audio_wav"]
+    assert derived["thumbnail_jpeg"]
+    assert "audio_samples_not_extracted" not in derived["failure_reasons"]
+    assert all(not turn["cluster_label"].lower().startswith("participant") for turn in derived["turns"])
 
 
 def test_unknown_mappings_and_interpretation_rules() -> None:

@@ -195,6 +195,7 @@ def evaluate_group_observations(
     seed: int = 42,
     code_revision: str = "unknown",
     consent_version: str = "group-consent-2.0",
+    speaker_turns: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Score held-out groups only after the caller supplies the frozen split hash."""
     assignments = assign_group_splits(sessions, seed=seed)
@@ -214,6 +215,10 @@ def evaluate_group_observations(
     for letter in ITEM_LETTERS:
         rows = [row for row in prepared if row["item_letter"] == letter and row["rating_role"] == "primary"]
         items[letter] = _evaluate_item(letter, rows, seed=seed)
+    mapping_error = None if speaker_turns is None else speaker_mapping_error(speaker_turns)
+    for item in items.values():
+        if item.get("test_metrics"):
+            item["test_metrics"]["speaker_mapping_error"] = mapping_error
     recording_hashes = sorted({row["source_recording_sha256"] for row in prepared})
     return {
         "protocol_version": PROTOCOL_VERSION,
@@ -225,6 +230,7 @@ def evaluate_group_observations(
         "split_assignment_sha256": digest,
         "recording_hashes": recording_hashes,
         "dataset_manifest_sha256": _manifest_hash(prepared, digest),
+        "speaker_mapping_error": mapping_error,
         "validated_model": any(item["status"] == "evaluated" for item in items.values()),
         "items": items,
     }
@@ -575,9 +581,33 @@ def _score_split(rows: list[dict[str, Any]], predicted: list[str]) -> dict[str, 
         "mean_absolute_error": _mean_absolute_error(rows, predicted),
         "weighted_kappa": kappa,
         "abstention_rate": len(abstained) / max(1, len(predicted)),
-        "evidence_interval_accuracy": None,
+        "evidence_interval_accuracy": _evidence_interval_accuracy(rows, predicted),
         "speaker_mapping_error": None,
     }
+
+
+def _evidence_interval_accuracy(rows: list[dict[str, Any]], predicted: list[str]) -> float | None:
+    hits = []
+    for row, label in zip(rows, predicted):
+        if label == ABSTAIN or row.get("evidence_start_s") is None or row.get("evidence_end_s") is None:
+            continue
+        cited = (row.get("features") or {}).get("cited_interval")
+        if not cited or len(cited) != 2:
+            continue
+        hits.append(_interval_iou((float(cited[0]), float(cited[1])), (float(row["evidence_start_s"]), float(row["evidence_end_s"]))) >= 0.5)
+    if not hits:
+        return None
+    return float(np.mean(hits))
+
+
+def _interval_iou(left: tuple[float, float], right: tuple[float, float]) -> float:
+    start = max(left[0], right[0])
+    end = min(left[1], right[1])
+    intersection = max(0.0, end - start)
+    union = max(left[1], right[1]) - min(left[0], right[0])
+    if union <= 0:
+        return 0.0
+    return intersection / union
 
 
 def _mean_absolute_error(rows: list[dict[str, Any]], predicted: list[str]) -> float | None:
@@ -640,6 +670,10 @@ def _participant_features(participant_id: str, turns: list[dict[str, Any]]) -> d
     visible_interval = None
     if video_turns:
         visible_interval = (min(turn["start_s"] for turn in video_turns), max(turn["end_s"] for turn in video_turns))
+    cited = None
+    if owned:
+        chosen = max(owned, key=lambda turn: turn["end_s"] - turn["start_s"])
+        cited = [chosen["start_s"], chosen["end_s"]]
     return {
         "speaking_s": speaking,
         "overlap_s": overlap,
@@ -649,6 +683,7 @@ def _participant_features(participant_id: str, turns: list[dict[str, Any]]) -> d
         "transcript_text": text,
         "visibility": 1.0 if visible_interval is not None else 0.0,
         "visible_interval": visible_interval,
+        "cited_interval": cited,
     }
 
 
