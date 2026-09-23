@@ -5,9 +5,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 COPY requirements-backend.txt .
-RUN pip install --no-cache-dir -r requirements-backend.txt
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir -r requirements-backend.txt
 COPY backend backend
 COPY protocol protocol
+COPY research research
 COPY ml/src/audio.py ml/src/audio.py
 COPY results/app_model.json results/app_model.json
 COPY run_backend.py .

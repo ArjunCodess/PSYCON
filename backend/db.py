@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
+from psycopg.errors import UniqueViolation
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
@@ -31,14 +32,20 @@ class Database:
 
     def migrate(self) -> None:
         sql = (Path(__file__).with_name("schema.sql")).read_text(encoding="utf-8")
-        with self.connection() as connection:
-            # Gunicorn workers can import the application concurrently. A database-level
-            # lock prevents two workers from racing while PostgreSQL creates table types.
-            connection.execute("SELECT pg_advisory_lock(%s)", (0x50535943,))
-            try:
-                connection.execute(sql)
-            finally:
-                connection.execute("SELECT pg_advisory_unlock(%s)", (0x50535943,))
+        last_error: UniqueViolation | None = None
+        for _ in range(2):
+            with self.connection() as connection:
+                try:
+                    with connection.transaction():
+                        # Hold the lock until this transaction commits so two Gunicorn
+                        # workers cannot create the same table type at once.
+                        connection.execute("SELECT pg_advisory_xact_lock(%s)", (0x50535943,))
+                        connection.execute(sql)
+                    return
+                except UniqueViolation as exc:
+                    last_error = exc
+        if last_error is not None:
+            raise last_error
 
     def ping(self) -> bool:
         try:
