@@ -50,7 +50,10 @@ docs/engineering_prd/*.out
 docs/engineering_prd/*.run.xml
 docs/engineering_prd/*.synctex.gz
 
-# OS/editor
+# Local sample recordings. These stay on the machine that collected them.
+WhatsApp Video*.mp4
+tmp_frame_*.jpg
+
 .DS_Store
 Thumbs.db
 .vscode/*
