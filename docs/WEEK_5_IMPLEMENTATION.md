@@ -79,29 +79,20 @@ Human-study inputs and outputs belong in the approved encrypted store. The repos
 
 | Week 5 item | Current state | Evidence or blocker |
 | --- | --- | --- |
-| Freeze research questions | Implemented | `docs/research/STUDY_PROTOCOL.md` |
-| Prepare the study workflow | Implemented | Study protocol and session checklist |
-| Define anonymous participant and session records | Implemented | Metadata template and validator |
-| Define consent, withdrawal, minimization, storage, and access | Implemented as documentation and validation | Consent and data-management files; approval is still required before collection |
-| Synchronize physiology, speech, language, light, and motion features | Implemented in code | Dataset assembler; matching recordings have not been supplied |
-| Reuse one participant split for all comparisons | Implemented in code | Split assignment and leakage checks |
-| Train and validate candidates | Runner implemented; empirical work blocked | No completed marksheet and device dataset |
-| Produce statistics, metrics, charts, ablations, and intervals | Reporting code implemented; empirical outputs blocked | No completed marksheet and device dataset |
-| Define the model-update lifecycle | Implemented | `docs/research/MODEL_LIFECYCLE.md` |
-| Calibrate the hardware | Blocked | Requires the assembled modules and recorded measurements |
-| Run approved participant sessions | Blocked | Requires approval, consent, calibrated hardware, marksheets, and recordings |
-| Record device and environmental conditions | Schema prepared; records blocked | Requires real sessions |
-| External validation | Blocked | Requires a separate compatible dataset |
-
-## What the marksheets change
-
-Marksheet version 4.0 has 20 observable behaviour items, A through T. Each item is scored **0, 1, 2, 3, 4, or N/O**. The older 1–5 wording is withdrawn. N/O stays missing and is never coded as zero. The group-observation pipeline trains these item scores from the shared recording. The binary evaluator does not.
-
-The full handoff contract is in `docs/research/DATA_REQUIREMENTS.md`.
+| Group consent version 2.0 | Draft written | `docs/PSYCON_Group_Session_Consent_Form.tex`. Collection still needs school or ethics approval |
+| Marksheet 0–4 or N/O | Implemented | Rubric version 4.0. N/O is not stored as zero |
+| Group session schema, upload, seats, voices, marksheets, review, export | Implemented | `backend/group/` and `/group` |
+| Audio, frames, thumbnail, diarization, transcript | Implemented | ffmpeg extracts audio and frames. Pyannote diarization is attempted. If it is unavailable, anonymous energy segments are kept and the failure is recorded |
+| Evidence interval accuracy and speaker mapping error | Implemented | `research/group_observation.py` |
+| Group study runner | Implemented | `python -m research.run_group_study` |
+| Binary wrist-and-speech comparison | Kept separate | `research/evaluation.py` and `research/run_study.py` |
+| Real approved sessions and held-out ratings | Blocked | No consented human recordings or completed psychologist marksheets |
+| Wrist physiology for one person in the group video | Out of scope | The centre device is a shared microphone. A wrist study needs its own wearer mapping |
 
 ## Current verification and completion
 
-The last repository run completed with 120 passing tests and 5 skipped tests. Sixteen passing tests cover the Week 5 metadata, dataset, split, evaluation, artifact-writing, external-overlap, and approved-runner logic. The skipped tests require external WESAD data or other gated resources.
+Group-observation tests cover upload checks, right-to-left seats, mapping corrections, N/O, evidence rules, PDF ownership, roles, withdrawal, split leakage, evidence-interval accuracy, and the group runner. The binary path's metadata, dataset, split, and evaluation tests still pass.
 
-Week 5 is complete as a software and documentation preparation task. Its research exit gate remains open because there is no real dataset package, trained multimodal result, minimum-duration result, hardware calibration evidence, participant-session evidence, backup verification for participant data, or external validation.
+Week 5 is not empirically complete. The software can rehearse the workflow on a test file. It cannot report a validated model result until approved sessions and completed ratings are evaluated on held-out groups, with each item marked available only when it has enough evidence.
+
 
