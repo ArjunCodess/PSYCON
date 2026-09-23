@@ -20,15 +20,18 @@ select:focus, textarea:focus { border-color: var(--accent); outline: 3px solid r
 .stack-form { display: grid; align-content: start; gap: 8px; }
 .inline-button { width: auto; min-width: 240px; }
 .frame-stage { margin-top: 28px; }
-.frame-stage img, #playback, #pdf-frame {
+.intake-screen { padding: 48px 0 24px; }
+.intake-screen h1 { margin: 0 0 22px; font-size: 40px; letter-spacing: -0.03em; }
+#marked-preview {
   display: block;
-  width: min(100%, 860px);
-  max-height: 480px;
-  margin-top: 16px;
+  width: min(100%, 960px);
+  max-height: 640px;
+  margin: 8px 0 28px;
   border: 1px solid var(--line);
   background: var(--surface);
+  object-fit: contain;
 }
-.frame-stage img:not([src]), .frame-stage img[src=""] { display: none; }
+#marked-preview:not([src]), #marked-preview[src=""] { display: none; }
 
 .score-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .score-button[aria-pressed="true"] { background: var(--accent); color: white; }
