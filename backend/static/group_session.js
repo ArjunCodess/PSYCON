@@ -9,6 +9,7 @@
     seats: [],
     items: {},
     saveTimer: 0,
+    primaryRaterId: "",
   };
   const byId = (id) => document.getElementById(id);
   byId("account-token").value = state.token;
@@ -189,11 +190,7 @@
       play.type = "button";
       play.className = "secondary-button compact-button";
       play.textContent = "Play";
-      play.addEventListener("click", () => {
-        const video = byId("playback");
-        video.currentTime = turn.start_s;
-        video.play();
-      });
+      play.addEventListener("click", () => openAt(turn.start_s));
       controls.append(select, document.createTextNode(" "), play);
       row.append(title, controls);
       form.append(row);
@@ -266,6 +263,11 @@
         <label class="field-label">Observed response<textarea data-field="observed_response"></textarea></label>
         <label class="field-label">Evidence start<input data-field="start_s" type="number" step="0.1"></label>
         <label class="field-label">Evidence end<input data-field="end_s" type="number" step="0.1"></label>
+        <label class="field-label">Baseline start<input data-field="baseline_start_s" type="number" step="0.1"></label>
+        <label class="field-label">Baseline end<input data-field="baseline_end_s" type="number" step="0.1"></label>
+        <label class="field-label">Trigger start<input data-field="trigger_start_s" type="number" step="0.1"></label>
+        <label class="field-label">Trigger end<input data-field="trigger_end_s" type="number" step="0.1"></label>
+        <label class="field-label">Trigger<textarea data-field="trigger_description"></textarea></label>
         <label class="field-label">N/O reason
           <select data-field="no_score_reason">
             <option value="no_opportunity">no opportunity</option>
@@ -305,9 +307,17 @@
     };
     if (Number.isFinite(start) && Number.isFinite(end) && end > start) {
       item.intervals.push({ kind: "evidence", start_s: start, end_s: end, description: value("observed_response") });
-      if ("QRST".includes(letter)) {
-        item.intervals.push({ kind: "baseline", start_s: Math.max(0, start - 5), end_s: start, description: "earlier same-participant baseline" });
-        item.intervals.push({ kind: "trigger", start_s: Math.max(0, start - 1), end_s: start, description: value("preceding_event") });
+    }
+    if ("QRST".includes(letter)) {
+      const baselineStart = Number(value("baseline_start_s"));
+      const baselineEnd = Number(value("baseline_end_s"));
+      const triggerStart = Number(value("trigger_start_s"));
+      const triggerEnd = Number(value("trigger_end_s"));
+      if (Number.isFinite(baselineStart) && Number.isFinite(baselineEnd) && baselineEnd > baselineStart) {
+        item.intervals.push({ kind: "baseline", start_s: baselineStart, end_s: baselineEnd, description: "same-participant baseline" });
+      }
+      if (Number.isFinite(triggerStart) && Number.isFinite(triggerEnd) && triggerEnd > triggerStart) {
+        item.intervals.push({ kind: "trigger", start_s: triggerStart, end_s: triggerEnd, description: value("trigger_description") });
       }
     }
     return item;
@@ -329,6 +339,36 @@
     byId("save-status").textContent = "Draft saved.";
   }
 
+  function applyLoadedItems() {
+    Object.entries(state.items).forEach(([letter, item]) => {
+      const block = byId("items").querySelector(`[data-letter="${letter}"]`);
+      if (!block) return;
+      block.querySelectorAll(".score-button").forEach((button) => {
+        button.setAttribute("aria-pressed", button.textContent === item.score ? "true" : "false");
+      });
+      const preceding = block.querySelector('[data-field="preceding_event"]');
+      const observed = block.querySelector('[data-field="observed_response"]');
+      if (preceding) preceding.value = item.preceding_event || "";
+      if (observed) observed.value = item.observed_response || "";
+      const evidence = (item.intervals || []).find((interval) => interval.kind === "evidence");
+      const baseline = (item.intervals || []).find((interval) => interval.kind === "baseline");
+      const trigger = (item.intervals || []).find((interval) => interval.kind === "trigger");
+      if (evidence) {
+        block.querySelector('[data-field="start_s"]').value = evidence.start_s;
+        block.querySelector('[data-field="end_s"]').value = evidence.end_s;
+      }
+      if (baseline) {
+        block.querySelector('[data-field="baseline_start_s"]').value = baseline.start_s;
+        block.querySelector('[data-field="baseline_end_s"]').value = baseline.end_s;
+      }
+      if (trigger) {
+        block.querySelector('[data-field="trigger_start_s"]').value = trigger.start_s;
+        block.querySelector('[data-field="trigger_end_s"]').value = trigger.end_s;
+        block.querySelector('[data-field="trigger_description"]').value = trigger.description || "";
+      }
+    });
+  }
+
   async function loadMarksheet() {
     if (!state.accountId || state.role !== "psychologist") return;
     const participantId = byId("participant-select").value;
@@ -336,17 +376,7 @@
       const sheet = await api(`/api/v1/group-sessions/${state.selected}/participants/${participantId}/marksheets/${state.accountId}`);
       state.items = Object.fromEntries((sheet.items || []).filter((item) => item.score).map((item) => [item.item_letter, item]));
       byId("save-status").textContent = sheet.state === "submitted" ? "Submitted." : "Draft loaded.";
-      Object.entries(state.items).forEach(([letter, item]) => {
-        const block = byId("items").querySelector(`[data-letter="${letter}"]`);
-        if (!block) return;
-        block.querySelectorAll(".score-button").forEach((button) => {
-          button.setAttribute("aria-pressed", button.textContent === item.score ? "true" : "false");
-        });
-        const preceding = block.querySelector('[data-field="preceding_event"]');
-        const observed = block.querySelector('[data-field="observed_response"]');
-        if (preceding) preceding.value = item.preceding_event || "";
-        if (observed) observed.value = item.observed_response || "";
-      });
+      applyLoadedItems();
     } catch (error) {
       if (!String(error.message).includes("No marksheet")) notice(error.message, true);
     }
@@ -359,6 +389,26 @@
     });
     if (!response.ok) return;
     byId("frame").src = URL.createObjectURL(await response.blob());
+  }
+
+  async function openAt(second) {
+    const video = byId("playback");
+    if (!video.src) {
+      const grant = await api(`/api/v1/group-sessions/${state.selected}/recording/playback`, { method: "POST", body: {} });
+      video.src = `${grant.media_path}?playback_token=${encodeURIComponent(grant.playback_token)}`;
+      await new Promise((resolve) => video.addEventListener("loadedmetadata", resolve, { once: true }));
+    }
+    video.currentTime = Number(second);
+    await video.play();
+  }
+
+  function claimButton(label, second) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "secondary-button";
+    button.textContent = label;
+    button.addEventListener("click", () => openAt(second).catch((error) => notice(error.message, true)));
+    return button;
   }
 
   byId("connect-button").addEventListener("click", () => connect().catch((error) => notice(error.message, true)));
@@ -396,6 +446,18 @@
       await api(`/api/v1/group-sessions/${state.selected}/reference-frame`, { method: "POST", body, raw: true });
       notice("Reference frame stored.");
       await selectSession(state.selected);
+    } catch (error) {
+      notice(error.message, true);
+    }
+  });
+  byId("signature-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const body = new FormData();
+    body.append("form_line", byId("signature-line").value);
+    body.append("file", byId("signature-file").files[0]);
+    try {
+      await api(`/api/v1/group-sessions/${state.selected}/consent-signatures`, { method: "POST", body, raw: true });
+      notice("Signature stored on the consent record.");
     } catch (error) {
       notice(error.message, true);
     }
@@ -463,6 +525,7 @@
   byId("load-disagreements").addEventListener("click", async () => {
     try {
       const result = await api(`/api/v1/group-sessions/${state.selected}/participants/${byId("participant-select").value}/disagreements`);
+      state.primaryRaterId = result.primary_rater_id;
       const host = byId("disagreements");
       host.replaceChildren();
       if (!result.disagreements.length) {
@@ -498,6 +561,33 @@
       notice(error.message, true);
     }
   });
+  byId("load-correction").addEventListener("click", async () => {
+    try {
+      if (!state.primaryRaterId) {
+        const result = await api(`/api/v1/group-sessions/${state.selected}/participants/${byId("participant-select").value}/disagreements`);
+        state.primaryRaterId = result.primary_rater_id;
+      }
+      const sheet = await api(`/api/v1/group-sessions/${state.selected}/participants/${byId("participant-select").value}/marksheets/${state.primaryRaterId}`);
+      state.items = Object.fromEntries((sheet.items || []).map((item) => [item.item_letter, item]));
+      renderItems();
+      applyLoadedItems();
+      notice("Submitted sheet loaded for correction.");
+    } catch (error) {
+      notice(error.message, true);
+    }
+  });
+  byId("save-correction").addEventListener("click", async () => {
+    try {
+      const items = letters.map((letter) => state.items[letter]).filter((item) => item && item.score);
+      await api(`/api/v1/group-sessions/${state.selected}/participants/${byId("participant-select").value}/marksheets/${state.primaryRaterId}/corrections`, {
+        method: "POST",
+        body: { reason: byId("review-reason").value, items },
+      });
+      notice("Correction recorded. The original submission remains.");
+    } catch (error) {
+      notice(error.message, true);
+    }
+  });
   byId("predict-button").addEventListener("click", async () => {
     try {
       const result = await api(`/api/v1/group-sessions/${state.selected}/predictions`, { method: "POST", body: {} });
@@ -514,9 +604,10 @@
       const humanCopy = document.createElement("p");
       humanCopy.className = "decision-copy";
       humanCopy.textContent = result.psychologist.length
-        ? result.psychologist.map((row) => `${row.item_letter} ${row.score} at ${row.evidence_start_s}–${row.evidence_end_s}s`).join(" / ")
+        ? "Session patterns below open the cited moment."
         : "No session pattern is established from the submitted scores.";
       human.append(humanSummary, humanCopy);
+      result.psychologist.forEach((row) => human.append(claimButton(`${row.item_letter} scored ${row.score}`, row.evidence_start_s)));
       const model = document.createElement("article");
       model.className = "inference-decision";
       const modelSummary = document.createElement("div");
@@ -530,9 +621,10 @@
       modelCopy.className = "decision-copy";
       const claims = result.predictions.filter((row) => row.playback_fragment);
       modelCopy.textContent = claims.length
-        ? claims.map((row) => `${row.item_letter} ${row.predicted_label} ${row.playback_fragment}`).join(" / ")
+        ? "Each model claim opens its verified interval."
         : "No model claim is available. The psychologist's scores stay as entered.";
       model.append(modelSummary, modelCopy);
+      claims.forEach((row) => model.append(claimButton(`${row.item_letter} ${row.predicted_label} ${row.playback_fragment}`, row.evidence_start_s)));
       host.append(human, model);
     } catch (error) {
       notice(error.message, true);

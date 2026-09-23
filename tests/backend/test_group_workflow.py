@@ -335,6 +335,8 @@ def test_roles_seats_mappings_marksheets_review_withdrawal_and_export(stack) -> 
 
     job = service.claim_job("test-worker")
     service.run_job(job)
+    frames = service.store.recording_for_session(session_id)["processing"]["frames"]
+    assert frames[0]["visible_slots"] == [1, 2]
     status = client.get(f"/api/v1/group-sessions/{session_id}/recording", headers=auth(stack["operator_token"]))
     assert status.get_json()["recording"]["processing_state"] == "complete"
     view = client.get(f"/api/v1/group-sessions/{session_id}", headers=auth(stack["operator_token"])).get_json()
@@ -391,6 +393,11 @@ def test_roles_seats_mappings_marksheets_review_withdrawal_and_export(stack) -> 
         headers=auth(stack["psychologist_token"]),
     )
     assert submitted.status_code == 200
+    reviewer_sheet = client.get(
+        f"/api/v1/group-sessions/{session_id}/participants/{participants[0]['id']}/marksheets/{stack['psychologist']['id']}",
+        headers=auth(stack["reviewer_token"]),
+    )
+    assert reviewer_sheet.status_code == 200
     hidden = client.get(
         f"/api/v1/group-sessions/{session_id}/participants/{participants[0]['id']}/marksheets/{stack['psychologist']['id']}",
         headers=auth(stack["second_token"]),
@@ -446,7 +453,19 @@ def test_roles_seats_mappings_marksheets_review_withdrawal_and_export(stack) -> 
     encoded = json.dumps(package)
     assert "Ada Example" not in encoded
     assert "SCORE-FROM-PDF-9" not in encoded
+    assert "consent/" not in encoded
     assert package["pdf_text_used_as_labels"] is False
+    signed = client.post(
+        f"/api/v1/group-sessions/{session_id}/consent-signatures",
+        data={"form_line": "1", "file": (io.BytesIO(b"\xff\xd8signature-bytes"), "sign.jpg")},
+        headers=auth(stack["operator_token"]),
+        content_type="multipart/form-data",
+    )
+    assert signed.status_code == 201
+    assert service.store.consent_records[0]["signature_object_key"]
+    again = json.dumps(client.get(f"/api/v1/group-sessions/{session_id}/export", headers=auth(stack["operator_token"])).get_json())
+    assert "signature-bytes" not in again
+    assert "Ada Example" not in again
     no_score = next(row for row in package["examples"] if row["participant_id"] == participants[0]["id"] and row["item_letter"] == "B")
     assert no_score["score"] == "N/O"
     assert no_score["supervised_score"] is None

@@ -137,6 +137,13 @@
             <button class="secondary-button" type="submit">Upload frame</button>
           </form>
         </div>
+        <form id="signature-form" class="stack-form">
+          <label class="field-label" for="signature-file">Consent signature</label>
+          <input id="signature-line" type="number" min="1" max="10" value="1">
+          <input id="signature-file" type="file" accept="image/jpeg,image/png">
+          <p class="field-helper">The image stays on the restricted consent record. It is not copied into training exports.</p>
+          <button class="secondary-button" type="submit">Store signature</button>
+        </form>
         <div class="frame-stage">
           <img id="frame" alt="Frame used to mark seats from right to left">
           <p class="helper">Click the frame to drop a seat. Confirming assigns Participant 1 on the right and continues left.</p>
@@ -185,7 +192,11 @@
         <div id="disagreements" class="detail-list"></div>
         <label class="field-label" for="review-reason">Adjudication reason</label>
         <textarea id="review-reason" rows="3"></textarea>
-        <button id="submit-review" class="secondary-button" type="button">Record adjudicated answers</button>
+        <div class="actions">
+          <button id="submit-review" class="secondary-button" type="button">Record adjudicated answers</button>
+          <button id="load-correction" class="secondary-button" type="button">Load submitted sheet</button>
+          <button id="save-correction" class="secondary-button" type="button">Correct timestamps and evidence</button>
+        </div>
       </section>
 
       <section class="result-section" aria-labelledby="answers-title">
