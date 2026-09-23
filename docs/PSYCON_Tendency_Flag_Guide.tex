@@ -1,0 +1,72 @@
+% !TEX program = pdflatex
+\documentclass[10pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{tgheros}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage[a4paper,landscape,margin=10mm]{geometry}
+\usepackage{xcolor,tabularx,array,booktabs}
+\definecolor{PSYCONBlue}{HTML}{17365D}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2pt}
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.08}
+\pagestyle{empty}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\newcommand{\GuideTitle}[1]{
+{\LARGE\bfseries\color{PSYCONBlue}PSYCON answer interpretation guide}\par
+{\small #1 \quad Contextual behaviour only; no diagnosis or personality label.}\par
+\vspace{1.5mm}{\color{PSYCONBlue}\rule{\linewidth}{0.7pt}}\vspace{1.5mm}}
+
+\begin{document}
+\GuideTitle{Items A--J}
+\textbf{How answers work.} A score of 0 does not support the named pattern. A score of 1 records one weak moment. A score of 2 marks a possible one-session pattern that needs more evidence. Scores of 3 or 4 allow the psychologist or model to report the pattern for this session, with timestamps and context. N/O means no conclusion.
+
+\vspace{1.5mm}
+\begingroup\scriptsize
+\begin{tabularx}{\linewidth}{@{}L{8mm}L{47mm}L{39mm}L{65mm}Y@{}}
+\toprule
+\textbf{Item} & \textbf{Recorded behaviour} & \textbf{Pattern named at 3--4} & \textbf{Evidence the output must include} & \textbf{Context that may change the answer}\\\midrule
+A & Loses the active discussion thread & Discussion-tracking difficulty & Missed point or change, preceding speech, response, and timestamp & Overlap, poor audio, interrupted attention, unclear topic shift\\
+B & Response does not address the preceding point & Response-alignment difficulty & Prompt or peer point, participant response, and mismatch & Ambiguous prompt, language access, speaker-ID error\\
+C & Does not adjust after the discussion changes & Topic-shift adaptation difficulty & Earlier frame, clear change, later response, and timestamp & Change was subtle, moderator gave conflicting instructions\\
+D & Needs clear spoken information repeated & Spoken-information tracking difficulty & Audible original, repetition, participant response, and opportunity & Distance from microphone, overlap, hearing access\\
+E & Idea order makes the contribution hard to follow & Contribution-organisation difficulty & Contribution sequence and the missing or displaced connection & Transcription error, second-language use, interruption\\
+F & Claim lacks the requested reason or example & Reason-support difficulty & Task requirement, prompt, claim, and missing support & Task did not require support, limited preparation time\\
+G & Stops before completing the central point & Contribution-completion difficulty & Beginning, stopping point, and evidence that no one else caused it & Peer interruption, moderator stopped the turn, recording cut\\
+H & Moves away from the task without a clear link & Task-relevance difficulty & Current topic, new topic, and absence of an explained link & Topic boundary unclear, earlier context outside the clip\\
+I & Starts speaking before a turn is available & Early turn-entry pattern & Active speaker, entry time, overlap length, and outcome & Normal brief overlap, latency, group turn-taking norm\\
+J & Continues overlap after awareness of another speaker & Non-yielding overlap pattern & Evidence of awareness, opportunity to yield, and who continued & Speaker could not hear the overlap, remote audio delay\\
+\bottomrule
+\end{tabularx}
+\endgroup
+
+\vspace{1.5mm}
+{\scriptsize\textbf{Output form:} ``At [time], after [context], participant [observable action]. This supports item [letter] at [score] with [confidence].'' Do not replace the evidence with an internal-state explanation.}\par
+
+\clearpage
+\vspace*{10mm}
+\GuideTitle{Items K--T}
+\begingroup\scriptsize
+\begin{tabularx}{\linewidth}{@{}L{8mm}L{47mm}L{39mm}L{65mm}Y@{}}
+\toprule
+\textbf{Item} & \textbf{Recorded behaviour} & \textbf{Pattern named at 3--4} & \textbf{Evidence the output must include} & \textbf{Context that may change the answer}\\\midrule
+K & Holds speaking time after a clear sharing cue & Floor-sharing imbalance & Cue, evidence it was available, continued speech, and effect on others & Cue was unclear, assigned extended turn, moderator error\\
+L & Does not acknowledge a direct peer contribution & Low reciprocal acknowledgement & Direct contribution, fair access, response, and timestamp & No response expected, inaudible speech, language access\\
+M & Behaviour changes sharply after disagreement & Disagreement-linked behavioural change & Same-session behaviour before, disagreement, and observable change & Personal topic, peer hostility, unrelated interruption\\
+N & Changed response continues after the exchange moves on & Slow return to earlier interaction pattern & Trigger, later moments, duration, and participation effect & Discussion remained on the same issue, repeated provocation\\
+O & Participation falls after challenge & Challenge-linked withdrawal pattern & Earlier participation, challenge, later speaking attempts or response length & Turn opportunity disappeared, moderator changed activity\\
+P & Does not revise or clarify after respectful feedback & Feedback-adaptation difficulty & Feedback, evidence it was understood, and later response & Feedback was vague, incorrect, hostile, or interrupted\\
+Q & Speaking rate changes after a pressure event & Pressure-linked speaking-rate change & Same-person baseline, event, direction and duration of change & Different task type, poor segmentation, excited emphasis\\
+R & Pauses or hesitations rise after a pressure event & Pressure-linked hesitation change & Same-person baseline, event, pauses or restarts, and duration & Word search, unfamiliar language, connection delay\\
+S & Vocal delivery changes after a pressure event & Pressure-linked vocal change & Same-person baseline, event, volume, pitch or steadiness change & Microphone movement, automatic gain, background noise\\
+T & Movement or participation changes after a pressure event & Trigger-linked behavioural change & Same-person baseline, event, visible or participation change, and duration & Camera obstruction, seating discomfort, off-screen event\\
+\bottomrule
+\end{tabularx}
+\endgroup
+
+\vspace{1.5mm}
+{\scriptsize\textbf{Interpretation rule:} These names describe patterns inside one recorded discussion. They do not establish why the pattern occurred, whether it occurs elsewhere, or whether the participant has a psychological condition. Scores Q--T require a same-participant baseline and an identifiable event; otherwise use N/O.}
+\end{document}

@@ -1,0 +1,162 @@
+% !TEX program = pdflatex
+\documentclass[10pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{tgheros}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{microtype}
+\usepackage[a4paper,margin=16mm,top=14mm,bottom=16mm]{geometry}
+\usepackage{xcolor,array,tabularx,booktabs,ragged2e,fancyhdr,lastpage,pdflscape,amssymb}
+\definecolor{PSYCONBlue}{HTML}{17365D}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2.5pt}
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.13}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyfoot[L]{\scriptsize\color{PSYCONBlue}PSYCON contextual group-discussion observation sheet}
+\fancyfoot[R]{\scriptsize Research use only \quad \thepage/\pageref{LastPage}}
+\newcolumntype{Y}{>{\RaggedRight\arraybackslash}X}
+\newcolumntype{L}[1]{>{\RaggedRight\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\Centering\arraybackslash}p{#1}}
+\newcommand{\PageTitle}[2]{{\LARGE\bfseries\color{PSYCONBlue}#1}\par{\small #2}\par\vspace{1.5mm}{\color{PSYCONBlue}\rule{\linewidth}{0.8pt}}\vspace{1.5mm}}
+\newcommand{\Section}[1]{\par\vspace{0.8mm}{\large\bfseries\color{PSYCONBlue}#1}\par{\color{PSYCONBlue}\rule{\linewidth}{0.35pt}}\vspace{0.5mm}}
+\newcommand{\Blank}{\rule{0pt}{3mm}\hrulefill}
+\newcommand{\PairRow}[4]{{\small\bfseries\color{PSYCONBlue}#1}&{\small #2}&{\small\bfseries\color{PSYCONBlue}#3}&{\small #4}\\[2mm]}
+\newcommand{\ItemRow}[3]{{\small\bfseries\color{PSYCONBlue}#1}\par{\scriptsize #2}&{\small\centering\arraybackslash\rule{10mm}{0.35pt}\par\scriptsize 0--4 or N/O}&{\scriptsize #3\par\vspace{6mm}\rule{\linewidth}{0.3pt}}\\\midrule}
+\newcommand{\checkb}{$\square$}
+
+\begin{document}
+\PageTitle{PSYCON contextual observation marksheet}{One recorded group discussion \quad 20 observable items \quad Version 4.0}
+
+\Section{What this sheet measures}
+This form records how a participant follows, contributes to, and reacts within a specific discussion. Every rating must come from visible or audible evidence in the recording and must include its context. The sheet does not measure personality, intelligence, intention, emotion, or a psychological condition.
+
+\Section{Observation areas}
+\begin{tabularx}{\linewidth}{@{}L{43mm}L{23mm}Y@{}}
+\toprule
+\textbf{Area} & \textbf{Items} & \textbf{Question answered from the recording}\\\midrule
+Discussion tracking & A--D & Does the contribution show that the participant followed the current point and changes in the discussion?\\
+Contribution structure & E--H & Is the contribution complete, relevant, organised, and supported for this task?\\
+Turn-taking and reciprocity & I--L & How does the participant enter, share, and respond within the group conversation?\\
+Response to challenge & M--P & What observable change follows disagreement, correction, or feedback, and how long does it last?\\
+Pressure-linked delivery change & Q--T & Do speech, voice, movement, or participation change after an identifiable discussion event?\\\bottomrule
+\end{tabularx}
+
+\Section{Session and participant}
+\begin{tabularx}{\linewidth}{@{}L{34mm}Y L{38mm}Y@{}}
+\PairRow{Session ID}{\Blank}{Date}{\Blank}
+\PairRow{Participant code}{\Blank}{Seat / speaker channel}{\Blank}
+\PairRow{Observer name / code}{\Blank}{Class / section}{\Blank}
+\PairRow{Discussion topic}{\Blank}{Observation minutes}{\Blank}
+\PairRow{Language(s)}{\Blank}{Recording quality 1--5}{\Blank}
+\end{tabularx}
+
+\Section{Rating rule}
+\small 0 = not observed despite a fair opportunity; 1 = one weak or brief occurrence; 2 = repeated or noticeable, with limited effect; 3 = clear and repeated, or affects the exchange; 4 = sustained or strongly affects the exchange. Use \textbf{N/O} when the participant had no fair opportunity or the recording cannot support a rating. Record a timestamp and the surrounding event for every score above 0.
+
+\Section{Context check}
+\small Mark all that apply: \checkb\ limited speaking opportunity \quad \checkb\ overlapping speech \quad \checkb\ poor audio/video \quad \checkb\ unfamiliar language \quad \checkb\ moderator intervention \quad \checkb\ unequal group participation \quad \checkb\ personal or sensitive topic \quad \checkb\ accommodation in use.
+
+\clearpage
+\PageTitle{Psychologist scoring sheet}{Part 1 of 2 \quad Discussion tracking, contribution structure, and turn-taking \quad Items A--L}
+\begin{tabularx}{\linewidth}{@{}L{87mm}C{24mm}Y@{}}
+\toprule
+\textbf{Observable item} & \textbf{Rating} & \textbf{Timestamp, trigger, and evidence}\\\midrule
+\ItemRow{A. Loses the active discussion thread}{The response shows that a clear intervening point, question, or change was missed. Normal gaze direction alone is not evidence.}{What was said immediately before?}
+\ItemRow{B. Gives a response that does not address the preceding point}{The participant had audible access and a fair chance to respond, but the contribution does not connect to the prompt or speaker.}{Quote or describe the mismatch:}
+\ItemRow{C. Does not adjust after the discussion changes}{The topic, claim, or instruction changes clearly, but the participant continues with the earlier frame.}{Record the change and response:}
+\ItemRow{D. Needs clear spoken information repeated}{A question, rule, or point must be repeated after it was audible and directed to the participant.}{Record the original and repetition:}
+\ItemRow{E. Gives a contribution whose idea order is hard to follow}{Key steps, reasons, or references appear in an order that obscures the intended point.}{Describe the sequence:}
+\ItemRow{F. Gives a claim without the requested reason or example}{The task calls for support, but the participant does not provide it after a fair prompt.}{Record the prompt and response:}
+\ItemRow{G. Stops before completing the central point}{The contribution ends or shifts before the intended claim can be understood. Do not count an interruption by someone else.}{Record how it ended:}
+\ItemRow{H. Moves away from the task without a clear link}{The contribution changes subject and does not explain its connection to the current discussion.}{Record the current and new topic:}
+\ItemRow{I. Starts speaking before a turn is available}{The participant enters during another person's active turn, beyond brief ordinary overlap.}{Who held the turn?}
+\ItemRow{J. Continues overlapping after becoming aware of another speaker}{Both speakers continue, and the participant does not pause or yield after a clear opportunity.}{Record the overlap and outcome:}
+\ItemRow{K. Holds speaking time despite clear cues to share the floor}{The participant continues after a moderator or peer gives an audible or visible turn-sharing cue.}{Record the cue and response:}
+\ItemRow{L. Does not acknowledge a direct peer contribution}{A peer clearly addresses or asks the participant something, but the response does not recognise it despite fair access.}{Record the peer contribution:}
+\bottomrule
+\end{tabularx}
+
+\clearpage
+\PageTitle{Psychologist scoring sheet}{Part 2 of 2 \quad Response to challenge and pressure-linked delivery \quad Items M--T}
+\begin{tabularx}{\linewidth}{@{}L{87mm}C{24mm}Y@{}}
+\toprule
+\textbf{Observable item} & \textbf{Rating} & \textbf{Timestamp, trigger, and evidence}\\\midrule
+\ItemRow{M. Shows a sharp behavioural change immediately after disagreement}{Speech, expression, posture, or participation changes soon after a specific disagreement. Record the change without naming an emotion.}{Record before, trigger, and after:}
+\ItemRow{N. Continues the changed response after the exchange has moved on}{The observable reaction continues into later turns or topics rather than returning to the earlier pattern.}{Record duration and later effect:}
+\ItemRow{O. Reduces or stops participation after challenge}{Speaking attempts, response length, or engagement falls after questioning, disagreement, or evaluation.}{Record the challenge and change:}
+\ItemRow{P. Does not revise or clarify after clear respectful feedback}{The participant repeats, abandons, or changes the point without addressing the feedback.}{Record the feedback and response:}
+\ItemRow{Q. Speaking rate changes after an identifiable pressure event}{Rate becomes noticeably faster or slower than the participant's earlier session baseline after challenge or evaluation.}{Record baseline, trigger, and change:}
+\ItemRow{R. Pauses or hesitations increase after an identifiable pressure event}{Silent pauses, restarts, or fillers rise relative to the participant's earlier session baseline.}{Record baseline, trigger, and change:}
+\ItemRow{S. Vocal delivery changes after an identifiable pressure event}{Volume, pitch, or steadiness changes relative to the participant's earlier session baseline. Do not score poor audio as behaviour.}{Record baseline, trigger, and change:}
+\ItemRow{T. Movement or participation changes after an identifiable pressure event}{Visible movement, posture, gaze behaviour, or participation changes relative to the participant's earlier session baseline.}{Record baseline, trigger, and change:}
+\bottomrule
+\end{tabularx}
+
+\vspace{2mm}
+\Section{Observation validity}
+\begin{tabularx}{\linewidth}{@{}L{58mm}Y@{}}
+Fair opportunity existed for every scored item & Yes / No. If No, explain: \Blank\\[3mm]
+Speaker identity was reliable & Yes / No / Uncertain. Explain uncertainty: \Blank\\[3mm]
+Recording supported the claimed evidence & Yes / No / Partly. Affected timestamps: \Blank\\[3mm]
+Context changed the interpretation & No / Possibly / Yes. Explain: \Blank\\
+\end{tabularx}
+
+\clearpage
+\PageTitle{Contextual pattern summary}{Summarise this session only; every statement needs recording evidence}
+\Section{Observed behavioural patterns}
+\small Mark a pattern only when several related items or repeated moments support it. A marked pattern describes this recording. It does not establish a stable trait.
+
+\begin{tabularx}{\linewidth}{@{}L{65mm}C{24mm}C{24mm}C{24mm}Y@{}}
+\toprule
+\textbf{Pattern} & \textbf{Observed} & \textbf{Not clear} & \textbf{N/O} & \textbf{Confidence 1--3}\\\midrule
+Discussion-tracking difficulty, items A--D & \checkb & \checkb & \checkb & \Blank\\[2mm]
+Contribution-structure difficulty, items E--H & \checkb & \checkb & \checkb & \Blank\\[2mm]
+Turn-sharing or reciprocal-response difficulty, items I--L & \checkb & \checkb & \checkb & \Blank\\[2mm]
+Challenge-linked behavioural change, items M--P & \checkb & \checkb & \checkb & \Blank\\[2mm]
+Pressure-linked delivery change, items Q--T & \checkb & \checkb & \checkb & \Blank\\\bottomrule
+\end{tabularx}
+
+\Section{Required contextual account}
+\small Describe the discussion event first, then the participant's observable response, duration, and effect on the exchange. Compare Q--T with the same participant's earlier session baseline, not with other participants.
+
+\vspace{3mm}\rule{\linewidth}{0.3pt}\par\vspace{9mm}\rule{\linewidth}{0.3pt}\par\vspace{9mm}\rule{\linewidth}{0.3pt}
+
+\Section{Evidence summary}
+\vspace{3mm}\rule{\linewidth}{0.3pt}\par\vspace{9mm}\rule{\linewidth}{0.3pt}\par\vspace{9mm}\rule{\linewidth}{0.3pt}
+
+\Section{Completion}
+\begin{tabularx}{\linewidth}{@{}L{46mm}Y L{43mm}Y@{}}
+\PairRow{Psychologist signature / initials}{\Blank}{Date and time}{\Blank}
+\PairRow{Reviewer code, if reviewed}{\Blank}{Review date}{\Blank}
+\end{tabularx}
+
+\clearpage
+\begin{landscape}
+\PageTitle{Model training record}{The target is an evidence-backed contextual observation, not a diagnosis}
+\begin{tabularx}{\linewidth}{@{}L{37mm}L{49mm}Y@{}}
+\toprule
+\textbf{Field} & \textbf{Required value} & \textbf{Reason}\\\midrule
+Speaker and time window & Participant code, start time, and end time & Connects each label to the correct person and recording segment.\\
+Discussion context & Current topic, previous speaker's point, prompt, disagreement, feedback, or moderator cue & Lets the model explain what the behaviour responded to.\\
+Item answer & A--T with 0--4 or N/O & Preserves the psychologist's direct supervision target.\\
+Observable evidence & Short description or transcript excerpt grounded in the window & Makes the prediction auditable and limits unsupported interpretation.\\
+Comparison basis & Earlier behaviour from the same session when rating Q--T & Prevents the model from treating one speaking style as the standard for everyone.\\
+Confidence and quality & Observer confidence 1--3 plus audio, video, overlap, and speaker-ID quality & Gives the model a way to abstain when the evidence is weak.\\
+Reviewer record & Independent rating and adjudicated rating when available & Supports agreement testing without erasing genuine rater differences.\\
+\bottomrule
+\end{tabularx}
+
+\Section{Allowed model output}
+\small The model may report who acted, what happened, when it happened, what came immediately before, how long it lasted, which item it supports, its confidence, and why it abstained. It may summarise repeated patterns within the recorded session when the evidence supports them.
+
+\Section{Claims outside the system}
+\small The model must not assign a diagnosis, disorder, personality type, intention, intelligence level, moral judgement, or unobserved emotion. It must not convert one session into a permanent description of a participant. A psychologist may interpret the observations separately using information outside PSYCON.
+
+\Section{Validation before use}
+\small Use independent psychologists on a prespecified subset and report per-item agreement. Split training, validation, and test data by participant, not clip. Test performance across speaking opportunity, language, recording quality, group size, and topic. Report abstentions and speaker-identification errors separately because a correct behavioural description attached to the wrong person is still a failed result.
+
+\end{landscape}
+\end{document}

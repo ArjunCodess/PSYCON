@@ -1,0 +1,44 @@
+% !TEX program = pdflatex
+\documentclass[10pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{tgheros}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage[a4paper,landscape,margin=14mm]{geometry}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2pt}
+\pagestyle{empty}
+
+\newcommand{\Participant}[1]{%
+\begin{minipage}[t][28mm][t]{0.47\linewidth}
+\textbf{Participant #1}\\[1mm]
+Name: \rule{0.82\linewidth}{0.35pt}\\[2mm]
+Class: \rule{35mm}{0.35pt}\qquad Section: \rule{35mm}{0.35pt}\\[2mm]
+Signature: \rule{55mm}{0.35pt}\qquad Date: \rule{30mm}{0.35pt}
+\end{minipage}}
+
+\begin{document}
+{\LARGE\bfseries PSYCON group-session consent form}\par
+{\small One discussion session only. Maximum 10 participants.}\par
+\vspace{3mm}\hrule\vspace{3mm}
+
+Session ID: \rule{45mm}{0.35pt}\qquad
+Date: \rule{35mm}{0.35pt}\qquad
+Class / section: \rule{45mm}{0.35pt}\qquad
+Topic: \rule{60mm}{0.35pt}
+
+\vspace{3mm}
+{\small By signing, I agree to take part in this group discussion. I understand that participation is voluntary, I may stop at any time, and this session does not provide a medical or psychological diagnosis.}
+
+\vspace{5mm}
+\Participant{1}\hfill\Participant{2}
+
+\Participant{3}\hfill\Participant{4}
+
+\Participant{5}\hfill\Participant{6}
+
+\Participant{7}\hfill\Participant{8}
+
+\Participant{9}\hfill\Participant{10}
+
+\end{document}
