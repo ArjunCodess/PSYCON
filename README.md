@@ -95,7 +95,40 @@ Week 5 has two paths, and neither has a human-study result. The current path is 
 
 The earlier binary comparison remains in [`research/evaluation.py`](research/evaluation.py). It joins physiology, speech, and context for a 0/1 label and does not train the marksheet. [`research/run_study.py`](research/run_study.py) is the runner for that device path. A shared table microphone is not an individual physiological sensor.
 
-See the [Week 5 implementation record](docs/WEEK_5_IMPLEMENTATION.md) and [data handoff requirements](docs/research/DATA_REQUIREMENTS.md). Collection is still blocked on approval, consent version `group-consent-2.0`, and completed ratings.
+See the [Week 5 implementation record](docs/WEEK_5_IMPLEMENTATION.md) and [data handoff requirements](docs/research/DATA_REQUIREMENTS.md). Collection is still blocked on approval, consent version `group-consent-2.0`, and completed ratings. The commands to start the console are in [Run the group observation console](#run-the-group-observation-console).
+
+## Run the group observation console
+
+The group page is part of the Week 4 backend, not the five-minute audio demo on port 5000. Start PostgreSQL, MinIO, the API, and the worker:
+
+```powershell
+docker compose up --build -d
+```
+
+Open `http://localhost:8000/group`. The device dashboard stays at `http://localhost:8000`. Stop the stack with `docker compose down`. That keeps the database and object-store volumes.
+
+1. Press **Upload and mark faces** and choose one video. Accepted files are mp4, mov, webm, or mkv, from 1 minute to 3 hours, up to 2 GB, with the original audio track. The page shows the first frame with each face numbered from the right side toward the left. That number is Participant 1, Participant 2, and so on for this recording only.
+2. Add a CSV whose `participant` column uses those numbers, whose `class` column is the class for that person, and whose columns `A` through `T` are scores `0`–`4` or `N/O`. Class can differ from row to row. Press **Add spreadsheet to training**.
+3. After several sessions are stored, press **Run training**. An item stays unavailable until five sessions and five nonzero scores exist. The result is a research baseline, not a validated psychological finding.
+
+The marksheet on the page can still be filled in by hand. A score above zero needs an evidence start, evidence end, the preceding event, and the observed response. Items Q–T also need a baseline interval and a trigger interval that you type in. Those intervals are not filled in for you. `0` means there was a fair opportunity and the behaviour was not seen. `N/O` needs a reason. An optional PDF can be attached; its text is not used as a label.
+
+Press **Compare answers** to see session patterns and any model claims side by side. A claim button opens the recording at the cited interval. With only one session, the model stays unavailable: an item needs at least five independent group sessions and five nonzero scores before test metrics are reported. Press **Build export** for the versioned package. The export hash and example count appear under the comparison.
+
+The worker container processes the upload. The image includes ffmpeg, so it can extract the audio track, sample frames, and write a thumbnail. Real diarization also needs `HF_TOKEN` and the pyannote model inside the worker. Without them, the job records `diarization_unavailable` and keeps anonymous energy segments instead of inventing participant numbers. Local transcription uses faster-whisper when that model is available and otherwise records `transcription_unavailable`. Docker Hub no longer serves `minio/minio`; Compose pulls the same frozen release from `quay.io/minio/minio`.
+
+To score an exported set of sessions, save the export's `examples` array as one JSON file and a session list as another. Each session object needs `group_session_id` and `participant_ids`. Use the same anonymous research code when one person appears in more than one session, so those sessions stay in one split.
+
+```powershell
+python -m research.run_group_study `
+  --examples D:\approved-study\examples.json `
+  --sessions D:\approved-study\sessions.json `
+  --turns D:\approved-study\turns.json `
+  --output-dir D:\approved-study\results\group-1 `
+  --seed 42
+```
+
+`--turns` is optional. The command writes `split_assignment.json` before it writes `evaluation.json` and `manifest.json`. Items without enough independent sessions are marked unavailable. This runner does not replace `python -m research.run_study`, which remains the binary wrist-and-speech comparison.
 
 ### Week 6 validation and integration
 
@@ -151,7 +184,10 @@ python -m pip install -r requirements.txt
 python -m pytest
 python -m demo.audio_demo
 python -m demo.audio_web_app
+docker compose up --build -d
 ```
+
+The group observation console is `http://localhost:8000/group` after Compose is up. Account setup, video limits, and the evaluation command are in [Run the group observation console](#run-the-group-observation-console).
 
 The web demo opens at `http://127.0.0.1:5000`; stop it with `Ctrl+C`. Set `PSYCON_PROFILE_KEY` to a random secret of at least 32 characters before enrollment, and supply `HF_TOKEN` after accepting the Community-1 model terms to enable real diarization. Python tests use deterministic model fakes, the synthetic demo writes a reproducible JSON decision report, and web tests exercise uploads and encrypted profile lifecycle without downloading gated models. Three raw-WESAD integration tests skip when `data/raw/wesad/S*/S*.pkl` is absent; after obtaining WESAD under its terms, place the files there and rerun `python main.py` and the tests.
 
