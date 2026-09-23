@@ -377,3 +377,6 @@ CREATE TABLE IF NOT EXISTS playback_grants (
 );
 
 INSERT INTO schema_version(version) VALUES (1), (2), (3), (4) ON CONFLICT DO NOTHING;
+
+ALTER TABLE recordings ADD COLUMN IF NOT EXISTS audio_object_key TEXT;
+ALTER TABLE recordings ADD COLUMN IF NOT EXISTS thumbnail_object_key TEXT;

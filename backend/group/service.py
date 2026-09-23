@@ -18,8 +18,8 @@ from research.group_observation import (
 )
 
 from .errors import GroupError
+from .extract import extract_group_recording
 from .media import MediaError, validate_video
-from .processing import build_processing_baseline
 from .rubric import CONSENT_VERSION, MARKSHEET_VERSION, PROTOCOL_VERSION, RubricError, validate_marksheet
 from .seats import MAX_PARTICIPANTS, MIN_PARTICIPANTS, SeatError, order_seats
 
@@ -47,7 +47,7 @@ class GroupObservationService:
         self.store = store
         self.storage = storage
         self.probe = probe
-        self.extractor = extractor or _default_extractor
+        self.extractor = extractor or extract_group_recording
 
     def authenticate(self, token: str) -> Principal | None:
         account = self.store.account_by_token(hash_token(token))
@@ -286,6 +286,7 @@ class GroupObservationService:
             )
         self.store.replace_seats(session_id, rows)
         self.store.update_session(session_id, camera_orientation=orientation)
+        self._mark_visible_seats(session_id)
         self._audit(actor, "assign_seats", session_id, {"slots": [row["slot_number"] for row in rows], "camera_orientation": orientation})
         return {"seats": rows}
 
@@ -352,7 +353,8 @@ class GroupObservationService:
         if sheet is None:
             raise GroupError("marksheet_not_found", "No marksheet exists for this rater", 404)
         if actor.id != rater_id:
-            raise GroupError("blind_rating", "Another rater's scores stay hidden", 403)
+            if not (actor.role == "reviewer" and sheet["state"] == "submitted"):
+                raise GroupError("blind_rating", "Another rater's scores stay hidden", 403)
         return sheet
 
     def save_marksheet(self, actor: Principal, session_id: str, participant_id: str, rater_id: str, payload: dict) -> dict:
@@ -659,23 +661,75 @@ class GroupObservationService:
             derived = self.extractor(data, recording)
             if not isinstance(derived, dict):
                 raise ValueError("extractor returned no processing record")
+            self._store_derived_media(session_id, derived)
             self.store.replace_turns(session_id, list(derived.get("turns") or []))
             reasons = list(derived.get("failure_reasons") or [])
-            state = "failed" if "audio_samples_not_extracted" in reasons or "ffmpeg_audio_extraction_not_run" in reasons else "complete"
+            fatal = "audio_samples_not_extracted" in reasons or any(reason.startswith("audio_extraction_failed") for reason in reasons)
+            kept = {key: value for key, value in derived.items() if key not in {"turns", "audio_wav", "thumbnail_jpeg"}}
             self.store.update_recording(
                 session_id,
-                processing_state=state,
+                processing_state="failed" if fatal else "complete",
                 failure_reason=";".join(reasons) or None,
                 quality_state=derived.get("quality_state") or "unprocessed",
-                processing={key: value for key, value in derived.items() if key != "turns"},
+                processing=kept,
                 tool_version=derived.get("tool_version"),
+                audio_object_key=derived.get("audio_object_key"),
+                thumbnail_object_key=derived.get("thumbnail_object_key"),
             )
+            if derived.get("thumbnail_object_key") and not self._session(session_id).get("marked_frame_object_key"):
+                self.store.update_session(session_id, marked_frame_object_key=derived["thumbnail_object_key"])
+            self._mark_visible_seats(session_id)
         except Exception as exc:
             self.store.update_recording(session_id, processing_state="failed", failure_reason=f"{type(exc).__name__}")
             self.store.finish_job(job["id"], state="failed", error=type(exc).__name__)
             return
         failed = self.store.recording_for_session(session_id)["processing_state"] == "failed"
         self.store.finish_job(job["id"], state="failed" if failed else "complete", error=None if not failed else "audio_not_extracted")
+
+    def _mark_visible_seats(self, session_id: str) -> None:
+        recording = self.store.recording_for_session(session_id)
+        if recording is None:
+            return
+        processing = dict(recording.get("processing") or {})
+        frames = list(processing.get("frames") or [])
+        seats = self.store.seats_for(session_id)
+        if not frames or not seats:
+            return
+        checked = []
+        for frame in frames:
+            time_s = float(frame["time_s"])
+            visible = [
+                int(seat["slot_number"])
+                for seat in seats
+                if float(seat["valid_from_s"]) <= time_s <= float(seat["valid_to_s"])
+            ]
+            checked.append({**frame, "visible_slots": visible, "missing_slots": [
+                int(seat["slot_number"]) for seat in seats if int(seat["slot_number"]) not in visible
+            ]})
+        processing["frames"] = checked
+        self.store.update_recording(session_id, processing=processing)
+
+    def store_signature(self, actor: Principal, session_id: str, form_line: int, filename: str, data: bytes) -> dict:
+        self._require(actor, "operator")
+        self._session(session_id)
+        if form_line < 1 or form_line > 10:
+            raise GroupError("invalid_signature", "Signature form line must be from 1 to 10", 400)
+        if len(data) > _MAX_IMAGE_BYTES or not (data.startswith(b"\xff\xd8") or data.startswith(b"\x89PNG")):
+            raise GroupError("invalid_signature", "A signature must be a JPEG or PNG under 5 MB", 400)
+        key = f"group-recordings/{session_id}/consent/{form_line}/signature"
+        content_type = "image/jpeg" if data.startswith(b"\xff\xd8") else "image/png"
+        stored = self.storage.put_immutable(key, data, content_type)
+        self.store.set_consent_signature(session_id, form_line, stored.key)
+        self._audit(actor, "store_signature", session_id, {"form_line": form_line, "sha256": stored.sha256})
+        return {"form_line": form_line, "sha256": stored.sha256, "stored_on_consent_record": True}
+
+    def _store_derived_media(self, session_id: str, derived: dict) -> None:
+        if derived.get("audio_wav"):
+            stored = self.storage.put_immutable(f"group-recordings/{session_id}/audio.wav", derived["audio_wav"], "audio/wav")
+            derived["audio_object_key"] = stored.key
+        if derived.get("thumbnail_jpeg"):
+            stored = self.storage.put_immutable(f"group-recordings/{session_id}/thumbnail.jpg", derived["thumbnail_jpeg"], "image/jpeg")
+            derived["thumbnail_object_key"] = stored.key
 
     def _package(self, session: dict) -> dict:
         examples = self._examples(session)
@@ -890,15 +944,6 @@ class GroupObservationService:
             datetime.fromisoformat(str(value))
         except (TypeError, ValueError) as exc:
             raise GroupError("invalid_session", f"{field} must be an ISO timestamp", 400) from exc
-
-
-def _default_extractor(data: bytes, recording: dict) -> dict:
-    del data
-    return build_processing_baseline(
-        source_sha256=recording["sha256"],
-        duration_s=float(recording["duration_s"]),
-        failure_reasons=["ffmpeg_audio_extraction_not_run"],
-    )
 
 
 def _public_recording(recording: dict) -> dict:

@@ -93,6 +93,22 @@ def get_group_session(session_id):
         return _failure(exc)
 
 
+@group_api.post("/group-sessions/<uuid:session_id>/consent-signatures")
+@group_role("operator")
+def store_consent_signature(session_id):
+    upload = request.files.get("file")
+    if upload is None:
+        return error("invalid_signature", "Attach the signature image as file", 400)
+    try:
+        form_line = int(request.form.get("form_line", "0"))
+        stored = _service().store_signature(g.principal, str(session_id), form_line, upload.filename or "signature.jpg", upload.read())
+    except GroupError as exc:
+        return _failure(exc)
+    except ValueError:
+        return error("invalid_signature", "form_line must be a number", 400)
+    return jsonify({"status": "stored", "signature": stored}), 201
+
+
 @group_api.post("/group-sessions/<uuid:session_id>/recording")
 @group_role("operator")
 def upload_group_recording(session_id):

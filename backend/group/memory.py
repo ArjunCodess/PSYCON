@@ -90,6 +90,21 @@ class MemoryGroupStore:
     def insert_consent(self, row: dict) -> None:
         self.consent_records.append(copy.deepcopy(row))
 
+    def set_consent_signature(self, session_id: str, form_line: int, object_key: str) -> None:
+        for row in self.consent_records:
+            if row["group_session_id"] == session_id and int(row["form_line"]) == int(form_line):
+                row["signature_object_key"] = object_key
+                return
+        self.consent_records.append(
+            {
+                "id": object_key,
+                "group_session_id": session_id,
+                "form_line": int(form_line),
+                "legal_name": "",
+                "signature_object_key": object_key,
+            }
+        )
+
     def insert_recording(self, row: dict) -> dict:
         if row["group_session_id"] in self.recordings:
             raise ValueError("this group session already has a recording")

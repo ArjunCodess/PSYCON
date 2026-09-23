@@ -17,7 +17,7 @@ _SESSION_FIELDS = {
     "recording_disposition",
 }
 _PARTICIPANT_FIELDS = {"research_code", "withdrawn_at"}
-_RECORDING_FIELDS = {"processing_state", "failure_reason", "quality_state", "processing", "tool_version"}
+_RECORDING_FIELDS = {"processing_state", "failure_reason", "quality_state", "processing", "tool_version", "audio_object_key", "thumbnail_object_key"}
 
 
 def _public(row: dict | None) -> dict | None:
@@ -165,6 +165,25 @@ class PostgresGroupStore:
                 """,
                 (row["id"], row["group_session_id"], row["form_line"], row["legal_name"], row["signature_object_key"]),
             )
+
+    def set_consent_signature(self, session_id: str, form_line: int, object_key: str) -> None:
+        with self.database.connection() as connection:
+            updated = connection.execute(
+                """
+                UPDATE consent_records SET signature_object_key=%s
+                WHERE group_session_id=%s AND form_line=%s
+                RETURNING id
+                """,
+                (object_key, session_id, form_line),
+            ).fetchone()
+            if updated is None:
+                connection.execute(
+                    """
+                    INSERT INTO consent_records(id, group_session_id, form_line, legal_name, signature_object_key)
+                    VALUES (%s,%s,%s,'',%s)
+                    """,
+                    (str(uuid4()), session_id, form_line, object_key),
+                )
 
     def insert_recording(self, row: dict) -> dict:
         try:
