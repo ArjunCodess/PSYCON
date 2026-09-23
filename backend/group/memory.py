@@ -24,6 +24,8 @@ class MemoryGroupStore:
         self.jobs: list[dict] = []
         self.grants: dict[str, dict] = {}
         self.audit_events: list[dict] = []
+        self.face_samples: dict[str, list[dict]] = {}
+        self.training_labels: list[dict] = []
 
     def account_by_token(self, token_hash: str) -> dict | None:
         account_id = self.tokens.get(token_hash)
@@ -229,4 +231,27 @@ class MemoryGroupStore:
         self.seats.pop(session_id, None)
         self.turns.pop(session_id, None)
         self.jobs = [row for row in self.jobs if row["group_session_id"] != session_id]
+        self.face_samples.pop(session_id, None)
+        self.training_labels = [row for row in self.training_labels if row["group_session_id"] != session_id]
         return keys
+
+    def replace_face_samples(self, session_id: str, rows: list[dict]) -> list[dict]:
+        self.face_samples[session_id] = copy.deepcopy(rows)
+        return self.face_samples_for(session_id)
+
+    def face_samples_for(self, session_id: str) -> list[dict]:
+        return copy.deepcopy(self.face_samples.get(session_id, []))
+
+    def all_face_samples(self) -> list[dict]:
+        return [copy.deepcopy(row) for rows in self.face_samples.values() for row in rows]
+
+    def replace_training_labels(self, session_id: str, rows: list[dict]) -> list[dict]:
+        self.training_labels = [row for row in self.training_labels if row["group_session_id"] != session_id]
+        self.training_labels.extend(copy.deepcopy(rows))
+        return self.training_labels_for(session_id)
+
+    def training_labels_for(self, session_id: str) -> list[dict]:
+        return [copy.deepcopy(row) for row in self.training_labels if row["group_session_id"] == session_id]
+
+    def all_training_labels(self) -> list[dict]:
+        return copy.deepcopy(self.training_labels)

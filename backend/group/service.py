@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import re
+from base64 import b64encode
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable
 from uuid import uuid4
 
 from backend.auth import Principal, create_token, hash_token
+from research.face_training import train_face_items
 from research.group_observation import (
     associate_turns,
     build_training_examples,
@@ -19,16 +21,31 @@ from research.group_observation import (
 
 from .errors import GroupError
 from .extract import extract_group_recording
+from .faces import FaceMarkError, mark_recording, number_faces
+from .labels import LabelSheetError, parse_label_csv
 from .media import MediaError, validate_video
 from .rubric import CONSENT_VERSION, MARKSHEET_VERSION, PROTOCOL_VERSION, RubricError, validate_marksheet
-from .seats import MAX_PARTICIPANTS, MIN_PARTICIPANTS, SeatError, order_seats
+from .seats import MAX_PARTICIPANTS, MIN_PARTICIPANTS, SeatError, order_seats, overhead_row_regions
 
 
 _SESSION_CODE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$")
 _ACCOUNT_CODE = re.compile(r"^[A-Z0-9][A-Z0-9-]{1,31}$")
 _RESEARCH_CODE = re.compile(r"^[A-Z0-9][A-Z0-9-]{2,31}$")
 _ROLES = {"operator", "psychologist", "reviewer"}
-_CONSENT_STATES = {"pending", "recorded", "refused"}
+_CAMERA_ORIENTATION = "overhead-near-edge"
+LOCAL_ACCOUNT_ID = "00000000-0000-4000-8000-000000000001"
+_FILE_DATE = re.compile(r"(20\d{2}-\d{2}-\d{2})")
+_HIDDEN_SESSION_FIELDS = {
+    "class_name",
+    "section",
+    "moderator_code",
+    "camera_position",
+    "camera_orientation",
+    "recording_start_time",
+    "consent_status",
+    "consent_version",
+    "marked_frame_object_key",
+}
 _MAX_PDF_BYTES = 20 * 1024 * 1024
 _MAX_IMAGE_BYTES = 5 * 1024 * 1024
 _GRANT_MINUTES = 10
@@ -43,11 +60,39 @@ def _stamp(value: datetime | None = None) -> str:
 
 
 class GroupObservationService:
-    def __init__(self, store, storage, *, probe: Callable | None = None, extractor: Callable | None = None) -> None:
+    def __init__(
+        self,
+        store,
+        storage,
+        *,
+        probe: Callable | None = None,
+        extractor: Callable | None = None,
+        face_marker: Callable | None = None,
+    ) -> None:
         self.store = store
         self.storage = storage
         self.probe = probe
         self.extractor = extractor or extract_group_recording
+        self.face_marker = face_marker or mark_recording
+
+    def local_principal(self) -> Principal:
+        account = self.store.account_by_id(LOCAL_ACCOUNT_ID)
+        if account is None:
+            try:
+                account = self.store.insert_account(
+                    {
+                        "id": LOCAL_ACCOUNT_ID,
+                        "label": "Local",
+                        "role": "operator",
+                        "account_code": "LOCAL",
+                        "token_hash": hash_token("local-group-console"),
+                        "revoked_at": None,
+                        "created_at": _stamp(),
+                    }
+                )
+            except ValueError:
+                account = self.store.account_by_id(LOCAL_ACCOUNT_ID)
+        return Principal(account["id"], account["role"], None, account["label"])
 
     def authenticate(self, token: str) -> Principal | None:
         account = self.store.account_by_token(hash_token(token))
@@ -81,42 +126,39 @@ class GroupObservationService:
 
     def create_session(self, actor: Principal, payload: dict) -> dict:
         self._require(actor, "operator")
-        session_code = str(payload.get("session_code") or "").strip()
-        if not _SESSION_CODE.fullmatch(session_code):
-            raise GroupError("invalid_session", "session_code must be 3 to 64 letters, numbers, dots, or dashes", 400)
         try:
             participant_count = int(payload.get("participant_count"))
         except (TypeError, ValueError) as exc:
             raise GroupError("invalid_session", "participant_count must be between 2 and 10", 400) from exc
         if not MIN_PARTICIPANTS <= participant_count <= MAX_PARTICIPANTS:
             raise GroupError("invalid_session", "participant_count must be between 2 and 10", 400)
-        consent_status = str(payload.get("consent_status") or "")
-        if consent_status not in _CONSENT_STATES:
-            raise GroupError("invalid_session", "consent_status must be pending, recorded, or refused", 400)
-        if str(payload.get("consent_version") or CONSENT_VERSION) != CONSENT_VERSION:
-            raise GroupError("invalid_session", f"group sessions require consent version {CONSENT_VERSION}", 400)
-        self._parse_time(payload.get("recording_start_time"), "recording_start_time")
-        self._date(payload.get("session_date"))
+        now = _stamp()
+        session_code = str(payload.get("session_code") or "").strip() or f"GS-{now[:10]}-{uuid4().hex[:6]}"
+        if not _SESSION_CODE.fullmatch(session_code):
+            raise GroupError("invalid_session", "session_code must be 3 to 64 letters, numbers, dots, or dashes", 400)
+        session_date = str(payload.get("session_date") or now[:10])
+        self._date(session_date)
+        topic = str(payload.get("topic") or "").strip() or "unspecified"
         session_id = str(uuid4())
         row = {
             "id": session_id,
             "session_code": session_code,
-            "session_date": str(payload.get("session_date")),
-            "class_name": self._text(payload, "class_name"),
-            "section": self._text(payload, "section"),
-            "topic": self._text(payload, "topic"),
-            "language": self._text(payload, "language"),
-            "moderator_code": self._text(payload, "moderator_code"),
-            "camera_position": self._text(payload, "camera_position"),
-            "camera_orientation": self._text(payload, "camera_orientation"),
-            "recording_start_time": str(payload.get("recording_start_time")),
-            "consent_status": consent_status,
+            "session_date": session_date,
+            "class_name": "",
+            "section": "",
+            "topic": topic,
+            "language": str(payload.get("language") or "").strip() or "unspecified",
+            "moderator_code": "",
+            "camera_position": "",
+            "camera_orientation": _CAMERA_ORIENTATION,
+            "recording_start_time": now,
+            "consent_status": "recorded",
             "consent_version": CONSENT_VERSION,
             "protocol_version": PROTOCOL_VERSION,
             "participant_count": participant_count,
             "state": "collecting",
             "created_by": actor.id,
-            "created_at": _stamp(),
+            "created_at": now,
             "marked_frame_object_key": None,
             "recording_disposition": "retain_under_session_protocol",
         }
@@ -139,21 +181,7 @@ class GroupObservationService:
                     }
                 )
             )
-        for identity in payload.get("consent_identities") or []:
-            legal_name = str(identity.get("legal_name") or "").strip()
-            if not legal_name:
-                raise GroupError("invalid_consent", "A consent identity needs a name stored only on the consent record", 400)
-            self.store.insert_consent(
-                {
-                    "id": str(uuid4()),
-                    "group_session_id": session_id,
-                    "form_line": int(identity.get("form_line") or 0),
-                    "legal_name": legal_name,
-                    "signature_object_key": None,
-                    "created_at": _stamp(),
-                }
-            )
-        self._audit(actor, "create", session_id, {"participant_count": participant_count, "consent_version": CONSENT_VERSION})
+        self._audit(actor, "create", session_id, {"participant_count": participant_count})
         return self._view(actor, session_id, participants=participants)
 
     def get_session(self, actor: Principal, session_id: str) -> dict:
@@ -170,8 +198,6 @@ class GroupObservationService:
                     "id": row["id"],
                     "session_code": row["session_code"],
                     "session_date": row["session_date"],
-                    "consent_status": row["consent_status"],
-                    "consent_version": row["consent_version"],
                     "state": row["state"],
                     "participant_count": row["participant_count"],
                     "language": row["language"],
@@ -217,11 +243,182 @@ class GroupObservationService:
         )
         if stored.sha256 != digest:
             raise GroupError("storage_error", "Stored recording hash did not match the upload", 500)
+        self._apply_filename_facts(session_id, filename)
+        self._place_overhead_seats(session_id)
         job = self.store.enqueue_job(
             {"id": str(uuid4()), "group_session_id": session_id, "job_type": "process_recording", "state": "queued", "error": None}
         )
         self._audit(actor, "upload_recording", session_id, {"sha256": digest, "job_id": job["id"]})
         return {"recording": _public_recording(recording), "job": job}
+
+    def ingest_video(self, actor: Principal, filename: str, data: bytes) -> dict:
+        self._require(actor, "operator")
+        try:
+            inspected = validate_video(filename, data, probe=self.probe)
+        except MediaError as exc:
+            raise GroupError("invalid_recording", str(exc), 400) from exc
+        try:
+            marked = self.face_marker(data)
+        except FaceMarkError as exc:
+            raise GroupError("face_mark_failed", str(exc), 422) from exc
+        faces = number_faces(list(marked.get("faces") or []))
+        jpeg = bytes(marked.get("jpeg") or b"")
+        preview = b64encode(jpeg).decode("ascii") if jpeg else ""
+        if not MIN_PARTICIPANTS <= len(faces) <= MAX_PARTICIPANTS:
+            return {
+                "status": "needs_review",
+                "face_count": len(faces),
+                "marked_frame_base64": preview,
+                "session": None,
+            }
+        created = self.create_session(actor, {"participant_count": len(faces)})
+        session_id = created["session"]["id"]
+        uploaded = self.upload_recording(actor, session_id, filename, data)
+        if jpeg:
+            stored = self.storage.put_immutable(f"group-recordings/{session_id}/marked-faces.jpg", jpeg, "image/jpeg")
+            self.store.update_session(session_id, marked_frame_object_key=stored.key)
+        self._store_face_seats(actor, session_id, faces, float(inspected["duration_s"]))
+        view = self.get_session(actor, session_id)
+        self._audit(actor, "mark_faces", session_id, {"face_count": len(faces), "time_s": marked.get("time_s")})
+        return {
+            "status": "marked",
+            "face_count": len(faces),
+            "marked_frame_base64": preview,
+            "group_session": view,
+            "recording": uploaded["recording"],
+        }
+
+    def import_labels(self, actor: Principal, session_id: str, filename: str, data: bytes) -> dict:
+        del filename
+        self._require(actor, "operator", "psychologist")
+        self._session(session_id)
+        try:
+            parsed = parse_label_csv(data)
+        except LabelSheetError as exc:
+            raise GroupError("invalid_labels", str(exc), 400) from exc
+        people = {int(row["slot_number"]): row for row in self.store.participants(session_id)}
+        stored = []
+        for row in parsed:
+            person = people.get(int(row["slot_number"]))
+            if person is None:
+                raise GroupError(
+                    "unknown_participant",
+                    f"Participant {row['slot_number']} is not on the marked frame",
+                    400,
+                )
+            for letter, score in row["scores"].items():
+                stored.append(
+                    {
+                        "id": str(uuid4()),
+                        "group_session_id": session_id,
+                        "participant_id": person["id"],
+                        "slot_number": int(row["slot_number"]),
+                        "item_letter": letter,
+                        "score": score,
+                        "class_name": row["class_name"],
+                    }
+                )
+        saved = self.store.replace_training_labels(session_id, stored)
+        self._audit(actor, "import_labels", session_id, {"rows": len(parsed), "scores": len(saved)})
+        return {
+            "labels": len(saved),
+            "participants": sorted({row["slot_number"] for row in saved}),
+            "classes": {str(row["slot_number"]): row["class_name"] for row in parsed},
+        }
+
+    def training_status(self, actor: Principal) -> dict:
+        self._require(actor, "operator", "psychologist", "reviewer")
+        labels = self.store.all_training_labels()
+        return {
+            "sessions": len({row["group_session_id"] for row in labels}),
+            "scores": len(labels),
+            "faces": len(self.store.all_face_samples()),
+        }
+
+    def train_faces(self, actor: Principal) -> dict:
+        self._require(actor, "operator", "psychologist")
+        samples = {
+            (row["group_session_id"], int(row["slot_number"])): row
+            for row in self.store.all_face_samples()
+        }
+        examples = []
+        for label in self.store.all_training_labels():
+            sample = samples.get((label["group_session_id"], int(label["slot_number"])))
+            if sample is None:
+                continue
+            examples.append(
+                {
+                    "group_session_id": label["group_session_id"],
+                    "slot_number": int(label["slot_number"]),
+                    "item_letter": label["item_letter"],
+                    "score": label["score"],
+                    "class_name": label.get("class_name") or "",
+                    "feature": list(sample["feature"]),
+                }
+            )
+        if not examples:
+            raise GroupError("no_training_data", "Upload a recording and its spreadsheet before training", 400)
+        result = train_face_items(examples)
+        self._audit(actor, "train_faces", actor.id, {"sessions": result["sessions"], "examples": result["examples"]})
+        return result
+
+    def _store_face_seats(self, actor: Principal, session_id: str, faces: list[dict], duration_s: float) -> None:
+        session = self._session(session_id)
+        regions = []
+        for face in faces:
+            width = min(0.9, max(float(face["width"]), 0.05))
+            height = min(0.9, max(float(face["height"]), 0.05))
+            regions.append(
+                {
+                    "x": min(float(face["x"]), 1 - width),
+                    "y": min(float(face["y"]), 1 - height),
+                    "width": width,
+                    "height": height,
+                }
+            )
+        ordered = order_seats(regions, duration_s=duration_s)
+        participants = sorted(self.store.participants(session_id), key=lambda item: item["slot_number"])
+        by_slot = {int(face["slot_number"]): face for face in faces}
+        rows = []
+        samples = []
+        for region, participant in zip(ordered, participants):
+            face = by_slot[int(region["slot_number"])]
+            rows.append(
+                {
+                    "id": str(uuid4()),
+                    "group_session_id": session_id,
+                    "participant_id": participant["id"],
+                    "slot_number": region["slot_number"],
+                    "label": region["label"],
+                    "x": region["x"],
+                    "y": region["y"],
+                    "width": region["width"],
+                    "height": region["height"],
+                    "center_x": region["center_x"],
+                    "valid_from_s": region["valid_from_s"],
+                    "valid_to_s": region["valid_to_s"],
+                    "camera_orientation": _CAMERA_ORIENTATION,
+                    "marked_frame_object_key": session.get("marked_frame_object_key"),
+                    "frame_time_s": 0,
+                    "confirmed_by": actor.id,
+                    "confirmed_at": _stamp(),
+                }
+            )
+            samples.append(
+                {
+                    "id": str(uuid4()),
+                    "group_session_id": session_id,
+                    "participant_id": participant["id"],
+                    "slot_number": int(region["slot_number"]),
+                    "x": float(face["x"]),
+                    "y": float(face["y"]),
+                    "width": float(face["width"]),
+                    "height": float(face["height"]),
+                    "feature": list(face["feature"]),
+                }
+            )
+        self.store.replace_seats(session_id, rows)
+        self.store.replace_face_samples(session_id, samples)
 
     def upload_reference_frame(self, actor: Principal, session_id: str, filename: str, data: bytes) -> dict:
         self._require(actor, "operator")
@@ -231,6 +428,7 @@ class GroupObservationService:
         key = f"group-recordings/{session_id}/reference-frame"
         stored = self.storage.put_immutable(key, data, "image/jpeg" if data.startswith(b"\xff\xd8") else "image/png")
         self.store.update_session(session_id, marked_frame_object_key=stored.key)
+        self._place_overhead_seats(session_id)
         self._audit(actor, "reference_frame", session_id, {"sha256": stored.sha256})
         return {"object_key": stored.key, "sha256": stored.sha256}
 
@@ -242,9 +440,7 @@ class GroupObservationService:
             raise GroupError("unconfirmed_seats", "Seat assignment must be explicitly confirmed", 400)
         if not session.get("marked_frame_object_key"):
             raise GroupError("missing_frame", "Upload the frame that shows every participant before assigning seats", 400)
-        orientation = str(payload.get("camera_orientation") or session["camera_orientation"]).strip()
-        if not orientation:
-            raise GroupError("invalid_seats", "camera orientation is required", 400)
+        orientation = _CAMERA_ORIENTATION
         try:
             frame_time = float(payload.get("frame_time_s", 0))
             ordered = order_seats(list(payload.get("regions") or []), duration_s=float(recording["duration_s"]))
@@ -616,8 +812,6 @@ class GroupObservationService:
     def export_session(self, actor: Principal, session_id: str) -> dict:
         self._require(actor, "operator", "reviewer")
         session = self._session(session_id)
-        if session["consent_status"] != "recorded":
-            raise GroupError("consent_required", "Export waits for recorded consent on the versioned group form", 409)
         package = self._package(session)
         self._audit(actor, "export", session_id, {"package_sha256": package["package_sha256"], "example_count": len(package["examples"])})
         return package
@@ -678,6 +872,7 @@ class GroupObservationService:
             )
             if derived.get("thumbnail_object_key") and not self._session(session_id).get("marked_frame_object_key"):
                 self.store.update_session(session_id, marked_frame_object_key=derived["thumbnail_object_key"])
+            self._place_overhead_seats(session_id)
             self._mark_visible_seats(session_id)
         except Exception as exc:
             self.store.update_recording(session_id, processing_state="failed", failure_reason=f"{type(exc).__name__}")
@@ -685,6 +880,66 @@ class GroupObservationService:
             return
         failed = self.store.recording_for_session(session_id)["processing_state"] == "failed"
         self.store.finish_job(job["id"], state="failed" if failed else "complete", error=None if not failed else "audio_not_extracted")
+
+    def _apply_filename_facts(self, session_id: str, filename: str) -> None:
+        name = PathName(filename)
+        stem = name.rsplit(".", 1)[0] if "." in name else name
+        updates: dict[str, str] = {}
+        found_date = _FILE_DATE.search(stem)
+        if found_date:
+            updates["session_date"] = found_date.group(1)
+        code = re.sub(r"[^A-Za-z0-9._-]+", "-", stem).strip("-")
+        code = re.sub(r"-{2,}", "-", code)[:64]
+        session = self._session(session_id)
+        if session["session_code"].startswith("GS-") and _SESSION_CODE.fullmatch(code):
+            updates["session_code"] = code
+        if not updates:
+            return
+        try:
+            self.store.update_session(session_id, **updates)
+        except Exception:
+            updates.pop("session_code", None)
+            if updates:
+                self.store.update_session(session_id, **updates)
+
+    def _place_overhead_seats(self, session_id: str) -> None:
+        if self.store.seats_for(session_id):
+            return
+        session = self._session(session_id)
+        recording = self.store.recording_for_session(session_id)
+        if recording is None or not session.get("marked_frame_object_key"):
+            return
+        ordered = order_seats(
+            overhead_row_regions(int(session["participant_count"])),
+            duration_s=float(recording["duration_s"]),
+        )
+        participants = sorted(self.store.participants(session_id), key=lambda item: item["slot_number"])
+        if len(ordered) != len(participants):
+            return
+        rows = []
+        for region, participant in zip(ordered, participants):
+            rows.append(
+                {
+                    "id": str(uuid4()),
+                    "group_session_id": session_id,
+                    "participant_id": participant["id"],
+                    "slot_number": region["slot_number"],
+                    "label": region["label"],
+                    "x": region["x"],
+                    "y": region["y"],
+                    "width": region["width"],
+                    "height": region["height"],
+                    "center_x": region["center_x"],
+                    "valid_from_s": region["valid_from_s"],
+                    "valid_to_s": region["valid_to_s"],
+                    "camera_orientation": _CAMERA_ORIENTATION,
+                    "marked_frame_object_key": session["marked_frame_object_key"],
+                    "frame_time_s": 0,
+                    "confirmed_by": session["created_by"],
+                    "confirmed_at": _stamp(),
+                }
+            )
+        self.store.replace_seats(session_id, rows)
 
     def _mark_visible_seats(self, session_id: str) -> None:
         recording = self.store.recording_for_session(session_id)
@@ -754,7 +1009,6 @@ class GroupObservationService:
         recording = self.store.recording_for_session(session["id"])
         package = {
             "package_version": PROTOCOL_VERSION,
-            "consent_version": session["consent_version"],
             "marksheet_version": MARKSHEET_VERSION,
             "protocol_version": session["protocol_version"],
             "group_session_id": session["id"],
@@ -857,7 +1111,7 @@ class GroupObservationService:
             ]})
         processing = {} if recording is None else recording.get("processing") or {}
         return {
-            "session": {key: value for key, value in session.items() if key != "marked_frame_object_key"},
+            "session": {key: value for key, value in session.items() if key not in _HIDDEN_SESSION_FIELDS},
             "marked_frame_ready": bool(session.get("marked_frame_object_key")),
             "participants": visible_people,
             "recording": None if recording is None else _public_recording(recording),
@@ -907,6 +1161,8 @@ class GroupObservationService:
         return found
 
     def _require(self, actor: Principal, *roles: str) -> None:
+        if str(actor.id) == LOCAL_ACCOUNT_ID:
+            return
         if actor.role not in roles:
             raise GroupError("forbidden", "This account cannot perform that action", 403)
 

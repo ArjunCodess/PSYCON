@@ -19,6 +19,25 @@ class SeatError(ValueError):
     pass
 
 
+def overhead_row_regions(count: int) -> list[dict[str, float]]:
+    """Place one row of seats for the overhead table recording.
+
+    Heads sit along the near edge. Participant 1 is the person on the right
+    of the displayed frame, then numbers continue toward the left.
+    """
+    if not MIN_PARTICIPANTS <= count <= MAX_PARTICIPANTS:
+        raise SeatError("a group recording needs between 2 and 10 participants")
+    gap = 0.012
+    usable = 0.90
+    width = (usable - gap * (count - 1)) / count
+    right_edge = 0.95
+    regions = []
+    for index in range(count):
+        x = right_edge - ((index + 1) * width) - (index * gap)
+        regions.append({"x": x, "y": 0.40, "width": width, "height": 0.30})
+    return regions
+
+
 def order_seats(regions: list[dict[str, Any]], *, duration_s: float) -> list[dict[str, Any]]:
     if not isinstance(regions, list):
         raise SeatError("seat regions must be a list")

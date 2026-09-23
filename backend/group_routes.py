@@ -28,7 +28,10 @@ def group_role(*roles: str):
         def wrapped(*args, **kwargs):
             header = request.headers.get("Authorization", "")
             token = header.removeprefix("Bearer ").strip() if header.startswith("Bearer ") else ""
-            principal = _service().authenticate(token) if token else None
+            if not token:
+                g.principal = _service().local_principal()
+                return view(*args, **kwargs)
+            principal = _service().authenticate(token)
             if principal is None:
                 return error("unauthorized", "A named account token is required", 401)
             if principal.role not in roles:
@@ -70,6 +73,51 @@ def current_group_account():
 def list_group_sessions():
     try:
         return jsonify({"group_sessions": _service().list_sessions(g.principal)})
+    except GroupError as exc:
+        return _failure(exc)
+
+
+@group_api.post("/group-sessions/from-video")
+@group_role("operator")
+def ingest_group_video():
+    upload = request.files.get("file")
+    if upload is None:
+        return error("invalid_recording", "Attach the video as file", 400)
+    try:
+        result = _service().ingest_video(g.principal, upload.filename or "", upload.read())
+    except GroupError as exc:
+        return _failure(exc)
+    status = 201 if result["status"] == "marked" else 200
+    return jsonify(result), status
+
+
+@group_api.post("/group-sessions/<uuid:session_id>/labels")
+@group_role("operator", "psychologist")
+def import_group_labels(session_id):
+    upload = request.files.get("file")
+    if upload is None:
+        return error("invalid_labels", "Attach the spreadsheet as file", 400)
+    try:
+        stored = _service().import_labels(g.principal, str(session_id), upload.filename or "labels.csv", upload.read())
+    except GroupError as exc:
+        return _failure(exc)
+    return jsonify({"status": "stored", **stored})
+
+
+@group_api.get("/group-training/faces")
+@group_role("operator", "psychologist", "reviewer")
+def face_training_status():
+    try:
+        return jsonify(_service().training_status(g.principal))
+    except GroupError as exc:
+        return _failure(exc)
+
+
+@group_api.post("/group-training/faces")
+@group_role("operator", "psychologist")
+def run_face_training():
+    try:
+        return jsonify(_service().train_faces(g.principal))
     except GroupError as exc:
         return _failure(exc)
 

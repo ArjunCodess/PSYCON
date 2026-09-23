@@ -235,6 +235,48 @@ def test_group_page_renders() -> None:
     assert b"SESSION CONSOLE" in page.data
     assert b"dashboard.css" in page.data
     assert b"right side" in page.data
+    assert b"Bearer token" not in page.data
+
+
+def test_overhead_row_uses_count_and_filename(stack) -> None:
+    client = stack["client"]
+    created = client.post(
+        "/api/v1/group-sessions",
+        json={"participant_count": 8, "topic": "shared water"},
+        headers=auth(stack["operator_token"]),
+    )
+    assert created.status_code == 201
+    session = created.get_json()["group_session"]["session"]
+    assert session["participant_count"] == 8
+    assert "class_name" not in session
+    assert "moderator_code" not in session
+    assert "camera_position" not in session
+    assert "recording_start_time" not in session
+    assert "consent_status" not in session
+    session_id = session["id"]
+    uploaded = client.post(
+        f"/api/v1/group-sessions/{session_id}/recording",
+        data={"file": (io.BytesIO(b"\x00\x00\x00\x14ftypisom\x00\x00\x00\x00isom"), "WhatsApp Video 2026-09-23 at 11.35.12 PM.mp4")},
+        headers=auth(stack["operator_token"]),
+        content_type="multipart/form-data",
+    )
+    assert uploaded.status_code == 201
+    frame = client.post(
+        f"/api/v1/group-sessions/{session_id}/reference-frame",
+        data={"file": (io.BytesIO(b"\xff\xd8\xff\xd9"), "frame.jpg")},
+        headers=auth(stack["operator_token"]),
+        content_type="multipart/form-data",
+    )
+    assert frame.status_code == 200
+    view = client.get(f"/api/v1/group-sessions/{session_id}", headers=auth(stack["operator_token"])).get_json()
+    assert view["session"]["session_code"] == "WhatsApp-Video-2026-09-23-at-11.35.12-PM"
+    assert view["session"]["session_date"] == "2026-09-23"
+    assert "recording_start_time" not in view["session"]
+    seats = view["seats"]
+    assert len(seats) == 8
+    assert [seat["slot_number"] for seat in seats] == list(range(1, 9))
+    assert seats[0]["center_x"] > seats[-1]["center_x"]
+    assert stack["service"].store.consent_records == []
 
 
 def test_roles_seats_mappings_marksheets_review_withdrawal_and_export(stack) -> None:
@@ -252,7 +294,10 @@ def test_roles_seats_mappings_marksheets_review_withdrawal_and_export(stack) -> 
     assert identity.get_json()["account"]["id"] == stack["operator"]["id"]
     assert [person["label"] for person in participants] == ["Participant 1", "Participant 2"]
     assert "Ada Example" not in created.get_data(as_text=True)
-    assert service.store.consent_records[0]["legal_name"] == "Ada Example"
+    assert service.store.consent_records == []
+    assert "consent_status" not in body["session"]
+    assert "camera_position" not in body["session"]
+    assert "moderator_code" not in body["session"]
 
     denied = client.put(
         f"/api/v1/group-sessions/{session_id}/participants/{participants[0]['id']}/marksheets/{stack['operator']['id']}",
@@ -261,7 +306,7 @@ def test_roles_seats_mappings_marksheets_review_withdrawal_and_export(stack) -> 
     )
     assert denied.status_code == 403
     anonymous = client.get(f"/api/v1/group-sessions/{session_id}")
-    assert anonymous.status_code == 401
+    assert anonymous.status_code == 200
 
     video = client.post(
         f"/api/v1/group-sessions/{session_id}/recording",
@@ -455,17 +500,6 @@ def test_roles_seats_mappings_marksheets_review_withdrawal_and_export(stack) -> 
     assert "SCORE-FROM-PDF-9" not in encoded
     assert "consent/" not in encoded
     assert package["pdf_text_used_as_labels"] is False
-    signed = client.post(
-        f"/api/v1/group-sessions/{session_id}/consent-signatures",
-        data={"form_line": "1", "file": (io.BytesIO(b"\xff\xd8signature-bytes"), "sign.jpg")},
-        headers=auth(stack["operator_token"]),
-        content_type="multipart/form-data",
-    )
-    assert signed.status_code == 201
-    assert service.store.consent_records[0]["signature_object_key"]
-    again = json.dumps(client.get(f"/api/v1/group-sessions/{session_id}/export", headers=auth(stack["operator_token"])).get_json())
-    assert "signature-bytes" not in again
-    assert "Ada Example" not in again
     no_score = next(row for row in package["examples"] if row["participant_id"] == participants[0]["id"] and row["item_letter"] == "B")
     assert no_score["score"] == "N/O"
     assert no_score["supervised_score"] is None

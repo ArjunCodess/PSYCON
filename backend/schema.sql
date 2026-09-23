@@ -380,3 +380,31 @@ INSERT INTO schema_version(version) VALUES (1), (2), (3), (4) ON CONFLICT DO NOT
 
 ALTER TABLE recordings ADD COLUMN IF NOT EXISTS audio_object_key TEXT;
 ALTER TABLE recordings ADD COLUMN IF NOT EXISTS thumbnail_object_key TEXT;
+
+CREATE TABLE IF NOT EXISTS face_samples (
+    id UUID PRIMARY KEY,
+    group_session_id UUID NOT NULL REFERENCES group_sessions(id) ON DELETE CASCADE,
+    participant_id UUID NOT NULL REFERENCES group_participants(id) ON DELETE CASCADE,
+    slot_number INTEGER NOT NULL CHECK (slot_number BETWEEN 1 AND 10),
+    x REAL NOT NULL,
+    y REAL NOT NULL,
+    width REAL NOT NULL,
+    height REAL NOT NULL,
+    feature JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (group_session_id, slot_number)
+);
+
+CREATE TABLE IF NOT EXISTS training_labels (
+    id UUID PRIMARY KEY,
+    group_session_id UUID NOT NULL REFERENCES group_sessions(id) ON DELETE CASCADE,
+    participant_id UUID NOT NULL REFERENCES group_participants(id) ON DELETE CASCADE,
+    slot_number INTEGER NOT NULL CHECK (slot_number BETWEEN 1 AND 10),
+    item_letter TEXT NOT NULL,
+    score TEXT NOT NULL,
+    class_name TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (group_session_id, participant_id, item_letter)
+);
+
+ALTER TABLE training_labels ADD COLUMN IF NOT EXISTS class_name TEXT NOT NULL DEFAULT '';

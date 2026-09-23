@@ -15,6 +15,9 @@ _SESSION_FIELDS = {
     "camera_orientation",
     "state",
     "recording_disposition",
+    "session_code",
+    "session_date",
+    "recording_start_time",
 }
 _PARTICIPANT_FIELDS = {"research_code", "withdrawn_at"}
 _RECORDING_FIELDS = {"processing_state", "failure_reason", "quality_state", "processing", "tool_version", "audio_object_key", "thumbnail_object_key"}
@@ -582,6 +585,70 @@ class PostgresGroupStore:
             keys.extend(row["signature_object_key"] for row in signatures if row["signature_object_key"])
             connection.execute("DELETE FROM group_sessions WHERE id=%s", (session_id,))
         return keys
+
+    def replace_face_samples(self, session_id: str, rows: list[dict]) -> list[dict]:
+        with self.database.connection() as connection:
+            connection.execute("DELETE FROM face_samples WHERE group_session_id=%s", (session_id,))
+            for row in rows:
+                connection.execute(
+                    """
+                    INSERT INTO face_samples(
+                        id, group_session_id, participant_id, slot_number, x, y, width, height, feature
+                    )
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    """,
+                    (
+                        row["id"], row["group_session_id"], row["participant_id"], row["slot_number"],
+                        row["x"], row["y"], row["width"], row["height"], Jsonb(row["feature"]),
+                    ),
+                )
+        return self.face_samples_for(session_id)
+
+    def face_samples_for(self, session_id: str) -> list[dict]:
+        with self.database.connection() as connection:
+            rows = connection.execute(
+                "SELECT * FROM face_samples WHERE group_session_id=%s ORDER BY slot_number",
+                (session_id,),
+            ).fetchall()
+        return [_public(row) for row in rows]
+
+    def all_face_samples(self) -> list[dict]:
+        with self.database.connection() as connection:
+            rows = connection.execute("SELECT * FROM face_samples ORDER BY group_session_id, slot_number").fetchall()
+        return [_public(row) for row in rows]
+
+    def replace_training_labels(self, session_id: str, rows: list[dict]) -> list[dict]:
+        with self.database.connection() as connection:
+            connection.execute("DELETE FROM training_labels WHERE group_session_id=%s", (session_id,))
+            for row in rows:
+                connection.execute(
+                    """
+                    INSERT INTO training_labels(
+                        id, group_session_id, participant_id, slot_number, item_letter, score, class_name
+                    )
+                    VALUES (%s,%s,%s,%s,%s,%s,%s)
+                    """,
+                    (
+                        row["id"], row["group_session_id"], row["participant_id"], row["slot_number"],
+                        row["item_letter"], row["score"], row["class_name"],
+                    ),
+                )
+        return self.training_labels_for(session_id)
+
+    def training_labels_for(self, session_id: str) -> list[dict]:
+        with self.database.connection() as connection:
+            rows = connection.execute(
+                "SELECT * FROM training_labels WHERE group_session_id=%s ORDER BY slot_number, item_letter",
+                (session_id,),
+            ).fetchall()
+        return [_public(row) for row in rows]
+
+    def all_training_labels(self) -> list[dict]:
+        with self.database.connection() as connection:
+            rows = connection.execute(
+                "SELECT * FROM training_labels ORDER BY group_session_id, slot_number, item_letter"
+            ).fetchall()
+        return [_public(row) for row in rows]
 
     def _update(self, table: str, row_id: str, fields: dict, allowed: set[str]) -> dict:
         unknown = set(fields) - allowed
