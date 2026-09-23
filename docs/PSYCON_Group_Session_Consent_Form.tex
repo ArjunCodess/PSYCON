@@ -4,41 +4,51 @@
 \usepackage[utf8]{inputenc}
 \usepackage{tgheros}
 \renewcommand{\familydefault}{\sfdefault}
-\usepackage[a4paper,landscape,margin=14mm]{geometry}
+\usepackage[a4paper,margin=14mm]{geometry}
 \setlength{\parindent}{0pt}
-\setlength{\parskip}{2pt}
+\setlength{\parskip}{3pt}
 \pagestyle{empty}
-
-\newcommand{\Participant}[1]{%
-\begin{minipage}[t][28mm][t]{0.47\linewidth}
-\textbf{Participant #1}\\[1mm]
-Name: \rule{0.82\linewidth}{0.35pt}\\[2mm]
-Class: \rule{35mm}{0.35pt}\qquad Section: \rule{35mm}{0.35pt}\\[2mm]
-Signature: \rule{55mm}{0.35pt}\qquad Date: \rule{30mm}{0.35pt}
-\end{minipage}}
-
 \begin{document}
 {\LARGE\bfseries PSYCON group-session consent form}\par
-{\small One discussion session only. Maximum 10 participants.}\par
-\vspace{3mm}\hrule\vspace{3mm}
+{\small Version 2.0 \quad 23 September 2026 \quad One recorded discussion \quad Maximum 10 participants}\par
+{\small Project draft. Do not use for collection until the school or ethics reviewer records an approval identifier.}\par
+\vspace{2mm}\hrule\vspace{2mm}
 
-Session ID: \rule{45mm}{0.35pt}\qquad
-Date: \rule{35mm}{0.35pt}\qquad
-Class / section: \rule{45mm}{0.35pt}\qquad
-Topic: \rule{60mm}{0.35pt}
+Session ID: \rule{42mm}{0.35pt}\qquad
+Date: \rule{32mm}{0.35pt}\qquad
+Class / section: \rule{42mm}{0.35pt}\qquad
+Topic: \rule{48mm}{0.35pt}
+
+\vspace{2mm}
+{\small
+\textbf{What the session is.} I agree to take part in one group discussion. A camera records the group, including its original audio. PSYCON extracts that shared audio, samples video frames, and may make a transcript and anonymous voice clusters. The device in the centre of the table is only a shared microphone. It does not measure my pulse, skin conductance, temperature, or movement, and it does not give me an individual physiological score.
+
+\textbf{What the recording is used for.} A named psychologist watches the recording and scores observable discussion behaviour from marksheet version 4.0, on a scale of 0--4 or N/O. PSYCON may learn to predict those scores and to point back to the moments that support a prediction. The output is a research indicator for this recording. It is not a diagnosis, a personality judgment, or a decision about school placement.
+
+\textbf{Names and access.} My name and signature stay on this restricted consent record. Annotation, exports, and training use an anonymous participant code. Named operator, psychologist, and reviewer accounts may open the recording for the approved study. Raw video, audio, transcripts, attached marksheets, and signatures are kept out of the public project repository and out of routine logs.
+
+\textbf{How long it is kept.} The recording and derived files are kept for the period stated in the approved protocol, then deleted or blocked from new processing. A later dataset version lists the recording hash, consent version, and marksheet version it used.
+
+\textbf{Withdrawal.} I may stop during the session or withdraw afterwards by asking the operator. Withdrawal removes my labels and derived rows from future dataset versions. Because the recording also contains other people, the project follows the approved rule for keeping or redacting the shared file. Withdrawing does not erase an aggregate result that was already published without my identity.
+
+Participation is voluntary. I may refuse without giving a reason. I have had a chance to ask questions.
+}
 
 \vspace{3mm}
-{\small By signing, I agree to take part in this group discussion. I understand that participation is voluntary, I may stop at any time, and this session does not provide a medical or psychological diagnosis.}
+\textbf{Signatures.} Names below are not copied into the research dataset.
+\vspace{2mm}
 
-\vspace{5mm}
-\Participant{1}\hfill\Participant{2}
+\newcommand{\Line}[1]{%
+\noindent\begin{minipage}[t]{0.48\linewidth}
+\textbf{Participant #1}\\[1mm]
+Name: \rule{0.86\linewidth}{0.35pt}\\[1.6mm]
+Class: \rule{28mm}{0.35pt}\quad Section: \rule{22mm}{0.35pt}\\[1.6mm]
+Signature: \rule{46mm}{0.35pt}\quad Date: \rule{24mm}{0.35pt}
+\end{minipage}}
 
-\Participant{3}\hfill\Participant{4}
-
-\Participant{5}\hfill\Participant{6}
-
-\Participant{7}\hfill\Participant{8}
-
-\Participant{9}\hfill\Participant{10}
-
+\Line{1}\hfill\Line{2}\vspace{3mm}
+\Line{3}\hfill\Line{4}\vspace{3mm}
+\Line{5}\hfill\Line{6}\vspace{3mm}
+\Line{7}\hfill\Line{8}\vspace{3mm}
+\Line{9}\hfill\Line{10}
 \end{document}

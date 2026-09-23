@@ -32,7 +32,7 @@ With raw data present, `python main.py --limit-subjects 1` exercises loading, pr
 
 ## Week 5 study data
 
-The repository contains no Week 5 study dataset or generated metric. `python -m pytest tests/research` verifies the dataset, metadata, splitting, evaluation, and reporting code with unit-test values only. Run approved marksheets and matching PSYCON sessions with `python -m research.run_study` after completing the checks in `docs/research/DATA_REQUIREMENTS.md`.
+The repository contains no approved group-observation dataset and no binary Week 5 study result. `python -m pytest tests/research tests/backend/test_group_workflow.py` checks the dataset code, the binary comparison, and the group workflow with synthetic values only. Group collection uses consent version `group-consent-2.0` and marksheet version 4.0 (0–4 or N/O). The binary runner remains `python -m research.run_study` for the earlier device path.
 
 Approved participant files belong in the encrypted study store rather than this repository; `data/studies/` and `results/studies/` are ignored as a second guard against accidental commits.
 

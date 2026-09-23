@@ -1,6 +1,16 @@
 # Week 5 implementation record
 
-Week 5 prepared the complete data and evaluation path for the multimodal research comparison. It did not produce a PSYCON study result because the repository does not contain completed psychologist marksheets or matching participant recordings.
+Week 5 now has two paths.
+
+The **group observation path** (`group-observation-1.0.0`) is the current target. An operator uploads one discussion video, numbers seats from the right of the frame toward the left, and maps anonymous voice clusters by hand. A named psychologist enters marksheet version 4.0, which scores items A–T as **0–4 or N/O**. A second rater can score blind, and a reviewer stores an adjudicated sheet without erasing either original. Training rows keep the recording hash and the evidence intervals. Predictions are written to `model_predictions` and do not replace ratings. `research/group_observation.py` freezes connected session splits, abstains when evidence is thin, and withholds model metrics until an item has enough independent sessions and nonzero scores.
+
+The **binary device path** in `research/evaluation.py` is unchanged and still expects a 0/1 label. It cannot train the marksheet. The centre device in a group recording is shared audio only. A wrist score for one person needs a later wearer mapping and its own protocol.
+
+No approved human session has been collected. The software rehearsal uses synthetic recordings inside the tests. Week 5 is not empirically complete until real consented sessions, completed ratings, and a held-out report state which items had enough evidence.
+
+## Earlier binary-path record
+
+The notes below describe the wrist-and-speech comparison prepared before the marksheet scale was fixed at 0–4 or N/O.
 
 The earlier generated dataset and its accuracy, F1, ROC, confusion-matrix, prediction, and chart files were removed. Small artificial values remain inside unit tests, where they verify code behavior without being reported as research evidence.
 
@@ -85,11 +95,7 @@ Human-study inputs and outputs belong in the approved encrypted store. The repos
 
 ## What the marksheets change
 
-The psychologist marksheet has 20 observable behavior domains labeled `A` through `T`, each scored from 1 to 5 or marked `N/O`. It also records the participant code, session ID, observation time, background noise, recording quality, language, session events, and evidence timestamps.
-
-Those ratings can define behavioral targets after the psychologist decides whether to model individual domains, approved groups of domains, or another preregistered score. `N/O` stays missing. A total across all 20 domains will not be used automatically because the domains describe different behaviors.
-
-Marksheets alone support rating distributions, missingness, domain relationships, and rater agreement. Training PSYCON requires wrist and audio records from the same participant and session. Evidence timestamps provide the best connection between a behavioral observation and a sensor window; a session-level score only supports session-level analysis.
+Marksheet version 4.0 has 20 observable behaviour items, A through T. Each item is scored **0, 1, 2, 3, 4, or N/O**. The older 1–5 wording is withdrawn. N/O stays missing and is never coded as zero. The group-observation pipeline trains these item scores from the shared recording. The binary evaluator does not.
 
 The full handoff contract is in `docs/research/DATA_REQUIREMENTS.md`.
 

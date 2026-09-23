@@ -225,7 +225,7 @@ The Week 1 transport decision is frozen: consented engineering mode uses protoco
 
 **Goal:** Execute the PRD study and compare physiology-only, speech-only, and combined models without clinical claims.
 
-**Implementation status:** the research questions, study workflow, consent and data-management materials, anonymous metadata validation, synchronized dataset builder, participant-level split, candidate training, grouped validation, statistical outputs, ablations, context and duration analyses, and model lifecycle are implemented. No Week 5 dataset or model result is claimed. Evaluation waits for completed psychologist marksheets and their matching synchronized PSYCON sessions; collection also depends on ethics approval, consent, calibration, and the earlier electrical-safety gates.
+**Implementation status:** the earlier binary comparison remains in `research/evaluation.py` and is not the marksheet target. The current Week 5 path is group observation: consent version `group-consent-2.0`, marksheet version 4.0 scored 0–4 or N/O, one shared recording per session, and connected-session splits. No approved human session or held-out model result is claimed.
 
 ### Arjun
 

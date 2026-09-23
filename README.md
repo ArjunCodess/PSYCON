@@ -91,13 +91,11 @@ There is no approved recorded-speech dataset, synchronized device dataset, real 
 
 ### Week 5 research workflow
 
-Week 5 built the study controls and the full analysis path, but it produced no PSYCON study result. The repository has no completed psychologist marksheets or matching participant recordings, and the previously generated fake-data results were removed.
+Week 5 has two paths, and neither has a human-study result. The current path is group observation: one discussion video, seats numbered from the right of the frame toward the left, psychologist marksheet version 4.0 scored **0–4 or N/O**, and evidence-linked predictions that never overwrite the ratings. [`research/group_observation.py`](research/group_observation.py) keeps a shared recording in one split and hides model metrics when an item lacks enough independent sessions. The operator and psychologist workflow is at `/group`.
 
-[`research/schema.py`](research/schema.py) validates anonymous session metadata, approval, consent, withdrawal state, calibration references, timestamps, and synchronization quality. [`research/dataset.py`](research/dataset.py) joins physiology, speech, and context on common time windows, rejects conflicting labels and duplicate windows, and preserves missing or unusable inputs. [`research/evaluation.py`](research/evaluation.py) freezes one participant-level split across all comparisons, trains logistic-regression and random-forest candidates, selects by validation F1, and prepares grouped cross-validation, participant-level intervals, errors, ablations, environment and motion slices, duration summaries, confusion matrices, and ROC curves. [`research/run_study.py`](research/run_study.py) connects those stages for approved data and hashes every source file used by a run.
+The earlier binary comparison remains in [`research/evaluation.py`](research/evaluation.py). It joins physiology, speech, and context for a 0/1 label and does not train the marksheet. [`research/run_study.py`](research/run_study.py) is the runner for that device path. A shared table microphone is not an individual physiological sensor.
 
-The psychologist marksheet supplies 20 behavioral ratings, session context, recording quality, and evidence timestamps. It does not supply the physiological and speech inputs needed for a PSYCON model. We can analyze the marksheets alone, but model training requires matching wrist and audio records with the same participant and session IDs.
-
-See the complete [Week 5 implementation record](docs/WEEK_5_IMPLEMENTATION.md), [data handoff requirements](docs/research/DATA_REQUIREMENTS.md), and [research operating instructions](docs/research/README.md). Week 5 currently counts as implemented software and documentation with an open research exit gate.
+See the [Week 5 implementation record](docs/WEEK_5_IMPLEMENTATION.md) and [data handoff requirements](docs/research/DATA_REQUIREMENTS.md). Collection is still blocked on approval, consent version `group-consent-2.0`, and completed ratings.
 
 ### Week 6 validation and integration
 
