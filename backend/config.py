@@ -19,6 +19,7 @@ class Settings:
     max_chunk_bytes: int = 65_576
     sync_max_delay_us: int = 2_000_000
     sync_max_uncertainty_us: int = 250_000
+    max_group_video_bytes: int = 2_147_483_648
 
     @classmethod
     def from_env(cls, *, testing: bool = False) -> "Settings":
