@@ -376,7 +376,7 @@ CREATE TABLE IF NOT EXISTS playback_grants (
     object_key TEXT NOT NULL
 );
 
-INSERT INTO schema_version(version) VALUES (1), (2), (3), (4), (5) ON CONFLICT DO NOTHING;
+INSERT INTO schema_version(version) VALUES (1), (2), (3), (4), (5), (6) ON CONFLICT DO NOTHING;
 
 ALTER TABLE recordings ADD COLUMN IF NOT EXISTS audio_object_key TEXT;
 ALTER TABLE recordings ADD COLUMN IF NOT EXISTS thumbnail_object_key TEXT;
@@ -438,5 +438,6 @@ CREATE TABLE IF NOT EXISTS voice_profiles (
 
 ALTER TABLE voice_segments ADD COLUMN IF NOT EXISTS cluster_label TEXT;
 ALTER TABLE voice_segments ADD COLUMN IF NOT EXISTS overlap_refused_s DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE voice_segments ADD COLUMN IF NOT EXISTS source_turn_index INTEGER;
 ALTER TABLE voice_profiles ADD COLUMN IF NOT EXISTS embedding_engine TEXT;
 ALTER TABLE voice_profiles ADD COLUMN IF NOT EXISTS embedding JSONB;

@@ -13,7 +13,7 @@ import numpy as np
 from ml.src.audio import FEATURE_EXTRACTOR, analyze_pcm16
 
 
-PROCESSING_VERSION = "group-processing-1.0.0"
+PROCESSING_VERSION = "group-processing-1.1.0"
 
 
 def build_processing_baseline(

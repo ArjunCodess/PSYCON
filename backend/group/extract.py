@@ -32,7 +32,7 @@ def extract_group_recording(data: bytes, recording: dict) -> dict:
             engine = turns[0]["engine"]
         else:
             turns = _energy_segments(samples, sample_rate)
-            engine = "unverified_energy_segments_v1"
+            engine = "unverified_energy_segments_v2"
             if turns:
                 reasons.append("diarization_replaced_by_unverified_energy_segments")
             else:
@@ -140,34 +140,36 @@ def _diarize(samples: np.ndarray, sample_rate: int) -> tuple[list[dict] | None, 
 
 def _energy_segments(samples: np.ndarray, sample_rate: int) -> list[dict]:
     frame = max(1, int(sample_rate * 0.03))
-    levels = []
-    for start in range(0, max(0, len(samples) - frame), frame):
-        chunk = samples[start : start + frame].astype(np.float64)
-        levels.append(float(np.sqrt(np.mean(chunk**2))))
-    if not levels:
+    length = len(samples) // frame
+    if not length:
         return []
-    peak = max(levels)
-    threshold = max(peak * 0.2, 80.0)
-    segments: list[tuple[int, int]] = []
-    opened = None
-    for index, level in enumerate(levels):
-        if level >= threshold and opened is None:
-            opened = index
-        elif level < threshold and opened is not None:
-            if index - opened >= 10:
-                segments.append((opened, index))
-            opened = None
-    if opened is not None and len(levels) - opened >= 10:
-        segments.append((opened, len(levels)))
+    levels = np.fromiter(
+        (float(np.sqrt(np.mean(samples[index * frame:(index + 1) * frame].astype(np.float64) ** 2)))
+         for index in range(length)),
+        dtype=np.float64, count=length,
+    )
+    # A single shout or microphone knock must not set the threshold for the
+    # entire discussion. Smooth short syllable gaps before extracting turns.
+    threshold = max(80.0, min(400.0, float(np.percentile(levels, 25)) * 2.0))
+    active = np.convolve(levels, np.ones(5) / 5, mode="same") >= threshold
+    edges = np.flatnonzero(np.diff(np.r_[False, active, False].astype(np.int8)))
+    merged: list[tuple[int, int]] = []
+    max_gap = max(1, round(0.36 * sample_rate / frame))
+    for start, end in zip(edges[::2], edges[1::2]):
+        if merged and start - merged[-1][1] <= max_gap:
+            merged[-1] = (merged[-1][0], end)
+        else:
+            merged.append((int(start), int(end)))
+    segments = [(start, end) for start, end in merged if end - start >= round(0.6 * sample_rate / frame)]
     turns = []
     for index, (start, end) in enumerate(segments, start=1):
         turns.append(
             {
                 "cluster_label": f"segment-{index}",
-                "start_s": start * 0.03,
-                "end_s": end * 0.03,
+                "start_s": start * frame / sample_rate,
+                "end_s": end * frame / sample_rate,
                 "overlap": False,
-                "engine": "unverified_energy_segments_v1",
+                "engine": "unverified_energy_segments_v2",
             }
         )
     return turns

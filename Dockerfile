@@ -12,7 +12,7 @@ RUN apt-get update \
 COPY backend backend
 COPY protocol protocol
 COPY research research
-COPY ml/src/audio.py ml/src/audio.py
+COPY ml/src ml/src
 COPY results/app_model.json results/app_model.json
 COPY run_backend.py .
 

@@ -11,12 +11,14 @@ from typing import Any
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 from research.group_observation import assign_group_splits
 
 
-MODEL_VERSION = "group-face-voice-1.0.0"
-FEATURE_NAME = "face_and_voice_v1"
+MODEL_VERSION = "group-face-voice-1.1.0"
+FEATURE_NAME = "face_and_voice_v2"
 MIN_SESSIONS = 5
 MIN_NONZERO = 5
 
@@ -59,7 +61,9 @@ def train_face_items(examples: list[dict[str, Any]], *, seed: int = 42) -> dict[
                 }
             )
             continue
-        model = LogisticRegression(max_iter=400)
+        # Seconds and counts can be orders of magnitude larger than normalized
+        # appearance and spectral values. Fit scaling on the training split only.
+        model = make_pipeline(StandardScaler(), LogisticRegression(max_iter=400))
         model.fit(_matrix(trainable), [str(row["score"]) for row in trainable])
         metrics = None
         if held_out:

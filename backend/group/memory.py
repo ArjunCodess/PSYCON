@@ -266,6 +266,11 @@ class MemoryGroupStore:
     def all_voice_profiles(self) -> list[dict]:
         return [copy.deepcopy(row) for rows in self.voice_profiles.values() for row in rows]
 
+    def replace_voice_analysis(self, session_id: str, segments: list[dict], profiles: list[dict]) -> None:
+        saved_segments, saved_profiles = copy.deepcopy(segments), copy.deepcopy(profiles)
+        self.voice_segments[session_id] = saved_segments
+        self.voice_profiles[session_id] = saved_profiles
+
     def replace_training_labels(self, session_id: str, rows: list[dict]) -> list[dict]:
         self.training_labels = [row for row in self.training_labels if row["group_session_id"] != session_id]
         self.training_labels.extend(copy.deepcopy(rows))

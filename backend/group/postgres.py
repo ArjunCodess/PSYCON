@@ -619,14 +619,19 @@ class PostgresGroupStore:
 
     def replace_voice_segments(self, session_id: str, rows: list[dict]) -> list[dict]:
         with self.database.connection() as connection:
-            connection.execute("DELETE FROM voice_segments WHERE group_session_id=%s", (session_id,))
-            for row in rows:
-                connection.execute(
-                    "INSERT INTO voice_segments(id,group_session_id,start_s,end_s,cluster_label,overlap_refused_s,slot_number,confidence,status) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                    (row["id"], session_id, row["start_s"], row["end_s"], row.get("cluster_label"),
-                     row.get("overlap_refused_s", 0.0), row["slot_number"], row["confidence"], row["status"]),
-                )
+            self._write_voice_segments(connection, session_id, rows)
         return self.voice_segments_for(session_id)
+
+    @staticmethod
+    def _write_voice_segments(connection, session_id: str, rows: list[dict]) -> None:
+        connection.execute("DELETE FROM voice_segments WHERE group_session_id=%s", (session_id,))
+        for row in rows:
+            connection.execute(
+                "INSERT INTO voice_segments(id,group_session_id,start_s,end_s,cluster_label,overlap_refused_s,source_turn_index,slot_number,confidence,status) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                (row["id"], session_id, row["start_s"], row["end_s"], row.get("cluster_label"),
+                 row.get("overlap_refused_s", 0.0), row.get("source_turn_index"),
+                 row["slot_number"], row["confidence"], row["status"]),
+            )
 
     def voice_segments_for(self, session_id: str) -> list[dict]:
         with self.database.connection() as connection:
@@ -635,15 +640,25 @@ class PostgresGroupStore:
 
     def replace_voice_profiles(self, session_id: str, rows: list[dict]) -> list[dict]:
         with self.database.connection() as connection:
-            connection.execute("DELETE FROM voice_profiles WHERE group_session_id=%s", (session_id,))
-            for row in rows:
-                connection.execute(
-                    "INSERT INTO voice_profiles(id,group_session_id,slot_number,engine,usable_seconds,vector,embedding_engine,embedding,metrics,status) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                    (row["id"], session_id, row["slot_number"], row["engine"], row["usable_seconds"],
-                     Jsonb(row["vector"]), row.get("embedding_engine"), Jsonb(row.get("embedding")),
-                     Jsonb(row["metrics"]), row["status"]),
-                )
+            self._write_voice_profiles(connection, session_id, rows)
         return self.voice_profiles_for(session_id)
+
+    @staticmethod
+    def _write_voice_profiles(connection, session_id: str, rows: list[dict]) -> None:
+        connection.execute("DELETE FROM voice_profiles WHERE group_session_id=%s", (session_id,))
+        for row in rows:
+            connection.execute(
+                "INSERT INTO voice_profiles(id,group_session_id,slot_number,engine,usable_seconds,vector,embedding_engine,embedding,metrics,status) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                (row["id"], session_id, row["slot_number"], row["engine"], row["usable_seconds"],
+                 Jsonb(row["vector"]), row.get("embedding_engine"), Jsonb(row.get("embedding")),
+                 Jsonb(row["metrics"]), row["status"]),
+            )
+
+    def replace_voice_analysis(self, session_id: str, segments: list[dict], profiles: list[dict]) -> None:
+        with self.database.connection() as connection:
+            with connection.transaction():
+                self._write_voice_segments(connection, session_id, segments)
+                self._write_voice_profiles(connection, session_id, profiles)
 
     def voice_profiles_for(self, session_id: str) -> list[dict]:
         with self.database.connection() as connection:

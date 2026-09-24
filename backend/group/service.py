@@ -337,7 +337,7 @@ class GroupObservationService:
         labeled_keys = {(row["group_session_id"], int(row["slot_number"])) for row in labels}
         faces = {(row["group_session_id"], int(row["slot_number"])): row
                  for row in self.store.all_face_samples()}
-        voices = self.store.all_voice_profiles()
+        voices = self._ready_voice_profiles()
         return {
             "sessions": len({row["group_session_id"] for row in labels}),
             "scores": len(labels),
@@ -358,7 +358,7 @@ class GroupObservationService:
         }
         profiles = {
             (row["group_session_id"], int(row["slot_number"])): row
-            for row in self.store.all_voice_profiles() if row["status"] == "ready"
+            for row in self._ready_voice_profiles()
         }
         labeled_keys = {(row["group_session_id"], int(row["slot_number"]))
                         for row in self.store.all_training_labels()}
@@ -389,7 +389,7 @@ class GroupObservationService:
         if not examples:
             raise GroupError(
                 "no_training_data",
-                f"No labeled face has complete voice measures; {len(profiles)} voice profiles are ready and {len(eligible_voice_keys)} have trainable features",
+                f"No labeled face has a usable voice profile; {len(profiles)} voice profiles are ready and {len(eligible_voice_keys)} have trainable features",
                 400,
             )
         result = train_face_items(examples)
@@ -397,6 +397,21 @@ class GroupObservationService:
         result["trainable_voices"] = len(eligible_voice_keys)
         self._audit(actor, "train_faces", actor.id, {"sessions": result["sessions"], "examples": result["examples"]})
         return result
+
+    def _ready_voice_profiles(self) -> list[dict]:
+        complete_sessions = {}
+        profiles = []
+        for row in self.store.all_voice_profiles():
+            session_id = row["group_session_id"]
+            if session_id not in complete_sessions:
+                recording = self.store.recording_for_session(session_id)
+                complete_sessions[session_id] = bool(
+                    recording and recording["processing_state"] == "complete"
+                    and (recording.get("processing") or {}).get("voice_matching", {}).get("status") == "complete"
+                )
+            if row["status"] == "ready" and complete_sessions[session_id]:
+                profiles.append(row)
+        return profiles
 
     def _store_face_seats(self, actor: Principal, session_id: str, faces: list[dict], duration_s: float) -> None:
         session = self._session(session_id)
@@ -887,6 +902,14 @@ class GroupObservationService:
         session_id = job["group_session_id"]
         recording = self.store.recording_for_session(session_id)
         try:
+            self.store.update_recording(
+                session_id, processing_state="running", failure_reason=None,
+                processing={**(recording.get("processing") or {}),
+                            "voice_matching": {"status": "running", "ready_voices": 0}},
+            )
+            # A failed retry must not leave profiles from an earlier attempt
+            # eligible for a later training request.
+            self.store.replace_voice_analysis(session_id, [], [])
             data = self.storage.get(recording["object_key"])
             derived = self.extractor(data, recording)
             if not isinstance(derived, dict):
@@ -896,6 +919,9 @@ class GroupObservationService:
             voice_state = self._process_voices(session_id, data, derived)
             reasons = list(derived.get("failure_reasons") or [])
             fatal = "audio_samples_not_extracted" in reasons or any(reason.startswith("audio_extraction_failed") for reason in reasons)
+            if voice_state["status"] == "failed":
+                reasons.append(f"voice_matching_failed:{voice_state['reason']}")
+                fatal = True
             kept = {key: value for key, value in derived.items() if key not in {"turns", "audio_wav", "thumbnail_jpeg", "pcm_samples", "sample_rate_hz"}}
             kept["voice_matching"] = voice_state
             self.store.update_recording(
@@ -913,11 +939,15 @@ class GroupObservationService:
             self._place_overhead_seats(session_id)
             self._mark_visible_seats(session_id)
         except Exception as exc:
-            self.store.update_recording(session_id, processing_state="failed", failure_reason=f"{type(exc).__name__}")
+            self.store.update_recording(
+                session_id, processing_state="failed", failure_reason=type(exc).__name__,
+                processing={**(recording.get("processing") or {}),
+                            "voice_matching": {"status": "failed", "ready_voices": 0, "reason": type(exc).__name__}},
+            )
             self.store.finish_job(job["id"], state="failed", error=type(exc).__name__)
             return
         failed = self.store.recording_for_session(session_id)["processing_state"] == "failed"
-        self.store.finish_job(job["id"], state="failed" if failed else "complete", error=None if not failed else "audio_not_extracted")
+        self.store.finish_job(job["id"], state="failed" if failed else "complete", error=None if not failed else "recording_processing_failed")
 
     def _process_voices(self, session_id: str, data: bytes, derived: dict) -> dict:
         samples = derived.get("pcm_samples")
@@ -932,8 +962,7 @@ class GroupObservationService:
                 row["group_session_id"] = session_id
             for row in profiles:
                 row["group_session_id"] = session_id
-            self.store.replace_voice_segments(session_id, segments)
-            self.store.replace_voice_profiles(session_id, profiles)
+            self.store.replace_voice_analysis(session_id, segments, profiles)
             return {"status": "complete", "ready_voices": sum(row["status"] == "ready" for row in profiles),
                     "unknown_windows": sum(row["status"] == "unknown" for row in segments)}
         except Exception as exc:
