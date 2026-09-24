@@ -10,6 +10,8 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && pip install --no-cache-dir -r requirements-backend.txt
 COPY backend backend
+ENV PSYCON_DIARIZATION_MODELS=/opt/psycon/diarization
+RUN python -m backend.group.install_voice_models
 COPY protocol protocol
 COPY research research
 COPY ml/src ml/src

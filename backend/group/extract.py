@@ -119,7 +119,14 @@ def _diarize(samples: np.ndarray, sample_rate: int) -> tuple[list[dict] | None, 
 
         result = PyannoteDiarizer().diarize(samples, sample_rate)
     except Exception as exc:
-        return None, f"diarization_unavailable:{type(exc).__name__}"
+        try:
+            from .diarization import diarize
+
+            turns = diarize(samples, sample_rate)
+            _mark_overlap(turns)
+            return turns, None
+        except Exception as fallback:
+            return None, f"diarization_unavailable:{type(exc).__name__}:{type(fallback).__name__}"
     turns = []
     for turn in result.regular_turns:
         label = str(turn.speaker_id)
