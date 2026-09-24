@@ -54,6 +54,8 @@ def extract_group_recording(data: bytes, recording: dict) -> dict:
     derived["tool_version"] = PROCESSING_VERSION
     derived["audio_wav"] = audio_wav
     derived["thumbnail_jpeg"] = thumbnail
+    derived["pcm_samples"] = samples
+    derived["sample_rate_hz"] = sample_rate
     return derived
 
 
