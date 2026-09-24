@@ -1,5 +1,5 @@
 (() => {
-  const state = { selected: null, step: 1, refresh: null };
+  const state = { selected: null, step: 1, refresh: null, speechStop: null };
   const byId = (id) => document.getElementById(id);
   const make = (tag, className, value) => {
     const node = document.createElement(tag);
@@ -23,6 +23,7 @@
     byId("screen-done").hidden = step !== 3;
     byId("notice").hidden = true;
     if (step !== 2 && state.refresh) clearTimeout(state.refresh);
+    if (step !== 2) state.speechStop?.();
   }
 
   async function api(path, options = {}) {
@@ -59,7 +60,70 @@
     parent.append(list);
   }
 
-  function personCard(person, processing) {
+  function addSpeechPlayer(card, person, sessionId) {
+    const playback = make("div", "face-voice-audio");
+    const label = make("span", "face-voice-audio-label", "Listen to usable speech");
+    const button = make("button", "face-voice-play", `Play ${fixed(person.voice.usable_seconds)} s clip`);
+    const participantName = person.label || `participant ${person.slot_number}`;
+    button.type = "button";
+    button.setAttribute("aria-label", `Play usable speech assigned to ${participantName}`);
+    playback.append(label, button);
+    card.append(playback);
+
+    let context = null;
+    let source = null;
+    const stop = () => {
+      if (source) {
+        source.onended = null;
+        try { source.stop(); } catch (_) { /* The clip already ended. */ }
+        source.disconnect();
+        source = null;
+      }
+      const old = context;
+      context = null;
+      if (old) void old.close().catch(() => {});
+      if (state.speechStop === stop) state.speechStop = null;
+      button.disabled = false;
+      button.textContent = `Play ${fixed(person.voice.usable_seconds)} s clip`;
+      button.setAttribute("aria-label", `Play usable speech assigned to ${participantName}`);
+    };
+    button.addEventListener("click", async () => {
+      if (context) { stop(); return; }
+      state.speechStop?.();
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) {
+        label.textContent = "Audio playback is unavailable in this browser.";
+        return;
+      }
+      const current = new AudioContextClass();
+      context = current;
+      state.speechStop = stop;
+      button.textContent = "Loading speech…";
+      button.setAttribute("aria-label", `Loading speech assigned to ${participantName}`);
+      try {
+        await current.resume();
+        const response = await fetch(`/api/v1/group-sessions/${sessionId}/face-voices/${person.slot_number}/audio`,
+          { cache: "no-store" });
+        if (!response.ok) throw new Error("speech unavailable");
+        const audio = await current.decodeAudioData(await response.arrayBuffer());
+        if (context !== current) return;
+        source = current.createBufferSource();
+        source.buffer = audio;
+        source.connect(current.destination);
+        source.onended = () => { if (context === current) stop(); };
+        source.start();
+        button.textContent = "Stop playback";
+        button.setAttribute("aria-label", `Stop speech assigned to ${participantName}`);
+      } catch (_) {
+        if (context === current) {
+          stop();
+          label.textContent = "Speech could not be played.";
+        }
+      }
+    });
+  }
+
+  function personCard(person, processing, sessionId) {
     const card = make("article", "face-voice-card");
     const header = make("div", "face-voice-card-heading");
     const title = make("div");
@@ -74,6 +138,7 @@
       processing.status === "complete" ? "Voice unavailable" : "Analyzing voice";
     header.append(make("span", `face-voice-badge ${voice?.status === "ready" ? "is-ready" : ""}`, status));
     card.append(header);
+    if (voice?.status === "ready") addSpeechPlayer(card, person, sessionId);
     const metrics = make("div", "voice-metrics");
     addMetric(metrics, "Usable speech", fixed(voice?.usable_seconds), " s");
     addMetric(metrics, "Assigned windows", person.segments.length);
@@ -112,6 +177,7 @@
   }
 
   function renderVoice(data) {
+    state.speechStop?.();
     const processing = data.voice_matching || { status: "pending" };
     const people = data.people || [];
     const ready = people.filter((person) => person.voice?.status === "ready").length;
@@ -127,7 +193,7 @@
       `${unknown.length} speech windows stayed unassigned. No voice measures or combined training features are available for this recording.` :
       processing.status === "not_analyzed" ? "This recording was processed before voice matching was available." :
       processing.status === "failed" ? `Voice matching failed${processing.reason ? `: ${processing.reason}` : "."}` : "";
-    byId("face-voice-list").replaceChildren(...people.map((person) => personCard(person, processing)));
+    byId("face-voice-list").replaceChildren(...people.map((person) => personCard(person, processing, state.selected)));
     byId("unknown-voice").hidden = unknown.length === 0;
     byId("unknown-count").textContent = unknown.length;
     byId("unknown-list").replaceChildren();
