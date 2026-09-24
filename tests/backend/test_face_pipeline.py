@@ -125,6 +125,8 @@ def test_upload_marks_faces_and_stores_the_spreadsheet() -> None:
     key = f"group-recordings/{session_id}/audio.wav"
     service.storage.put_immutable(key, source.getvalue(), "audio/wav")
     service.store.update_recording(session_id, audio_object_key=key)
+    details = client.get(f"/api/v1/group-sessions/{session_id}/face-voices", headers=auth(token))
+    assert details.get_json()["recording_audio_available"] is True
     clip = client.get(f"/api/v1/group-sessions/{session_id}/face-voices/1/audio", headers=auth(token))
     assert clip.status_code == 200
     assert clip.mimetype == "audio/wav"
@@ -139,7 +141,12 @@ def test_upload_marks_faces_and_stores_the_spreadsheet() -> None:
         assert np.array_equal(np.frombuffer(wav.readframes(wav.getnframes()), dtype="<i2"),
                               samples[16000:5 * 16000])
     unavailable = client.get(f"/api/v1/group-sessions/{session_id}/face-voices/2/audio", headers=auth(token))
-    assert unavailable.status_code == 409
+    assert unavailable.status_code == 200
+    assert unavailable.data == source.getvalue()
+    source_range = client.get(f"/api/v1/group-sessions/{session_id}/face-voices/2/audio",
+                              headers={**auth(token), "Range": "bytes=0-43"})
+    assert source_range.status_code == 206
+    assert source_range.data == source.getvalue()[:44]
     assert client.get(f"/api/v1/group-sessions/{session_id}/face-voices/3/audio", headers=auth(token)).status_code == 404
     service.store.voice_segments[session_id][0]["end_s"] = 4.5
     assert client.get(f"/api/v1/group-sessions/{session_id}/face-voices/1/audio", headers=auth(token)).status_code == 409

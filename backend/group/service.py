@@ -243,6 +243,8 @@ class GroupObservationService:
         return {
             "session_code": session["session_code"],
             "recording_state": None if recording is None else recording["processing_state"],
+            "recording_audio_available": bool(recording and recording.get("audio_object_key")
+                                              and recording.get("processing_state") == "complete"),
             "voice_matching": voice_matching,
             "people": people,
             "speaking_timeline": [{key: row.get(key) for key in
@@ -262,23 +264,24 @@ class GroupObservationService:
             raise GroupError("participant_not_found", "Participant not found", 404)
         profile = next((row for row in self.store.voice_profiles_for(session_id)
                         if int(row["slot_number"]) == slot_number), None)
-        if profile is None or float(profile.get("usable_seconds") or 0) <= 0:
-            raise GroupError("voice_unavailable", "This participant has no usable speech", 409)
         recording = self._recording(session_id)
         matching = (recording.get("processing") or {}).get("voice_matching") or {}
-        if (recording.get("processing_state") != "complete" or matching.get("version") != MATCHING_VERSION
-                or matching.get("status") != "complete"):
-            raise GroupError("voice_unavailable", "Voice matching must finish before playback", 409)
+        if recording.get("processing_state") != "complete":
+            raise GroupError("voice_unavailable", "Recording processing must finish before playback", 409)
         key = recording.get("audio_object_key")
         if not key:
             raise GroupError("audio_unavailable", "The source audio is unavailable", 409)
         try:
-            with wave.open(io.BytesIO(self.storage.get(key)), "rb") as source:
+            source_data = self.storage.get(key)
+            with wave.open(io.BytesIO(source_data), "rb") as source:
                 if (source.getnchannels(), source.getsampwidth(), source.getframerate(), source.getcomptype()) != (1, 2, 16000, "NONE"):
                     raise ValueError("unexpected source PCM format")
                 samples = np.frombuffer(source.readframes(source.getnframes()), dtype="<i2")
         except (KeyError, OSError, EOFError, ValueError, wave.Error) as exc:
             raise GroupError("audio_unavailable", "The source audio cannot be read", 409) from exc
+        if (profile is None or float(profile.get("usable_seconds") or 0) <= 0
+                or matching.get("version") != MATCHING_VERSION or matching.get("status") != "complete"):
+            return source_data
         audio, _ = assigned_audio_for_slot(samples, 16000, self.store.voice_segments_for(session_id), slot_number)
         if abs(len(audio) / 16000 - float(profile["usable_seconds"])) > 1 / 16000 or not len(audio):
             raise GroupError("voice_mismatch", "The saved voice profile no longer matches its speech windows", 409)

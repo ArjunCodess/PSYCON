@@ -60,12 +60,14 @@
     parent.append(list);
   }
 
-  function addSpeechPlayer(card, person, sessionId) {
+  function addSpeechPlayer(card, person, sessionId, assigned) {
     const player = make("audio", "face-voice-audio");
     player.controls = true;
     player.preload = "none";
     player.src = `/api/v1/group-sessions/${sessionId}/face-voices/${person.slot_number}/audio`;
-    player.setAttribute("aria-label", `Speech assigned to ${person.label || `participant ${person.slot_number}`}`);
+    const label = person.label || `participant ${person.slot_number}`;
+    player.setAttribute("aria-label", assigned ? `Speech assigned to ${label}` : `Shared recording for reviewing ${label}`);
+    if (!assigned) card.append(make("p", "field-helper", "Shared recording for review. This voice has not been matched to this participant."));
     const stop = () => { player.pause(); if (state.speechStop === stop) state.speechStop = null; };
     player.addEventListener("play", () => {
       if (state.speechStop !== stop) state.speechStop?.();
@@ -75,7 +77,7 @@
     card.append(player);
   }
 
-  function personCard(person, processing, sessionId) {
+  function personCard(person, processing, sessionId, recordingAudioAvailable) {
     const card = make("article", "face-voice-card");
     const header = make("div", "face-voice-card-heading");
     const title = make("div");
@@ -91,7 +93,7 @@
       processing.status === "complete" ? "Voice unavailable" : "Analyzing voice";
     header.append(make("span", `face-voice-badge ${voice?.status === "ready" ? "is-ready" : ""}`, status));
     card.append(header);
-    if (voice?.usable_seconds > 0) addSpeechPlayer(card, person, sessionId);
+    if (recordingAudioAvailable) addSpeechPlayer(card, person, sessionId, voice?.usable_seconds > 0);
     const metrics = make("div", "voice-metrics");
     addMetric(metrics, "Usable speech", fixed(voice?.usable_seconds), " s");
     addMetric(metrics, "Assigned windows", person.segments.length);
@@ -146,7 +148,7 @@
       `${unknown.length} speech windows stayed unassigned. No voice measures or combined training features are available for this recording.` :
       processing.status === "not_analyzed" ? "This recording was processed before voice matching was available." :
       processing.status === "failed" ? `Voice matching failed${processing.reason ? `: ${processing.reason}` : "."}` : "";
-    byId("face-voice-list").replaceChildren(...people.map((person) => personCard(person, processing, state.selected)));
+    byId("face-voice-list").replaceChildren(...people.map((person) => personCard(person, processing, state.selected, data.recording_audio_available)));
     byId("unknown-voice").hidden = unknown.length === 0;
     byId("unknown-count").textContent = unknown.length;
     byId("unknown-list").replaceChildren();
