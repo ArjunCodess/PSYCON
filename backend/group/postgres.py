@@ -627,10 +627,10 @@ class PostgresGroupStore:
         connection.execute("DELETE FROM voice_segments WHERE group_session_id=%s", (session_id,))
         for row in rows:
             connection.execute(
-                "INSERT INTO voice_segments(id,group_session_id,start_s,end_s,cluster_label,overlap_refused_s,source_turn_index,slot_number,confidence,status) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                "INSERT INTO voice_segments(id,group_session_id,start_s,end_s,cluster_label,overlap_refused_s,source_turn_index,slot_number,confidence,status,evidence) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 (row["id"], session_id, row["start_s"], row["end_s"], row.get("cluster_label"),
                  row.get("overlap_refused_s", 0.0), row.get("source_turn_index"),
-                 row["slot_number"], row["confidence"], row["status"]),
+                 row["slot_number"], row["confidence"], row["status"], Jsonb(row.get("evidence") or {})),
             )
 
     def voice_segments_for(self, session_id: str) -> list[dict]:

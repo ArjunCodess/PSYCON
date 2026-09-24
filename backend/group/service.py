@@ -30,7 +30,7 @@ from .labels import LabelSheetError, parse_label_csv
 from .media import MediaError, validate_video
 from .rubric import CONSENT_VERSION, MARKSHEET_VERSION, PROTOCOL_VERSION, RubricError, validate_marksheet
 from .seats import MAX_PARTICIPANTS, MIN_PARTICIPANTS, SeatError, order_seats, overhead_row_regions
-from .voice import assigned_audio_for_slot, assign_windows, build_profiles, training_feature
+from .voice import MATCHING_VERSION, assigned_audio_for_slot, assign_windows, build_profiles, training_feature
 
 
 _SESSION_CODE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$")
@@ -199,8 +199,9 @@ class GroupObservationService:
         recording = self.store.recording_for_session(session_id)
         samples = {int(row["slot_number"]): row for row in self.store.face_samples_for(session_id)}
         seats = {int(row["slot_number"]): row for row in self.store.seats_for(session_id)}
-        profiles = {int(row["slot_number"]): row for row in self.store.voice_profiles_for(session_id)}
-        segments = self.store.voice_segments_for(session_id)
+        current_matching = (((recording or {}).get("processing") or {}).get("voice_matching") or {}).get("version") == MATCHING_VERSION
+        profiles = {int(row["slot_number"]): row for row in self.store.voice_profiles_for(session_id)} if current_matching else {}
+        segments = self.store.voice_segments_for(session_id) if current_matching else []
         labels: dict[int, dict] = {}
         for row in self.store.training_labels_for(session_id):
             slot = int(row["slot_number"])
@@ -234,7 +235,7 @@ class GroupObservationService:
             })
         processing = (recording or {}).get("processing") or {}
         voice_matching = processing.get("voice_matching")
-        if voice_matching is None:
+        if voice_matching is None or (voice_matching.get("status") == "complete" and not current_matching):
             recording_state = None if recording is None else recording["processing_state"]
             status = "not_analyzed" if recording_state == "complete" else (
                 "failed" if recording_state == "failed" else "pending")
@@ -244,6 +245,8 @@ class GroupObservationService:
             "recording_state": None if recording is None else recording["processing_state"],
             "voice_matching": voice_matching,
             "people": people,
+            "speaking_timeline": [{key: row.get(key) for key in
+                                   ("start_s", "end_s", "slot_number", "status", "evidence")} for row in segments],
             "unknown_segments": [
                 {key: row.get(key) for key in ("start_s", "end_s", "confidence", "overlap_refused_s")}
                 for row in segments if row.get("status") == "unknown"
@@ -259,9 +262,13 @@ class GroupObservationService:
             raise GroupError("participant_not_found", "Participant not found", 404)
         profile = next((row for row in self.store.voice_profiles_for(session_id)
                         if int(row["slot_number"]) == slot_number), None)
-        if profile is None or profile.get("status") != "ready":
+        if profile is None or float(profile.get("usable_seconds") or 0) <= 0:
             raise GroupError("voice_unavailable", "This participant has no usable speech", 409)
         recording = self._recording(session_id)
+        matching = (recording.get("processing") or {}).get("voice_matching") or {}
+        if (recording.get("processing_state") != "complete" or matching.get("version") != MATCHING_VERSION
+                or matching.get("status") != "complete"):
+            raise GroupError("voice_unavailable", "Voice matching must finish before playback", 409)
         key = recording.get("audio_object_key")
         if not key:
             raise GroupError("audio_unavailable", "The source audio is unavailable", 409)
@@ -273,7 +280,7 @@ class GroupObservationService:
         except (KeyError, OSError, EOFError, ValueError, wave.Error) as exc:
             raise GroupError("audio_unavailable", "The source audio cannot be read", 409) from exc
         audio, _ = assigned_audio_for_slot(samples, 16000, self.store.voice_segments_for(session_id), slot_number)
-        if abs(len(audio) / 16000 - float(profile["usable_seconds"])) > 1 / 16000 or len(audio) < 3 * 16000:
+        if abs(len(audio) / 16000 - float(profile["usable_seconds"])) > 1 / 16000 or not len(audio):
             raise GroupError("voice_mismatch", "The saved voice profile no longer matches its speech windows", 409)
         output = io.BytesIO()
         with wave.open(output, "wb") as clip:
@@ -503,7 +510,7 @@ class GroupObservationService:
                     recording and recording["processing_state"] == "complete"
                     and (recording.get("processing") or {}).get("voice_matching", {}).get("status") == "complete"
                 )
-            if row["status"] == "ready" and complete_sessions[session_id]:
+            if row["status"] == "ready" and complete_sessions[session_id] and (row.get("metrics") or {}).get("matching_version") == MATCHING_VERSION:
                 profiles.append(row)
         return profiles
 
@@ -1057,7 +1064,9 @@ class GroupObservationService:
             for row in profiles:
                 row["group_session_id"] = session_id
             self.store.replace_voice_analysis(session_id, segments, profiles)
-            return {"status": "complete", "ready_voices": sum(row["status"] == "ready" for row in profiles),
+            return {"status": "complete", "version": MATCHING_VERSION,
+                    "diarization_engine": derived.get("diarization_engine"),
+                    "ready_voices": sum(row["status"] == "ready" for row in profiles),
                     "unknown_windows": sum(row["status"] == "unknown" for row in segments)}
         except Exception as exc:
             return {"status": "failed", "ready_voices": 0, "reason": type(exc).__name__}

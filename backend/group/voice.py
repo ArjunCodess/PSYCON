@@ -19,7 +19,9 @@ from ml.src.voice_quality import analyze_vocal_jitter_regions, unavailable_vocal
 VECTOR_SIZE = 32
 SCALAR_NAMES = ("speaking_duration_s", "turn_count", "overlap_refused_s", "pause_total_s", "word_rate_wpm", "pitch_jitter_relative")
 OPTIONAL_SCALARS = frozenset({"word_rate_wpm", "pitch_jitter_relative", "overlap_refused_s"})
-MAX_WINDOW_S = 2.0
+MATCHING_VERSION = "face-voice-strict-1"
+MAX_WINDOW_S = 0.8
+BOUNDARY_GUARD_S = 0.15
 MIN_MOTION = 0.55
 MAX_VOICE_CLIP_S = 10.0
 
@@ -102,19 +104,6 @@ def _mouth_motion_series(frames: list[np.ndarray], box: dict) -> np.ndarray | No
     return np.asarray(changes, dtype=np.float32) if len(changes) >= 2 else None
 
 
-def _mouth_level_series(frames: list[np.ndarray], box: dict) -> np.ndarray:
-    values = []
-    for frame in frames:
-        height, width = frame.shape[:2]
-        x0 = max(0, round(float(box["x"]) * width))
-        x1 = min(width, round((float(box["x"]) + float(box["width"])) * width))
-        y0 = max(0, round((float(box["y"]) + float(box["height"]) * 0.52) * height))
-        y1 = min(height, round((float(box["y"]) + float(box["height"]) * 0.9) * height))
-        crop = frame[y0:y1, x0:x1]
-        values.append(float(np.mean(crop)) if crop.size else 0.0)
-    return np.asarray(values, dtype=np.float32)
-
-
 def _head_motion_ratio(frames: list[np.ndarray], box: dict) -> float:
     height, width = frames[0].shape[:2]
     x0 = max(0, round(float(box["x"]) * width))
@@ -142,16 +131,6 @@ def _frontal_face_detector():
     return detector
 
 
-@lru_cache(maxsize=1)
-def _profile_face_detector():
-    import cv2
-
-    detector = cv2.CascadeClassifier(str(Path(cv2.data.haarcascades) / "haarcascade_profileface.xml"))
-    if detector.empty():
-        raise RuntimeError("face_visibility_detector_unavailable")
-    return detector
-
-
 def face_visible(frame: np.ndarray, box: dict) -> bool:
     """Require a frontal face at the saved position before using its mouth crop."""
     import cv2
@@ -165,11 +144,6 @@ def face_visible(frame: np.ndarray, box: dict) -> bool:
         return False
     gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY) if crop.ndim == 3 else crop
     found = list(_frontal_face_detector().detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(20, 20)))
-    profile = _profile_face_detector()
-    found.extend(profile.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3, minSize=(20, 20)))
-    for dx, dy, dw, dh in profile.detectMultiScale(cv2.flip(gray, 1), scaleFactor=1.1,
-                                                   minNeighbors=3, minSize=(20, 20)):
-        found.append((gray.shape[1] - dx - dw, dy, dw, dh))
     for dx, dy, dw, dh in found:
         overlap_w = max(0.0, min(x1, x0 + dx + dw, (x + w) * width) - max(x0 + dx, x * width))
         overlap_h = max(0.0, min(y1, y0 + dy + dh, (y + h) * height) - max(y0 + dy, y * height))
@@ -187,65 +161,230 @@ def assign_windows(turns: list[dict], boxes: list[dict], data: bytes, *, frame_s
     with tempfile.TemporaryDirectory() as directory:
         source = Path(directory) / "source.mp4"
         source.write_bytes(data)
-        return _assign_windows(turns, boxes, source, sample_window_frames, checker)
+        with WindowFrameSampler(source) as sampler:
+            return _assign_windows(turns, boxes, source, sampler, checker)
+
+
+class WindowFrameSampler:
+    """Decode chronologically once, keeping only the current short window."""
+
+    def __init__(self, path: Path):
+        import cv2
+
+        self.video = cv2.VideoCapture(str(path))
+        if not self.video.isOpened():
+            self.video.release()
+            raise RuntimeError("voice_frame_decode_failed")
+        self.pending = None
+        self.previous_start = -1.0
+        self.previous_timestamp = -1.0
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        self.video.release()
+
+    def __call__(self, _source, start: float, end: float) -> list[np.ndarray]:
+        import cv2
+
+        if start < self.previous_start:
+            raise ValueError("voice windows must be chronological")
+        self.previous_start = start
+        frames = []
+        next_sample = start
+        while True:
+            if self.pending is None:
+                okay, frame = self.video.read()
+                if not okay:
+                    break
+                timestamp = self.video.get(cv2.CAP_PROP_POS_MSEC) / 1000
+                if not math.isfinite(timestamp) or timestamp <= self.previous_timestamp:
+                    raise RuntimeError("voice_frame_timestamps_invalid")
+                self.previous_timestamp = timestamp
+            else:
+                timestamp, frame = self.pending
+                self.pending = None
+            if timestamp >= end:
+                self.pending = (timestamp, frame)
+                break
+            if timestamp + 1e-6 < next_sample:
+                continue
+            height, width = frame.shape[:2]
+            if width > 960:
+                frame = cv2.resize(frame, (960, round(height * 960 / width)))
+            frames.append(frame)
+            next_sample = timestamp + 1 / 12
+        return frames
+
+
+def _trusted_turn(turn: dict) -> bool:
+    return str(turn.get("engine") or "").startswith(("pyannote/", "sherpa_onnx/"))
+
+
+def _track_face_frames(frames: list[np.ndarray], box: dict) -> list[np.ndarray] | None:
+    """Track upper-face features and stabilize the mouth within a short window.
+
+    Reacquisition is restricted to the marked seat. Lost or crossing tracks are
+    withheld rather than attaching a nearby person's mouth to this slot.
+    """
+    import cv2
+
+    if not frames or not face_visible(frames[0], box):
+        return None
+    height, width = frames[0].shape[:2]
+    x, y, w, h = (float(box[key]) for key in ("x", "y", "width", "height"))
+    x, y, w, h = x * width, y * height, w * width, h * height
+    gray = cv2.cvtColor(frames[0], cv2.COLOR_BGR2GRAY)
+    mask = np.zeros_like(gray)
+    mask[max(0, round(y)):min(height, round(y + h * .5)),
+         max(0, round(x)):min(width, round(x + w))] = 255
+    points = cv2.goodFeaturesToTrack(gray, maxCorners=40, qualityLevel=.03, minDistance=3, mask=mask)
+    if points is None or len(points) < 6:
+        return None
+    anchors = points.copy()
+    scale = np.array([[96 / w, 0, -x * 96 / w], [0, 96 / h, -y * 96 / h], [0, 0, 1]])
+    output = [cv2.warpAffine(frames[0], scale[:2], (96, 96))]
+    for frame in frames[1:]:
+        current = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        tracked, status, _ = cv2.calcOpticalFlowPyrLK(gray, current, points, None)
+        if tracked is None:
+            return None
+        reverse, reverse_status, _ = cv2.calcOpticalFlowPyrLK(current, gray, tracked, None)
+        if reverse is None:
+            return None
+        good = (status.ravel() == 1) & (reverse_status.ravel() == 1) & (np.linalg.norm(reverse - points, axis=2).ravel() < 1.0)
+        if np.count_nonzero(good) < 6:
+            return None
+        anchors, tracked = anchors[good], tracked[good]
+        transform, inliers = cv2.estimateAffinePartial2D(tracked, anchors, method=cv2.RANSAC, ransacReprojThreshold=2)
+        if transform is None or inliers is None or float(np.mean(inliers)) < .7:
+            return None
+        size = float(np.hypot(transform[0, 0], transform[0, 1]))
+        if not .85 <= size <= 1.18 or np.linalg.norm(np.mean(tracked - anchors, axis=0)) > min(w, h) * .35:
+            return None
+        warp = scale @ np.vstack([transform, [0, 0, 1]])
+        output.append(cv2.warpAffine(frame, warp[:2], (96, 96)))
+        points, gray = tracked, current
+    return output
+
+
+def _visual_candidate(frames, boxes, face_checker) -> tuple[int | None, float, str]:
+    if len(frames) < 5:
+        return None, 0.0, "too_few_frames"
+    full = {"x": 0., "y": 0., "width": 1., "height": 1.}
+    observations = {int(box["slot_number"]):
+                    (_track_face_frames(frames, box), full) if face_checker is face_visible else (frames, box)
+                    for box in boxes}
+    series = {slot: _mouth_motion_series(crops, box) for slot, (crops, box) in observations.items() if crops}
+    series = {slot: values for slot, values in series.items() if values is not None}
+    if not series:
+        return None, 0.0, "mouth_not_observable"
+    ranked = sorted(series, key=lambda slot: float(np.median(series[slot])), reverse=True)
+    winner = ranked[0]
+    best = float(np.median(series[winner]))
+    others = [series[slot] for slot in ranked[1:]]
+    # Independent mouth movement also means ambiguity. Correlation between two
+    # faces is not a reliable overlap detector: people rarely move in sync.
+    if any(np.mean(values >= MIN_MOTION) >= 0.2 for values in others):
+        return None, 0.0, "multiple_moving_mouths"
+    second = max((float(np.median(values)) for values in others), default=0.0)
+    if best < MIN_MOTION or best < second * 2.5 or best - second < 0.5:
+        return None, 0.0, "weak_visual_evidence"
+    if np.mean(series[winner] >= MIN_MOTION) < 0.6:
+        return None, 0.0, "intermittent_mouth_motion"
+    winning_frames, winning_box = observations[winner]
+    if not all(face_checker(frame, winning_box) for frame in (winning_frames[0], winning_frames[len(winning_frames) // 2], winning_frames[-1])):
+        return None, 0.0, "face_not_visible"
+    if _head_motion_ratio(winning_frames, winning_box) > 0.5:
+        return None, 0.0, "head_motion"
+    return winner, min(1.0, (best - second) / max(best, 1e-9)), "visual_candidate"
+
+
+def _resolve_cluster_faces(rows: list[dict]) -> None:
+    votes: dict[str, dict[int, float]] = {}
+    counts: dict[tuple[str, int], int] = {}
+    for row in rows:
+        candidate = row["evidence"].get("candidate_slot")
+        if candidate is None:
+            continue
+        cluster = row["cluster_label"]
+        by_slot = votes.setdefault(cluster, {})
+        by_slot[candidate] = by_slot.get(candidate, 0.0) + row["end_s"] - row["start_s"]
+        counts[cluster, candidate] = counts.get((cluster, candidate), 0) + 1
+    mappings = {}
+    for cluster, scores in votes.items():
+        slot = max(scores, key=scores.get)
+        if scores[slot] >= 1.2 and counts[cluster, slot] >= 3 and scores[slot] / sum(scores.values()) >= 0.9:
+            mappings[cluster] = slot
+    # A face with strong evidence for different acoustic identities is unsafe.
+    # Abstain rather than silently concatenate different speakers into its profile.
+    ambiguous_slots = {slot for slot in mappings.values() if list(mappings.values()).count(slot) > 1}
+    for row in rows:
+        candidate = row["evidence"].get("candidate_slot")
+        if candidate is None:
+            continue
+        if mappings.get(row["cluster_label"]) == candidate and candidate not in ambiguous_slots:
+            row.update(slot_number=candidate, status="assigned")
+            row["evidence"]["reason"] = "audio_visual_consensus"
+        else:
+            row["evidence"]["reason"] = "speaker_face_conflict_or_insufficient_evidence"
+            row["confidence"] = 0.0
 
 
 def _assign_windows(turns: list[dict], boxes: list[dict], source: bytes | Path, frame_sampler, face_checker) -> list[dict]:
+    valid = [(index, turn) for index, turn in enumerate(turns)
+             if math.isfinite(float(turn["start_s"])) and math.isfinite(float(turn["end_s"]))
+             and 0 <= float(turn["start_s"]) < float(turn["end_s"])]
+    boundaries = sorted({float(turn[key]) for _, turn in valid for key in ("start_s", "end_s")})
     rows = []
-    for index, turn in enumerate(turns):
-        start, end = float(turn["start_s"]), float(turn["end_s"])
-        if not math.isfinite(start) or not math.isfinite(end) or start < 0 or end <= start:
+
+    def append(left, right, active, reason, candidate=None, confidence=0.0):
+        if right <= left:
+            return
+        clusters = {str(turn["cluster_label"]) for _, turn in active}
+        rows.append({"id": str(uuid4()), "start_s": left, "end_s": right,
+                     "source_turn_index": active[0][0] if len(active) == 1 else None,
+                     "cluster_label": next(iter(clusters)) if len(clusters) == 1 else None,
+                     "overlap_refused_s": right - left if reason == "overlapping_speakers" else 0.0,
+                     "slot_number": None, "confidence": confidence, "status": "unknown",
+                     "evidence": {"version": MATCHING_VERSION, "reason": reason,
+                                  "candidate_slot": candidate, "clusters": sorted(clusters)}})
+
+    for left, right in zip(boundaries, boundaries[1:]):
+        active = [(index, turn) for index, turn in valid
+                  if float(turn["start_s"]) < right and float(turn["end_s"]) > left]
+        if not active:
             continue
-        collision_ranges = sorted(
-            (max(start, float(other["start_s"])), min(end, float(other["end_s"])))
-            for other_index, other in enumerate(turns) if index != other_index
-            and start < float(other["end_s"]) and float(other["start_s"]) < end
-        )
-        merged = []
-        for left, right in collision_ranges:
-            if merged and left <= merged[-1][1]:
-                merged[-1] = (merged[-1][0], max(right, merged[-1][1]))
-            else:
-                merged.append((left, right))
-        overlap_seconds = sum(right - left for left, right in merged)
-        overlaps = bool(turn.get("overlap")) or overlap_seconds > 0
-        if overlaps and not overlap_seconds:
-            overlap_seconds = max(0.0, end - start)
-        # An energy segment may span several speakers. Never extrapolate motion
-        # observed in a short excerpt to the rest of that segment.
-        count = 1 if overlaps else max(1, math.ceil((end - start) / MAX_WINDOW_S))
+        clusters = {turn["cluster_label"] for _, turn in active}
+        if len(clusters) > 1:
+            append(left, right, active, "overlapping_speakers")
+            continue
+        if not all(_trusted_turn(turn) for _, turn in active):
+            append(left, right, active, "diarization_required")
+            continue
+        # A standalone overlap flag without an interval must also fail closed.
+        unexplained_overlap = any(turn.get("overlap") and not any(
+            other["cluster_label"] != turn["cluster_label"] and
+            float(other["start_s"]) < float(turn["end_s"]) and
+            float(other["end_s"]) > float(turn["start_s"]) for _, other in valid) for _, turn in active)
+        if unexplained_overlap:
+            append(left, right, active, "overlapping_speakers")
+            continue
+        core_start, core_end = left + BOUNDARY_GUARD_S, right - BOUNDARY_GUARD_S
+        if core_end - core_start < 0.4:
+            append(left, right, active, "short_or_boundary_speech")
+            continue
+        append(left, core_start, active, "speaker_boundary")
+        count = max(1, math.ceil((core_end - core_start) / MAX_WINDOW_S))
         for window in range(count):
-            left = start + (end - start) * window / count
-            right = start + (end - start) * (window + 1) / count
-            slot, confidence = None, 0.0
-            if not overlaps:
-                frames = frame_sampler(source, left, right)
-                checked_frames = [frames[0], frames[len(frames) // 2], frames[-1]] if frames else []
-                series = {int(box["slot_number"]): _mouth_motion_series(frames, box) for box in boxes}
-                measured = [(slot_number, float(np.median(values)) if values is not None else None)
-                            for slot_number, values in series.items()]
-                if measured and all(value is not None for _, value in measured):
-                    ranked = sorted(measured, key=lambda pair: pair[1], reverse=True)
-                    best = ranked[0][1]
-                    second = ranked[1][1] if len(ranked) > 1 else 0.0
-                    winning_box = next(box for box in boxes if int(box["slot_number"]) == ranked[0][0])
-                    visible = checked_frames and sum(bool(face_checker(frame, winning_box)) for frame in checked_frames) >= 2
-                    together = False
-                    if second >= 0.1:
-                        second_box = next(box for box in boxes if int(box["slot_number"]) == ranked[1][0])
-                        first_levels = _mouth_level_series(frames, winning_box)
-                        second_levels = _mouth_level_series(frames, second_box)
-                        if np.std(first_levels) > 0.5 and np.std(second_levels) > 0.5:
-                            together = float(np.corrcoef(first_levels, second_levels)[0, 1]) >= 0.8
-                    stable_head = _head_motion_ratio(frames, winning_box) <= 0.82
-                    if visible and stable_head and not together and best >= MIN_MOTION and best >= second * 1.8 and best - second >= 0.35:
-                        slot = ranked[0][0]
-                        confidence = float(min(1.0, (best - second) / max(best, 1e-9)))
-            rows.append({"id": str(uuid4()), "start_s": left, "end_s": right,
-                         "source_turn_index": index,
-                         "cluster_label": turn.get("cluster_label"), "overlap_refused_s": overlap_seconds,
-                         "slot_number": slot,
-                         "confidence": confidence, "status": "assigned" if slot is not None else "unknown"})
+            start = core_start + (core_end - core_start) * window / count
+            end = core_start + (core_end - core_start) * (window + 1) / count
+            frames = frame_sampler(source, start, end)
+            candidate, confidence, reason = _visual_candidate(frames, boxes, face_checker)
+            append(start, end, active, reason, candidate, confidence)
+        append(core_end, right, active, "speaker_boundary")
+    _resolve_cluster_faces(rows)
     return rows
 
 
@@ -323,6 +462,12 @@ def assigned_audio_for_slot(samples: np.ndarray, sample_rate_hz: int, segments: 
                  for row in segments if row.get("status") == "assigned" and row.get("slot_number") == slot
                  and float(row["end_s"]) > 0 and float(row["start_s"]) < recording_end]
     merged = _merge_intervals([(start, end) for start, end in intervals if end > start])
+    forbidden = _merge_intervals([(float(row["start_s"]), float(row["end_s"])) for row in segments
+                                 if row.get("status") != "assigned" or row.get("slot_number") != slot])
+    for left, right in forbidden:
+        merged = [(a, b) for start, end in merged for a, b in
+                  ([(start, end)] if right <= start or left >= end else
+                   [(start, min(end, left)), (max(start, right), end)]) if b > a]
     clean = [(start, end) for start, end in merged
              if _usable_interval(samples[round(start * sample_rate_hz):round(end * sample_rate_hz)])]
     chunks = [samples[round(start * sample_rate_hz):round(end * sample_rate_hz)] for start, end in clean]
@@ -379,7 +524,8 @@ def build_profiles(samples: np.ndarray, sample_rate_hz: int, segments: list[dict
                      if 0 < (gap := right[0] - left[1]) <= 2.0)
         assigned_clusters = {cluster for cluster, slots in cluster_slots.items() if slots == {slot}}
         refused = sum(float(row.get("overlap_refused_s") or 0.0) for row in segments
-                      if row.get("cluster_label") in assigned_clusters)
+                      if row.get("cluster_label") in assigned_clusters or
+                      assigned_clusters.intersection((row.get("evidence") or {}).get("clusters", [])))
         # With no unique visual match for a cluster, overlap cannot be attributed
         # to a face. Preserve that uncertainty instead of manufacturing zero.
         if any(row.get("overlap_refused_s", 0) > 0 for row in segments) and not assigned_clusters:
@@ -394,6 +540,7 @@ def build_profiles(samples: np.ndarray, sample_rate_hz: int, segments: list[dict
                           if any(start < row["end_s"] and row["start_s"] < end for start, end in intervals)})
         base.update(engine=voice_engine, vector=vector, embedding=embedding,
                     embedding_engine=embedding_engine, status="ready", metrics={
+            "matching_version": MATCHING_VERSION,
             "speaking_duration_s": usable, "turn_count": turn_count, "overlap_refused_s": refused,
             "pause_total_s": pauses, "word_rate_wpm": words / transcript_seconds * 60 if transcript_seconds else None,
             "transcript_coverage_s": transcript_seconds,
@@ -408,6 +555,8 @@ def training_feature(face: list[float], profile: dict) -> list[float] | None:
     if profile.get("status") != "ready" or len(profile.get("vector") or []) != VECTOR_SIZE:
         return None
     metrics = profile.get("metrics") or {}
+    if metrics.get("matching_version") != MATCHING_VERSION:
+        return None
     try:
         feature = [*map(float, face), *map(float, profile["vector"])]
         for name in SCALAR_NAMES:
