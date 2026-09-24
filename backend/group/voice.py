@@ -313,6 +313,22 @@ def _embedding_available() -> bool:
         return False
 
 
+def assigned_audio_for_slot(samples: np.ndarray, sample_rate_hz: int, segments: list[dict],
+                            slot: int) -> tuple[np.ndarray, list[tuple[float, float]]]:
+    """Rebuild the exact clean PCM and source intervals used for a slot's profile."""
+    if sample_rate_hz != 16000:
+        raise ValueError("voice profiles require 16 kHz PCM")
+    recording_end = len(samples) / sample_rate_hz
+    intervals = [(max(0.0, float(row["start_s"])), min(recording_end, float(row["end_s"])))
+                 for row in segments if row.get("status") == "assigned" and row.get("slot_number") == slot
+                 and float(row["end_s"]) > 0 and float(row["start_s"]) < recording_end]
+    merged = _merge_intervals([(start, end) for start, end in intervals if end > start])
+    clean = [(start, end) for start, end in merged
+             if _usable_interval(samples[round(start * sample_rate_hz):round(end * sample_rate_hz)])]
+    chunks = [samples[round(start * sample_rate_hz):round(end * sample_rate_hz)] for start, end in clean]
+    return (np.concatenate(chunks).astype(np.int16) if chunks else np.array([], dtype=np.int16)), clean
+
+
 def build_profiles(samples: np.ndarray, sample_rate_hz: int, segments: list[dict],
                    boxes: list[dict], transcript: list[dict], *, embedder=None) -> list[dict]:
     if sample_rate_hz != 16000:
@@ -327,18 +343,7 @@ def build_profiles(samples: np.ndarray, sample_rate_hz: int, segments: list[dict
         slot = int(box["slot_number"])
         assigned = sorted((row for row in segments if row["slot_number"] == slot and row["status"] == "assigned"),
                           key=lambda row: row["start_s"])
-        recording_end = len(samples) / sample_rate_hz
-        intervals = [(max(0.0, float(row["start_s"])), min(recording_end, float(row["end_s"])))
-                     for row in assigned if float(row["end_s"]) > 0 and float(row["start_s"]) < recording_end]
-        intervals = _merge_intervals([(start, end) for start, end in intervals if end > start])
-        clean_intervals = []
-        for start, end in intervals:
-            region = samples[round(start * sample_rate_hz):round(end * sample_rate_hz)]
-            if _usable_interval(region):
-                clean_intervals.append((start, end))
-        intervals = clean_intervals
-        chunks = [samples[round(start * sample_rate_hz):round(end * sample_rate_hz)] for start, end in intervals]
-        audio = np.concatenate(chunks).astype(np.int16) if chunks else np.array([], dtype=np.int16)
+        audio, intervals = assigned_audio_for_slot(samples, sample_rate_hz, segments, slot)
         usable = len(audio) / sample_rate_hz
         base = {"id": str(uuid4()), "slot_number": slot, "usable_seconds": usable,
                 "engine": None, "vector": None, "embedding_engine": None, "embedding": None,

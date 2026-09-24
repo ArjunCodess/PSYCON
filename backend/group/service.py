@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import re
+import wave
 from base64 import b64encode
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable
 from uuid import uuid4
+
+import numpy as np
 
 from backend.auth import Principal, create_token, hash_token
 from research.face_training import train_face_items
@@ -26,7 +30,7 @@ from .labels import LabelSheetError, parse_label_csv
 from .media import MediaError, validate_video
 from .rubric import CONSENT_VERSION, MARKSHEET_VERSION, PROTOCOL_VERSION, RubricError, validate_marksheet
 from .seats import MAX_PARTICIPANTS, MIN_PARTICIPANTS, SeatError, order_seats, overhead_row_regions
-from .voice import assign_windows, build_profiles, training_feature
+from .voice import assigned_audio_for_slot, assign_windows, build_profiles, training_feature
 
 
 _SESSION_CODE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$")
@@ -245,6 +249,39 @@ class GroupObservationService:
                 for row in segments if row.get("status") == "unknown"
             ],
         }
+
+    def face_voice_audio(self, actor: Principal, session_id: str, slot_number: int) -> bytes:
+        self._require(actor, "operator", "psychologist", "reviewer")
+        self._session(session_id)
+        participant = next((row for row in self.store.participants(session_id)
+                            if int(row["slot_number"]) == slot_number and not row.get("withdrawn_at")), None)
+        if participant is None:
+            raise GroupError("participant_not_found", "Participant not found", 404)
+        profile = next((row for row in self.store.voice_profiles_for(session_id)
+                        if int(row["slot_number"]) == slot_number), None)
+        if profile is None or profile.get("status") != "ready":
+            raise GroupError("voice_unavailable", "This participant has no usable speech", 409)
+        recording = self._recording(session_id)
+        key = recording.get("audio_object_key")
+        if not key:
+            raise GroupError("audio_unavailable", "The source audio is unavailable", 409)
+        try:
+            with wave.open(io.BytesIO(self.storage.get(key)), "rb") as source:
+                if (source.getnchannels(), source.getsampwidth(), source.getframerate(), source.getcomptype()) != (1, 2, 16000, "NONE"):
+                    raise ValueError("unexpected source PCM format")
+                samples = np.frombuffer(source.readframes(source.getnframes()), dtype="<i2")
+        except (KeyError, OSError, EOFError, ValueError, wave.Error) as exc:
+            raise GroupError("audio_unavailable", "The source audio cannot be read", 409) from exc
+        audio, _ = assigned_audio_for_slot(samples, 16000, self.store.voice_segments_for(session_id), slot_number)
+        if abs(len(audio) / 16000 - float(profile["usable_seconds"])) > 1 / 16000 or len(audio) < 3 * 16000:
+            raise GroupError("voice_mismatch", "The saved voice profile no longer matches its speech windows", 409)
+        output = io.BytesIO()
+        with wave.open(output, "wb") as clip:
+            clip.setnchannels(1)
+            clip.setsampwidth(2)
+            clip.setframerate(16000)
+            clip.writeframes(audio.tobytes())
+        return output.getvalue()
 
     def list_sessions(self, actor: Principal) -> list[dict]:
         self._require(actor, "operator", "psychologist", "reviewer")

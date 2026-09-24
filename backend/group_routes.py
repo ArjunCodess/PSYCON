@@ -150,6 +150,18 @@ def get_face_voices(session_id):
         return _failure(exc)
 
 
+@group_api.get("/group-sessions/<uuid:session_id>/face-voices/<int:slot_number>/audio")
+@group_role("operator", "psychologist", "reviewer")
+def get_face_voice_audio(session_id, slot_number):
+    try:
+        data = _service().face_voice_audio(g.principal, str(session_id), slot_number)
+    except GroupError as exc:
+        return _failure(exc)
+    response = Response(data, mimetype="audio/wav")
+    response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
 @group_api.post("/group-sessions/<uuid:session_id>/consent-signatures")
 @group_role("operator")
 def store_consent_signature(session_id):

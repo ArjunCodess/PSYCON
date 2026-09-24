@@ -4,6 +4,7 @@ import io
 import subprocess
 import sys
 import shutil
+import wave
 from pathlib import Path
 
 import numpy as np
@@ -110,6 +111,32 @@ def test_upload_marks_faces_and_stores_the_spreadsheet() -> None:
     assert people[1]["combined_feature_ready"] is False
     assert people[1]["segments"] == []
     assert len(details.get_json()["unknown_segments"]) == 1
+    seconds = np.arange(10 * 16000) / 16000
+    samples = (1200 * np.sin(2 * np.pi * 210 * seconds)).astype(np.int16)
+    samples[6 * 16000:8 * 16000] = (1800 * np.sin(2 * np.pi * 410 * seconds[:2 * 16000])).astype(np.int16)
+    source = io.BytesIO()
+    with wave.open(source, "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(16000)
+        wav.writeframes(samples.tobytes())
+    key = f"group-recordings/{session_id}/audio.wav"
+    service.storage.put_immutable(key, source.getvalue(), "audio/wav")
+    service.store.update_recording(session_id, audio_object_key=key)
+    clip = client.get(f"/api/v1/group-sessions/{session_id}/face-voices/1/audio", headers=auth(token))
+    assert clip.status_code == 200
+    assert clip.mimetype == "audio/wav"
+    assert clip.headers["Cache-Control"] == "private, no-store"
+    with wave.open(io.BytesIO(clip.data), "rb") as wav:
+        assert wav.getframerate() == 16000
+        assert wav.getnframes() == 4 * 16000
+        assert np.array_equal(np.frombuffer(wav.readframes(wav.getnframes()), dtype="<i2"),
+                              samples[16000:5 * 16000])
+    unavailable = client.get(f"/api/v1/group-sessions/{session_id}/face-voices/2/audio", headers=auth(token))
+    assert unavailable.status_code == 409
+    assert client.get(f"/api/v1/group-sessions/{session_id}/face-voices/3/audio", headers=auth(token)).status_code == 404
+    service.store.voice_segments[session_id][0]["end_s"] = 4.5
+    assert client.get(f"/api/v1/group-sessions/{session_id}/face-voices/1/audio", headers=auth(token)).status_code == 409
     missing = client.post(
         f"/api/v1/group-sessions/{session_id}/labels",
         data={"file": (io.BytesIO(b"participant,A\n9,1\n"), "bad.csv")},
