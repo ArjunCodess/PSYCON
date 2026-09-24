@@ -617,6 +617,44 @@ class PostgresGroupStore:
             rows = connection.execute("SELECT * FROM face_samples ORDER BY group_session_id, slot_number").fetchall()
         return [_public(row) for row in rows]
 
+    def replace_voice_segments(self, session_id: str, rows: list[dict]) -> list[dict]:
+        with self.database.connection() as connection:
+            connection.execute("DELETE FROM voice_segments WHERE group_session_id=%s", (session_id,))
+            for row in rows:
+                connection.execute(
+                    "INSERT INTO voice_segments(id,group_session_id,start_s,end_s,cluster_label,overlap_refused_s,slot_number,confidence,status) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    (row["id"], session_id, row["start_s"], row["end_s"], row.get("cluster_label"),
+                     row.get("overlap_refused_s", 0.0), row["slot_number"], row["confidence"], row["status"]),
+                )
+        return self.voice_segments_for(session_id)
+
+    def voice_segments_for(self, session_id: str) -> list[dict]:
+        with self.database.connection() as connection:
+            rows = connection.execute("SELECT * FROM voice_segments WHERE group_session_id=%s ORDER BY start_s", (session_id,)).fetchall()
+        return [_public(row) for row in rows]
+
+    def replace_voice_profiles(self, session_id: str, rows: list[dict]) -> list[dict]:
+        with self.database.connection() as connection:
+            connection.execute("DELETE FROM voice_profiles WHERE group_session_id=%s", (session_id,))
+            for row in rows:
+                connection.execute(
+                    "INSERT INTO voice_profiles(id,group_session_id,slot_number,engine,usable_seconds,vector,embedding_engine,embedding,metrics,status) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    (row["id"], session_id, row["slot_number"], row["engine"], row["usable_seconds"],
+                     Jsonb(row["vector"]), row.get("embedding_engine"), Jsonb(row.get("embedding")),
+                     Jsonb(row["metrics"]), row["status"]),
+                )
+        return self.voice_profiles_for(session_id)
+
+    def voice_profiles_for(self, session_id: str) -> list[dict]:
+        with self.database.connection() as connection:
+            rows = connection.execute("SELECT * FROM voice_profiles WHERE group_session_id=%s ORDER BY slot_number", (session_id,)).fetchall()
+        return [_public(row) for row in rows]
+
+    def all_voice_profiles(self) -> list[dict]:
+        with self.database.connection() as connection:
+            rows = connection.execute("SELECT * FROM voice_profiles ORDER BY group_session_id, slot_number").fetchall()
+        return [_public(row) for row in rows]
+
     def replace_training_labels(self, session_id: str, rows: list[dict]) -> list[dict]:
         with self.database.connection() as connection:
             connection.execute("DELETE FROM training_labels WHERE group_session_id=%s", (session_id,))

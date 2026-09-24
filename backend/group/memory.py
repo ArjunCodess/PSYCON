@@ -26,6 +26,8 @@ class MemoryGroupStore:
         self.audit_events: list[dict] = []
         self.face_samples: dict[str, list[dict]] = {}
         self.training_labels: list[dict] = []
+        self.voice_segments: dict[str, list[dict]] = {}
+        self.voice_profiles: dict[str, list[dict]] = {}
 
     def account_by_token(self, token_hash: str) -> dict | None:
         account_id = self.tokens.get(token_hash)
@@ -232,6 +234,8 @@ class MemoryGroupStore:
         self.turns.pop(session_id, None)
         self.jobs = [row for row in self.jobs if row["group_session_id"] != session_id]
         self.face_samples.pop(session_id, None)
+        self.voice_segments.pop(session_id, None)
+        self.voice_profiles.pop(session_id, None)
         self.training_labels = [row for row in self.training_labels if row["group_session_id"] != session_id]
         return keys
 
@@ -244,6 +248,23 @@ class MemoryGroupStore:
 
     def all_face_samples(self) -> list[dict]:
         return [copy.deepcopy(row) for rows in self.face_samples.values() for row in rows]
+
+    def replace_voice_segments(self, session_id: str, rows: list[dict]) -> list[dict]:
+        self.voice_segments[session_id] = copy.deepcopy(rows)
+        return self.voice_segments_for(session_id)
+
+    def voice_segments_for(self, session_id: str) -> list[dict]:
+        return copy.deepcopy(self.voice_segments.get(session_id, []))
+
+    def replace_voice_profiles(self, session_id: str, rows: list[dict]) -> list[dict]:
+        self.voice_profiles[session_id] = copy.deepcopy(rows)
+        return self.voice_profiles_for(session_id)
+
+    def voice_profiles_for(self, session_id: str) -> list[dict]:
+        return copy.deepcopy(self.voice_profiles.get(session_id, []))
+
+    def all_voice_profiles(self) -> list[dict]:
+        return [copy.deepcopy(row) for rows in self.voice_profiles.values() for row in rows]
 
     def replace_training_labels(self, session_id: str, rows: list[dict]) -> list[dict]:
         self.training_labels = [row for row in self.training_labels if row["group_session_id"] != session_id]

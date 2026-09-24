@@ -376,7 +376,7 @@ CREATE TABLE IF NOT EXISTS playback_grants (
     object_key TEXT NOT NULL
 );
 
-INSERT INTO schema_version(version) VALUES (1), (2), (3), (4) ON CONFLICT DO NOTHING;
+INSERT INTO schema_version(version) VALUES (1), (2), (3), (4), (5) ON CONFLICT DO NOTHING;
 
 ALTER TABLE recordings ADD COLUMN IF NOT EXISTS audio_object_key TEXT;
 ALTER TABLE recordings ADD COLUMN IF NOT EXISTS thumbnail_object_key TEXT;
@@ -408,3 +408,35 @@ CREATE TABLE IF NOT EXISTS training_labels (
 );
 
 ALTER TABLE training_labels ADD COLUMN IF NOT EXISTS class_name TEXT NOT NULL DEFAULT '';
+
+CREATE TABLE IF NOT EXISTS voice_segments (
+    id UUID PRIMARY KEY,
+    group_session_id UUID NOT NULL REFERENCES group_sessions(id) ON DELETE CASCADE,
+    start_s DOUBLE PRECISION NOT NULL,
+    end_s DOUBLE PRECISION NOT NULL,
+    cluster_label TEXT,
+    overlap_refused_s DOUBLE PRECISION NOT NULL DEFAULT 0,
+    slot_number INTEGER CHECK (slot_number BETWEEN 1 AND 10),
+    confidence DOUBLE PRECISION NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('assigned', 'unknown')),
+    CHECK (end_s > start_s)
+);
+
+CREATE TABLE IF NOT EXISTS voice_profiles (
+    id UUID PRIMARY KEY,
+    group_session_id UUID NOT NULL REFERENCES group_sessions(id) ON DELETE CASCADE,
+    slot_number INTEGER NOT NULL CHECK (slot_number BETWEEN 1 AND 10),
+    engine TEXT,
+    usable_seconds DOUBLE PRECISION NOT NULL,
+    vector JSONB,
+    embedding_engine TEXT,
+    embedding JSONB,
+    metrics JSONB NOT NULL DEFAULT '{}'::jsonb,
+    status TEXT NOT NULL CHECK (status IN ('ready', 'insufficient_speech')),
+    UNIQUE (group_session_id, slot_number)
+);
+
+ALTER TABLE voice_segments ADD COLUMN IF NOT EXISTS cluster_label TEXT;
+ALTER TABLE voice_segments ADD COLUMN IF NOT EXISTS overlap_refused_s DOUBLE PRECISION NOT NULL DEFAULT 0;
+ALTER TABLE voice_profiles ADD COLUMN IF NOT EXISTS embedding_engine TEXT;
+ALTER TABLE voice_profiles ADD COLUMN IF NOT EXISTS embedding JSONB;
