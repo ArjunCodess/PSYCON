@@ -189,6 +189,63 @@ class GroupObservationService:
         self._require(actor, "operator", "psychologist", "reviewer")
         return self._view(actor, session_id)
 
+    def face_voice_details(self, actor: Principal, session_id: str) -> dict:
+        self._require(actor, "operator", "psychologist", "reviewer")
+        session = self._session(session_id)
+        recording = self.store.recording_for_session(session_id)
+        samples = {int(row["slot_number"]): row for row in self.store.face_samples_for(session_id)}
+        seats = {int(row["slot_number"]): row for row in self.store.seats_for(session_id)}
+        profiles = {int(row["slot_number"]): row for row in self.store.voice_profiles_for(session_id)}
+        segments = self.store.voice_segments_for(session_id)
+        labels: dict[int, dict] = {}
+        for row in self.store.training_labels_for(session_id):
+            slot = int(row["slot_number"])
+            entry = labels.setdefault(slot, {"class_name": row["class_name"], "scores": {}})
+            entry["scores"][row["item_letter"]] = row["score"]
+        people = []
+        for person in sorted(self.store.participants(session_id), key=lambda row: row["slot_number"]):
+            slot = int(person["slot_number"])
+            sample, seat, profile = samples.get(slot), seats.get(slot), profiles.get(slot)
+            face = None if sample is None else {
+                "box": {key: sample[key] for key in ("x", "y", "width", "height")},
+                "vector": sample["feature"],
+            }
+            if face is None and seat is not None:
+                face = {"box": {key: seat[key] for key in ("x", "y", "width", "height")}, "vector": None}
+            people.append({
+                "slot_number": slot,
+                "label": person["label"],
+                "withdrawn": bool(person.get("withdrawn_at")),
+                "face": face,
+                "voice": None if profile is None else {
+                    key: profile.get(key) for key in
+                    ("status", "engine", "embedding_engine", "usable_seconds", "vector", "embedding", "metrics")
+                },
+                "combined_feature_ready": bool(sample and profile and training_feature(sample["feature"], profile) is not None),
+                "segments": [
+                    {key: row.get(key) for key in ("start_s", "end_s", "confidence", "overlap_refused_s")}
+                    for row in segments if row.get("status") == "assigned" and row.get("slot_number") == slot
+                ],
+                "marksheet": labels.get(slot),
+            })
+        processing = (recording or {}).get("processing") or {}
+        voice_matching = processing.get("voice_matching")
+        if voice_matching is None:
+            recording_state = None if recording is None else recording["processing_state"]
+            status = "not_analyzed" if recording_state == "complete" else (
+                "failed" if recording_state == "failed" else "pending")
+            voice_matching = {"status": status, "ready_voices": 0}
+        return {
+            "session_code": session["session_code"],
+            "recording_state": None if recording is None else recording["processing_state"],
+            "voice_matching": voice_matching,
+            "people": people,
+            "unknown_segments": [
+                {key: row.get(key) for key in ("start_s", "end_s", "confidence", "overlap_refused_s")}
+                for row in segments if row.get("status") == "unknown"
+            ],
+        }
+
     def list_sessions(self, actor: Principal) -> list[dict]:
         self._require(actor, "operator", "psychologist", "reviewer")
         summaries = []

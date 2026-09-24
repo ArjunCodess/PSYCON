@@ -141,6 +141,15 @@ def get_group_session(session_id):
         return _failure(exc)
 
 
+@group_api.get("/group-sessions/<uuid:session_id>/face-voices")
+@group_role("operator", "psychologist", "reviewer")
+def get_face_voices(session_id):
+    try:
+        return jsonify(_service().face_voice_details(g.principal, str(session_id)))
+    except GroupError as exc:
+        return _failure(exc)
+
+
 @group_api.post("/group-sessions/<uuid:session_id>/consent-signatures")
 @group_role("operator")
 def store_consent_signature(session_id):
