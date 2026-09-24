@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from functools import wraps
+from io import BytesIO
 
-from flask import Blueprint, Response, current_app, g, jsonify, render_template, request
+from flask import Blueprint, Response, current_app, g, jsonify, render_template, request, send_file
 
 from .auth import require_role
 from .group.errors import GroupError
@@ -157,7 +158,7 @@ def get_face_voice_audio(session_id, slot_number):
         data = _service().face_voice_audio(g.principal, str(session_id), slot_number)
     except GroupError as exc:
         return _failure(exc)
-    response = Response(data, mimetype="audio/wav")
+    response = send_file(BytesIO(data), mimetype="audio/wav", conditional=True, etag=False, max_age=0)
     response.headers["Cache-Control"] = "private, no-store"
     return response
 

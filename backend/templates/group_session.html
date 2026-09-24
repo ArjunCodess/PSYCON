@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css', v='week4-complete') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='group_session.css', v='group-console-11') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='group_session.css', v='group-console-12') }}">
 </head>
 <body>
   <main class="page-shell">
@@ -44,9 +44,13 @@
           </div>
           <span id="voice-status" class="voice-status" role="status">Waiting for voice analysis</span>
         </div>
-        <p class="field-helper">Audio is assigned only when one marked face has a clear mouth-motion lead. Uncertain speech stays unassigned.</p>
+        <p class="field-helper">Speech is matched using acoustic speaker turns and tracked mouth motion. Detected overlap, speaker changes and uncertain matches are withheld.</p>
         <p id="voice-summary" class="voice-summary" role="status"></p>
         <div id="face-voice-list" class="face-voice-list"></div>
+        <details class="unknown-voice">
+          <summary>Who speaks when</summary>
+          <div id="speaking-timeline"></div>
+        </details>
         <details id="unknown-voice" class="unknown-voice" hidden>
           <summary>Unassigned speech · <span id="unknown-count">0</span> windows</summary>
           <div id="unknown-list"></div>
@@ -68,6 +72,6 @@
 
     <div id="notice" class="success-message" role="status" hidden></div>
   </main>
-  <script src="{{ url_for('static', filename='group_session.js', v='group-console-11') }}" defer></script>
+  <script src="{{ url_for('static', filename='group_session.js', v='group-console-12') }}" defer></script>
 </body>
 </html>

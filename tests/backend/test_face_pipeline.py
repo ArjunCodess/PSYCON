@@ -16,7 +16,7 @@ from backend.group.labels import parse_label_csv
 from backend.group.memory import MemoryGroupStore
 from backend.group.service import GroupObservationService
 from backend.group.voice import assign_windows, SCALAR_NAMES, training_feature
-from backend.group.voice import build_profiles
+from backend.group.voice import MATCHING_VERSION, assigned_audio_for_slot, build_profiles
 from research.face_training import train_face_items
 from tests.backend.test_group_workflow import MemoryStorage, auth, build_app, probe
 
@@ -92,13 +92,15 @@ def test_upload_marks_faces_and_stores_the_spreadsheet() -> None:
     ], [
         {"id": "voice-1", "slot_number": 1, "status": "ready", "engine": "numpy_spectral_v1",
          "embedding_engine": None, "embedding": None, "usable_seconds": 4.0,
-         "vector": [0.2] * 32, "metrics": {"speaking_duration_s": 4.0, "turn_count": 1,
+         "vector": [0.2] * 32, "metrics": {"matching_version": MATCHING_VERSION, "speaking_duration_s": 4.0, "turn_count": 1,
          "overlap_refused_s": 0.0, "pause_total_s": 0.0, "word_rate_wpm": None,
          "pitch_jitter_relative": None}},
         {"id": "voice-2", "slot_number": 2, "status": "insufficient_speech", "engine": None,
          "embedding_engine": None, "embedding": None, "usable_seconds": 0.0,
          "vector": None, "metrics": {}},
     ])
+    service.store.update_recording(session_id, processing_state="complete",
+                                   processing={"voice_matching": {"status": "complete", "version": MATCHING_VERSION}})
     details = client.get(f"/api/v1/group-sessions/{session_id}/face-voices", headers=auth(token))
     assert details.status_code == 200
     people = details.get_json()["people"]
@@ -127,6 +129,10 @@ def test_upload_marks_faces_and_stores_the_spreadsheet() -> None:
     assert clip.status_code == 200
     assert clip.mimetype == "audio/wav"
     assert clip.headers["Cache-Control"] == "private, no-store"
+    partial = client.get(f"/api/v1/group-sessions/{session_id}/face-voices/1/audio",
+                         headers={**auth(token), "Range": "bytes=0-43"})
+    assert partial.status_code == 206
+    assert partial.data == clip.data[:44]
     with wave.open(io.BytesIO(clip.data), "rb") as wav:
         assert wav.getframerate() == 16000
         assert wav.getnframes() == 4 * 16000
@@ -197,7 +203,7 @@ def test_mouth_motion_assigns_the_right_hand_face_and_abstains_on_tie() -> None:
         {"slot_number": 1, "x": 0.6, "y": 0.2, "width": 0.2, "height": 0.4},
         {"slot_number": 2, "x": 0.1, "y": 0.2, "width": 0.2, "height": 0.4},
     ]
-    turn = [{"start_s": 0.0, "end_s": 4.0, "cluster_label": "cluster-7", "overlap": False}]
+    turn = [{"start_s": 0.0, "end_s": 4.0, "cluster_label": "cluster-7", "overlap": False, "engine": "pyannote/test"}]
 
     def frames(*, both: bool) -> list[np.ndarray]:
         result = []
@@ -210,36 +216,41 @@ def test_mouth_motion_assigns_the_right_hand_face_and_abstains_on_tie() -> None:
         return result
 
     assigned = assign_windows(turn, boxes, b"video", frame_sampler=lambda *_: frames(both=False), face_checker=lambda *_: True)
-    assert assigned[0]["slot_number"] == 1
-    assert assigned[0]["status"] == "assigned"
+    assert assigned[1]["slot_number"] == 1
+    assert assigned[1]["status"] == "assigned"
     tied = assign_windows(turn, boxes, b"video", frame_sampler=lambda *_: frames(both=True), face_checker=lambda *_: True)
-    assert tied[0]["slot_number"] is None
-    assert tied[0]["status"] == "unknown"
+    assert all(row["slot_number"] is None for row in tied)
+    assert all(row["status"] == "unknown" for row in tied)
     overlapping = assign_windows(
         [turn[0], {"start_s": 2.0, "end_s": 3.0, "cluster_label": "cluster-8", "overlap": False}],
         boxes, b"video", frame_sampler=lambda *_: frames(both=False), face_checker=lambda *_: True,
     )
-    assert all(row["status"] == "unknown" for row in overlapping)
-    assert overlapping[0]["overlap_refused_s"] == 1.0
+    assert all(row["status"] == "unknown" for row in overlapping if row["start_s"] < 3 and row["end_s"] > 2)
+    assert sum(row["overlap_refused_s"] for row in overlapping) == 1.0
     moving_heads = []
     for index in range(5):
         frame = np.zeros((100, 100, 3), dtype=np.uint8)
         frame[24:56, 60:80] = index % 2 * 60
         moving_heads.append(frame)
     assert assign_windows(turn, boxes, b"video", frame_sampler=lambda *_: moving_heads,
-                          face_checker=lambda *_: True)[0]["status"] == "unknown"
+                          face_checker=lambda *_: True)[1]["status"] == "unknown"
     assert assign_windows(turn, boxes, b"video", frame_sampler=lambda *_: frames(both=False),
-                          face_checker=lambda *_: False)[0]["status"] == "unknown"
+                          face_checker=lambda *_: False)[1]["status"] == "unknown"
     partly_visible = frames(both=False)
     partly_visible[0][0, 0] = 1
     partly_visible[-1][0, 0] = 1
     assert assign_windows(turn, boxes, b"video", frame_sampler=lambda *_: partly_visible,
-                          face_checker=lambda frame, _box: bool(frame[0, 0, 0]))[0]["status"] == "assigned"
+                          face_checker=lambda frame, _box: bool(frame[0, 0, 0]))[1]["status"] == "unknown"
     two_moving = frames(both=True)
     for frame in two_moving:
         frame[:, :50] //= 3
     assert assign_windows(turn, boxes, b"video", frame_sampler=lambda *_: two_moving,
-                          face_checker=lambda *_: True)[0]["status"] == "unknown"
+                          face_checker=lambda *_: True)[1]["status"] == "unknown"
+    asynchronous = frames(both=False)
+    for image, level in zip(asynchronous, (0, 0, 15, 15, 0)):
+        image[45:55, 10:30] = level
+    assert all(row["status"] == "unknown" for row in assign_windows(
+        turn, boxes, b"video", frame_sampler=lambda *_: asynchronous, face_checker=lambda *_: True))
 
 
 def test_energy_segments_do_not_disappear_after_one_loud_peak() -> None:
@@ -270,7 +281,7 @@ def test_training_requires_ready_voice_for_the_same_session_and_slot() -> None:
         ])
         store.replace_voice_profiles(session, [
             {"group_session_id": session, "slot_number": 1, "status": "ready", "vector": [0.1] * 32,
-             "metrics": {name: 1.0 for name in SCALAR_NAMES}},
+             "metrics": {"matching_version": MATCHING_VERSION, **{name: 1.0 for name in SCALAR_NAMES}}},
             {"group_session_id": session, "slot_number": 2, "status": "insufficient_speech", "vector": None,
              "metrics": {}},
         ])
@@ -282,7 +293,7 @@ def test_training_requires_ready_voice_for_the_same_session_and_slot() -> None:
         session = f"s{index}"
         store.replace_voice_profiles(session, [
             {"group_session_id": session, "slot_number": slot, "status": "ready", "vector": [float(slot)] * 32,
-             "metrics": {name: float(slot) for name in SCALAR_NAMES}} for slot in (1, 2)
+             "metrics": {"matching_version": MATCHING_VERSION, **{name: float(slot) for name in SCALAR_NAMES}}} for slot in (1, 2)
         ])
     fitted = service.train_faces(actor)
     assert fitted["feature"] == "face_and_voice_v2"
@@ -345,7 +356,7 @@ def test_worker_records_voice_matching_after_extraction(monkeypatch) -> None:
     samples = (1500 * np.sin(2 * np.pi * 160 * np.arange(4 * 16000) / 16000)).astype(np.int16)
     def extracted(_data: bytes, _recording: dict) -> dict:
         return {"pcm_samples": samples, "sample_rate_hz": 16000,
-                "turns": [{"start_s": 0.0, "end_s": 4.0, "cluster_label": "speaker-X", "overlap": False}],
+                "turns": [{"start_s": 0.0, "end_s": 4.0, "cluster_label": "speaker-X", "overlap": False, "engine": "pyannote/test"}],
                 "transcript": [], "failure_reasons": [], "quality_state": "usable", "tool_version": "test"}
 
     store = MemoryGroupStore()
@@ -361,13 +372,22 @@ def test_worker_records_voice_matching_after_extraction(monkeypatch) -> None:
         frame = np.zeros((100, 100, 3), dtype=np.uint8)
         frame[45:55, 60:80] = index % 2 * 60
         frames.append(frame)
+    import backend.group.voice as voice_module
+    class FakeSampler:
+        def __init__(self, _): pass
+        def __enter__(self): return self
+        def __exit__(self, *_): pass
+        def __call__(self, *args): return voice_module.sample_window_frames(*args)
+    monkeypatch.setattr("backend.group.voice.WindowFrameSampler", FakeSampler)
     monkeypatch.setattr("backend.group.voice.sample_window_frames", lambda *_: frames)
     monkeypatch.setattr("backend.group.voice.face_visible", lambda *_: True)
+    monkeypatch.setattr("backend.group.voice._track_face_frames",
+                        lambda frames, box: [frame[20:60, 60:80] for frame in frames])
     monkeypatch.setattr("backend.group.voice._embedding_available", lambda: False)
     monkeypatch.setattr("backend.group.voice.analyze_vocal_jitter_regions", lambda *_: {"status": "unavailable"})
     job = service.claim_job("test")
     service.run_job(job)
-    assert store.voice_segments_for(session_id)[0]["slot_number"] == 1
+    assert store.voice_segments_for(session_id)[1]["slot_number"] == 1
     assert store.voice_profiles_for(session_id)[0]["status"] == "ready"
     processing = store.recording_for_session(session_id)["processing"]
     assert processing["voice_matching"]["ready_voices"] == 1
@@ -395,13 +415,61 @@ def test_worker_records_voice_matching_after_extraction(monkeypatch) -> None:
     assert store.jobs[0]["state"] == "failed"
 
 
-def test_long_energy_turn_is_observed_in_full(monkeypatch) -> None:
+def test_energy_windows_never_claim_a_person_without_diarization() -> None:
+    rows = assign_windows([{"start_s": 0., "end_s": 8., "cluster_label": "segment-1",
+                            "engine": "unverified_energy_segments_v2"}], [], b"video",
+                          frame_sampler=lambda *_: pytest.fail("unverified audio must not be assigned"))
+    assert len(rows) == 1
+    assert rows[0]["status"] == "unknown"
+    assert rows[0]["evidence"]["reason"] == "diarization_required"
+
+
+def test_playback_and_profiles_exclude_conflicting_saved_windows() -> None:
+    samples = (1000 * np.sin(np.arange(64000) * 2 * np.pi * 220 / 16000)).astype(np.int16)
+    segments = [{"start_s": 0., "end_s": 4., "slot_number": 1, "status": "assigned"},
+                {"start_s": 1., "end_s": 2., "slot_number": 2, "status": "assigned"},
+                {"start_s": 3., "end_s": 3.5, "slot_number": None, "status": "unknown"}]
+    audio, intervals = assigned_audio_for_slot(samples, 16000, segments, 1)
+    assert intervals == [(0., 1.), (2., 3.), (3.5, 4.)]
+    np.testing.assert_array_equal(audio, np.concatenate([samples[:16000], samples[32000:48000], samples[56000:]]))
+
+
+def test_old_voice_profiles_cannot_be_used_for_training() -> None:
+    old = {"status": "ready", "vector": [0.1] * 32, "metrics": {name: 1. for name in SCALAR_NAMES}}
+    assert training_feature([0.1] * 80, old) is None
+
+
+def test_face_tracking_removes_head_translation(monkeypatch) -> None:
+    from backend.group.voice import _track_face_frames, mouth_motion
+    monkeypatch.setattr("backend.group.voice.face_visible", lambda *_: True)
+    box = {"x": .25, "y": .25, "width": .5, "height": .5}
+    first = np.zeros((192, 192, 3), dtype=np.uint8)
+    first[48:144, 48:144] = np.random.default_rng(7).integers(0, 200, (96, 96, 3), dtype=np.uint8)
+    frames = [np.roll(first, index, axis=1) for index in range(6)]
+    tracked = _track_face_frames(frames, box)
+    assert tracked is not None and len(tracked) == len(frames)
+    assert mouth_motion(tracked, {"x": 0., "y": 0., "width": 1., "height": 1.}) < .55
+
+
+def test_public_local_diarizer_is_used_when_pyannote_is_unavailable(monkeypatch) -> None:
+    from backend.group.extract import _diarize
+    def unavailable(*_):
+        raise RuntimeError("no token")
+    monkeypatch.setattr("ml.src.speaker_analysis.PyannoteDiarizer.diarize", unavailable)
+    monkeypatch.setattr("backend.group.diarization.diarize", lambda *_: [
+        {"start_s": 0., "end_s": 3., "cluster_label": "voice-9", "engine": "sherpa_onnx/test"},
+        {"start_s": 2., "end_s": 4., "cluster_label": "voice-2", "engine": "sherpa_onnx/test"},
+    ])
+    turns, reason = _diarize(np.zeros(64000, dtype=np.int16), 16000)
+    assert reason is None
+    assert all(row["overlap"] for row in turns)
+    assert [row["cluster_label"] for row in turns] == ["voice-9", "voice-2"]
+
+
+def test_speaker_changes_and_cluster_face_conflicts_are_withheld() -> None:
     boxes = [{"slot_number": 1, "x": .6, "y": .2, "width": .2, "height": .4},
              {"slot_number": 2, "x": .1, "y": .2, "width": .2, "height": .4}]
-    observed = []
-
     def sampler(_source, start, end):
-        observed.append((start, end))
         frames = []
         for index in range(8):
             frame = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -409,19 +477,18 @@ def test_long_energy_turn_is_observed_in_full(monkeypatch) -> None:
             frame[45:55, x:x + 20] = index % 2 * 60
             frames.append(frame)
         return frames
+    turns = [{"start_s": 0., "end_s": 4., "cluster_label": "a", "engine": "pyannote/test"},
+             {"start_s": 4., "end_s": 8., "cluster_label": "b", "engine": "pyannote/test"}]
+    rows = assign_windows(turns, boxes, b"video", frame_sampler=sampler, face_checker=lambda *_: True)
+    assigned = [row for row in rows if row["status"] == "assigned"]
+    assert {row["slot_number"] for row in assigned} == {1, 2}
+    assert all(row["end_s"] <= 3.85 if row["slot_number"] == 1 else row["start_s"] >= 4.15 for row in assigned)
+    assert all(row["end_s"] - row["start_s"] <= .8 for row in assigned)
+    # An acoustic cluster cannot silently change faces halfway through a turn.
+    turns[1]["cluster_label"] = "a"
+    conflicted = assign_windows(turns, boxes, b"video", frame_sampler=sampler, face_checker=lambda *_: True)
+    assert all(row["status"] == "unknown" for row in conflicted)
 
-    rows = assign_windows([{"start_s": 0., "end_s": 8., "cluster_label": "segment-1"}], boxes, b"video",
-                          frame_sampler=sampler, face_checker=lambda *_: True)
-    assert observed == [(0., 2.), (2., 4.), (4., 6.), (6., 8.)]
-    assert [row["slot_number"] for row in rows] == [1, 1, 2, 2]
-    monkeypatch.setattr("backend.group.voice._embedding_available", lambda: False)
-    monkeypatch.setattr("backend.group.voice.analyze_vocal_jitter_regions", lambda *_: {"status": "unavailable"})
-    samples = (1000 * np.sin(2 * np.pi * 160 * np.arange(8 * 16000) / 16000)).astype(np.int16)
-    profiles = build_profiles(samples, 16000, rows, boxes,
-                              [{"start_s": 0., "end_s": 1., "text": "three test words"}])
-    assert [row["usable_seconds"] for row in profiles] == [4., 4.]
-    assert [row["metrics"]["turn_count"] for row in profiles] == [1, 1]
-    assert profiles[0]["metrics"]["word_rate_wpm"] == 180.
 
 
 def test_docker_copy_layout_can_import_the_worker(tmp_path) -> None:
@@ -451,6 +518,7 @@ def test_docker_copy_layout_can_import_the_worker(tmp_path) -> None:
 @pytest.mark.parametrize("bad", [None, float("nan"), "broken"])
 def test_bad_required_measure_abstains_without_crashing(bad) -> None:
     profile = {"status": "ready", "vector": [.1] * 32, "metrics": {name: 1. for name in SCALAR_NAMES}}
+    profile["metrics"]["matching_version"] = MATCHING_VERSION
     profile["metrics"]["speaking_duration_s"] = bad
     assert training_feature([.1] * 80, profile) is None
 
@@ -488,3 +556,23 @@ def test_silent_assigned_audio_does_not_become_a_ready_profile(monkeypatch) -> N
                              [{"slot_number": 1}], [])[0]
     assert profile["status"] == "insufficient_speech"
     assert profile["metrics"] == {}
+
+
+def test_frame_sampler_rejects_unreliable_timestamps(monkeypatch) -> None:
+    import cv2
+    from backend.group.voice import WindowFrameSampler
+
+    class Capture:
+        def isOpened(self):
+            return True
+        def read(self):
+            return True, np.zeros((24, 24, 3), dtype=np.uint8)
+        def get(self, _):
+            return 0.0
+        def release(self):
+            pass
+
+    monkeypatch.setattr(cv2, 'VideoCapture', lambda _: Capture())
+    with WindowFrameSampler(Path('fake.mp4')) as sampler:
+        with pytest.raises(RuntimeError, match='timestamps_invalid'):
+            sampler(None, 0., 1.)

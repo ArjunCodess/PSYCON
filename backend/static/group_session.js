@@ -61,66 +61,18 @@
   }
 
   function addSpeechPlayer(card, person, sessionId) {
-    const playback = make("div", "face-voice-audio");
-    const label = make("span", "face-voice-audio-label", "Listen to usable speech");
-    const button = make("button", "face-voice-play", `Play ${fixed(person.voice.usable_seconds)} s clip`);
-    const participantName = person.label || `participant ${person.slot_number}`;
-    button.type = "button";
-    button.setAttribute("aria-label", `Play usable speech assigned to ${participantName}`);
-    playback.append(label, button);
-    card.append(playback);
-
-    let context = null;
-    let source = null;
-    const stop = () => {
-      if (source) {
-        source.onended = null;
-        try { source.stop(); } catch (_) { /* The clip already ended. */ }
-        source.disconnect();
-        source = null;
-      }
-      const old = context;
-      context = null;
-      if (old) void old.close().catch(() => {});
-      if (state.speechStop === stop) state.speechStop = null;
-      button.disabled = false;
-      button.textContent = `Play ${fixed(person.voice.usable_seconds)} s clip`;
-      button.setAttribute("aria-label", `Play usable speech assigned to ${participantName}`);
-    };
-    button.addEventListener("click", async () => {
-      if (context) { stop(); return; }
-      state.speechStop?.();
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextClass) {
-        label.textContent = "Audio playback is unavailable in this browser.";
-        return;
-      }
-      const current = new AudioContextClass();
-      context = current;
+    const player = make("audio", "face-voice-audio");
+    player.controls = true;
+    player.preload = "none";
+    player.src = `/api/v1/group-sessions/${sessionId}/face-voices/${person.slot_number}/audio`;
+    player.setAttribute("aria-label", `Speech assigned to ${person.label || `participant ${person.slot_number}`}`);
+    const stop = () => { player.pause(); if (state.speechStop === stop) state.speechStop = null; };
+    player.addEventListener("play", () => {
+      if (state.speechStop !== stop) state.speechStop?.();
       state.speechStop = stop;
-      button.textContent = "Loading speech…";
-      button.setAttribute("aria-label", `Loading speech assigned to ${participantName}`);
-      try {
-        await current.resume();
-        const response = await fetch(`/api/v1/group-sessions/${sessionId}/face-voices/${person.slot_number}/audio`,
-          { cache: "no-store" });
-        if (!response.ok) throw new Error("speech unavailable");
-        const audio = await current.decodeAudioData(await response.arrayBuffer());
-        if (context !== current) return;
-        source = current.createBufferSource();
-        source.buffer = audio;
-        source.connect(current.destination);
-        source.onended = () => { if (context === current) stop(); };
-        source.start();
-        button.textContent = "Stop playback";
-        button.setAttribute("aria-label", `Stop speech assigned to ${participantName}`);
-      } catch (_) {
-        if (context === current) {
-          stop();
-          label.textContent = "Speech could not be played.";
-        }
-      }
     });
+    player.addEventListener("ended", stop);
+    card.append(player);
   }
 
   function personCard(person, processing, sessionId) {
@@ -135,10 +87,11 @@
     const status = voice?.status === "ready" ? "Voice ready" :
       voice?.status === "insufficient_speech" ? "Insufficient speech" :
       processing.status === "failed" ? "Voice analysis failed" :
+      processing.status === "not_analyzed" ? "Reprocessing required" :
       processing.status === "complete" ? "Voice unavailable" : "Analyzing voice";
     header.append(make("span", `face-voice-badge ${voice?.status === "ready" ? "is-ready" : ""}`, status));
     card.append(header);
-    if (voice?.status === "ready") addSpeechPlayer(card, person, sessionId);
+    if (voice?.usable_seconds > 0) addSpeechPlayer(card, person, sessionId);
     const metrics = make("div", "voice-metrics");
     addMetric(metrics, "Usable speech", fixed(voice?.usable_seconds), " s");
     addMetric(metrics, "Assigned windows", person.segments.length);
@@ -198,6 +151,13 @@
     byId("unknown-count").textContent = unknown.length;
     byId("unknown-list").replaceChildren();
     addSegments(byId("unknown-list"), unknown);
+    const timeline = make("ol", "voice-segments");
+    for (const row of data.speaking_timeline || []) {
+      const name = row.status === "assigned" ? `Participant ${row.slot_number}` : "Unknown";
+      const reason = row.status === "assigned" ? "" : ` · ${(row.evidence?.reason || "uncertain").replaceAll("_", " ")}`;
+      timeline.append(make("li", "", `${fixed(row.start_s, 2)}–${fixed(row.end_s, 2)} s · ${name}${reason}`));
+    }
+    byId("speaking-timeline").replaceChildren(timeline);
   }
 
   async function refreshVoice() {
