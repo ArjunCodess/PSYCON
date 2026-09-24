@@ -30,7 +30,7 @@ from .labels import LabelSheetError, parse_label_csv
 from .media import MediaError, validate_video
 from .rubric import CONSENT_VERSION, MARKSHEET_VERSION, PROTOCOL_VERSION, RubricError, validate_marksheet
 from .seats import MAX_PARTICIPANTS, MIN_PARTICIPANTS, SeatError, order_seats, overhead_row_regions
-from .voice import MATCHING_VERSION, assigned_audio_for_slot, assign_windows, build_profiles, training_feature
+from .voice import MATCHING_VERSION, assigned_audio_for_slot, assign_windows, build_profiles, review_audio_for_slot, training_feature
 
 
 _SESSION_CODE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$")
@@ -211,6 +211,8 @@ class GroupObservationService:
         for person in sorted(self.store.participants(session_id), key=lambda row: row["slot_number"]):
             slot = int(person["slot_number"])
             sample, seat, profile = samples.get(slot), seats.get(slot), profiles.get(slot)
+            review_rows = [row for row in segments if row.get("status") == "unknown"
+                           and (row.get("evidence") or {}).get("review_slot") == slot]
             face = None if sample is None else {
                 "box": {key: sample[key] for key in ("x", "y", "width", "height")},
                 "vector": sample["feature"],
@@ -227,6 +229,11 @@ class GroupObservationService:
                     ("status", "engine", "embedding_engine", "usable_seconds", "vector", "embedding", "metrics")
                 },
                 "combined_feature_ready": bool(sample and profile and training_feature(sample["feature"], profile) is not None),
+                "review_seconds": sum(row["end_s"] - row["start_s"] for row in review_rows),
+                "review_segments": [{"start_s": row["start_s"], "end_s": row["end_s"],
+                                     "motion": row["evidence"].get("review_motion"),
+                                     "status": row["evidence"].get("review_status")}
+                                    for row in review_rows],
                 "segments": [
                     {key: row.get(key) for key in ("start_s", "end_s", "confidence", "overlap_refused_s")}
                     for row in segments if row.get("status") == "assigned" and row.get("slot_number") == slot
@@ -243,8 +250,6 @@ class GroupObservationService:
         return {
             "session_code": session["session_code"],
             "recording_state": None if recording is None else recording["processing_state"],
-            "recording_audio_available": bool(recording and recording.get("audio_object_key")
-                                              and recording.get("processing_state") == "complete"),
             "voice_matching": voice_matching,
             "people": people,
             "speaking_timeline": [{key: row.get(key) for key in
@@ -279,12 +284,17 @@ class GroupObservationService:
                 samples = np.frombuffer(source.readframes(source.getnframes()), dtype="<i2")
         except (KeyError, OSError, EOFError, ValueError, wave.Error) as exc:
             raise GroupError("audio_unavailable", "The source audio cannot be read", 409) from exc
-        if (profile is None or float(profile.get("usable_seconds") or 0) <= 0
-                or matching.get("version") != MATCHING_VERSION or matching.get("status") != "complete"):
-            return source_data
-        audio, _ = assigned_audio_for_slot(samples, 16000, self.store.voice_segments_for(session_id), slot_number)
-        if abs(len(audio) / 16000 - float(profile["usable_seconds"])) > 1 / 16000 or not len(audio):
-            raise GroupError("voice_mismatch", "The saved voice profile no longer matches its speech windows", 409)
+        if matching.get("version") != MATCHING_VERSION or matching.get("status") != "complete":
+            raise GroupError("voice_unavailable", "Voice matching must finish before playback", 409)
+        segments = self.store.voice_segments_for(session_id)
+        if profile is not None and profile.get("status") == "ready":
+            audio, _ = assigned_audio_for_slot(samples, 16000, segments, slot_number)
+            if abs(len(audio) / 16000 - float(profile["usable_seconds"])) > 1 / 16000 or not len(audio):
+                raise GroupError("voice_mismatch", "The saved voice profile no longer matches its speech windows", 409)
+        else:
+            audio = review_audio_for_slot(samples, 16000, segments, slot_number)
+            if not len(audio):
+                raise GroupError("voice_unavailable", "No short speech excerpt was found for this participant", 409)
         output = io.BytesIO()
         with wave.open(output, "wb") as clip:
             clip.setnchannels(1)

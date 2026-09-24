@@ -16,7 +16,7 @@ from backend.group.labels import parse_label_csv
 from backend.group.memory import MemoryGroupStore
 from backend.group.service import GroupObservationService
 from backend.group.voice import assign_windows, SCALAR_NAMES, training_feature
-from backend.group.voice import MATCHING_VERSION, assigned_audio_for_slot, build_profiles
+from backend.group.voice import MATCHING_VERSION, _select_review_windows, assigned_audio_for_slot, build_profiles, review_audio_for_slot
 from research.face_training import train_face_items
 from tests.backend.test_group_workflow import MemoryStorage, auth, build_app, probe
 
@@ -33,6 +33,32 @@ def test_faces_are_numbered_from_the_right() -> None:
     assert numbered[0]["x"] == 0.72
     image = np.full((32, 32, 3), 30, dtype=np.uint8)
     assert len(face_feature(image, (0.1, 0.1, 0.4, 0.4))) == 80
+
+
+def test_review_excerpts_stitch_distinct_short_windows_without_training() -> None:
+    boxes = [{"slot_number": 1}, {"slot_number": 2}]
+    rows = [
+        {"id": str(index), "start_s": index * 0.8, "end_s": (index + 1) * 0.8,
+         "slot_number": None, "cluster_label": "speaker", "status": "unknown",
+         "evidence": {}, "_review_scores": {1: 0.8 if index % 2 == 0 else 0.1,
+                                           2: 0.8 if index % 2 else 0.1}}
+        for index in range(20)
+    ]
+    _select_review_windows(rows, boxes)
+    selected = {slot: [row for row in rows if row["evidence"].get("review_slot") == slot]
+                for slot in (1, 2)}
+    assert all(5 <= sum(row["end_s"] - row["start_s"] for row in group) <= 8
+               for group in selected.values())
+    assert not ({row["id"] for row in selected[1]} & {row["id"] for row in selected[2]})
+    assert all("_review_scores" not in row for row in rows)
+    samples = np.arange(16 * 16000, dtype=np.int32).astype(np.int16)
+    for slot in (1, 2):
+        expected = np.concatenate([samples[round(row["start_s"] * 16000):round(row["end_s"] * 16000)]
+                                   for row in sorted(selected[slot], key=lambda item: item["start_s"])])
+        np.testing.assert_array_equal(review_audio_for_slot(samples, 16000, rows, slot), expected)
+    profiles = build_profiles(samples, 16000, rows, boxes, [], embedder=None)
+    assert all(profile["status"] == "insufficient_speech" for profile in profiles)
+    assert all(training_feature([0.1] * 80, profile) is None for profile in profiles)
 
 
 def test_spreadsheet_uses_marked_participant_numbers() -> None:
@@ -87,8 +113,11 @@ def test_upload_marks_faces_and_stores_the_spreadsheet() -> None:
     service.store.replace_voice_analysis(session_id, [
         {"id": "assigned", "slot_number": 1, "start_s": 1.0, "end_s": 5.0,
          "confidence": 0.8, "overlap_refused_s": 0.0, "status": "assigned"},
+        {"id": "short-assigned", "slot_number": 2, "start_s": 0.0, "end_s": 1.0,
+         "confidence": 0.7, "overlap_refused_s": 0.0, "status": "assigned"},
         {"id": "unknown", "slot_number": None, "start_s": 6.0, "end_s": 8.0,
-         "confidence": 0.0, "overlap_refused_s": 0.0, "status": "unknown"},
+         "confidence": 0.0, "overlap_refused_s": 0.0, "status": "unknown",
+         "evidence": {"review_slot": 2, "review_motion": 0.4, "review_status": "tentative"}},
     ], [
         {"id": "voice-1", "slot_number": 1, "status": "ready", "engine": "numpy_spectral_v1",
          "embedding_engine": None, "embedding": None, "usable_seconds": 4.0,
@@ -96,7 +125,7 @@ def test_upload_marks_faces_and_stores_the_spreadsheet() -> None:
          "overlap_refused_s": 0.0, "pause_total_s": 0.0, "word_rate_wpm": None,
          "pitch_jitter_relative": None}},
         {"id": "voice-2", "slot_number": 2, "status": "insufficient_speech", "engine": None,
-         "embedding_engine": None, "embedding": None, "usable_seconds": 0.0,
+         "embedding_engine": None, "embedding": None, "usable_seconds": 1.0,
          "vector": None, "metrics": {}},
     ])
     service.store.update_recording(session_id, processing_state="complete",
@@ -110,8 +139,9 @@ def test_upload_marks_faces_and_stores_the_spreadsheet() -> None:
     assert people[0]["marksheet"]["scores"]["A"] == "3"
     assert people[0]["segments"][0]["confidence"] == 0.8
     assert people[1]["voice"]["status"] == "insufficient_speech"
+    assert people[1]["review_seconds"] == 2.0
     assert people[1]["combined_feature_ready"] is False
-    assert people[1]["segments"] == []
+    assert len(people[1]["segments"]) == 1
     assert len(details.get_json()["unknown_segments"]) == 1
     seconds = np.arange(10 * 16000) / 16000
     samples = (1200 * np.sin(2 * np.pi * 210 * seconds)).astype(np.int16)
@@ -126,7 +156,6 @@ def test_upload_marks_faces_and_stores_the_spreadsheet() -> None:
     service.storage.put_immutable(key, source.getvalue(), "audio/wav")
     service.store.update_recording(session_id, audio_object_key=key)
     details = client.get(f"/api/v1/group-sessions/{session_id}/face-voices", headers=auth(token))
-    assert details.get_json()["recording_audio_available"] is True
     clip = client.get(f"/api/v1/group-sessions/{session_id}/face-voices/1/audio", headers=auth(token))
     assert clip.status_code == 200
     assert clip.mimetype == "audio/wav"
@@ -142,11 +171,14 @@ def test_upload_marks_faces_and_stores_the_spreadsheet() -> None:
                               samples[16000:5 * 16000])
     unavailable = client.get(f"/api/v1/group-sessions/{session_id}/face-voices/2/audio", headers=auth(token))
     assert unavailable.status_code == 200
-    assert unavailable.data == source.getvalue()
+    with wave.open(io.BytesIO(unavailable.data), "rb") as wav:
+        assert wav.getnframes() == 2 * 16000
+        assert np.array_equal(np.frombuffer(wav.readframes(wav.getnframes()), dtype="<i2"),
+                              samples[6 * 16000:8 * 16000])
     source_range = client.get(f"/api/v1/group-sessions/{session_id}/face-voices/2/audio",
                               headers={**auth(token), "Range": "bytes=0-43"})
     assert source_range.status_code == 206
-    assert source_range.data == source.getvalue()[:44]
+    assert source_range.data == unavailable.data[:44]
     assert client.get(f"/api/v1/group-sessions/{session_id}/face-voices/3/audio", headers=auth(token)).status_code == 404
     service.store.voice_segments[session_id][0]["end_s"] = 4.5
     assert client.get(f"/api/v1/group-sessions/{session_id}/face-voices/1/audio", headers=auth(token)).status_code == 409

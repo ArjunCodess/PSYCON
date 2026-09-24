@@ -20,6 +20,7 @@ VECTOR_SIZE = 32
 SCALAR_NAMES = ("speaking_duration_s", "turn_count", "overlap_refused_s", "pause_total_s", "word_rate_wpm", "pitch_jitter_relative")
 OPTIONAL_SCALARS = frozenset({"word_rate_wpm", "pitch_jitter_relative", "overlap_refused_s"})
 MATCHING_VERSION = "face-voice-strict-1"
+REVIEW_CLIP_SECONDS = 8.0
 MAX_WINDOW_S = 0.8
 BOUNDARY_GUARD_S = 0.15
 MIN_MOTION = 0.55
@@ -332,6 +333,36 @@ def _resolve_cluster_faces(rows: list[dict]) -> None:
             row["confidence"] = 0.0
 
 
+def _select_review_windows(rows: list[dict], boxes: list[dict]) -> None:
+    """Choose short, distinct speech excerpts for review, never for training."""
+    used: set[str] = set()
+    totals = {int(box["slot_number"]): 0.0 for box in boxes}
+    candidates = [row for row in rows if row["status"] == "unknown"
+                  and row.get("cluster_label") is not None and row.get("_review_scores")]
+    for _ in range(16):
+        progress = False
+        for slot in totals:
+            if totals[slot] >= REVIEW_CLIP_SECONDS - 0.2:
+                continue
+            options = [row for row in candidates if row["id"] not in used
+                       and row["end_s"] - row["start_s"] <= REVIEW_CLIP_SECONDS - totals[slot] + 1e-6
+                       and slot in row["_review_scores"]]
+            if not options:
+                continue
+            row = max(options, key=lambda item: (item["_review_scores"][slot],
+                                                  -item["start_s"]))
+            score = row["_review_scores"][slot]
+            row["evidence"].update(review_slot=slot, review_motion=score,
+                                   review_status="tentative" if score > 0 else "unattributed")
+            totals[slot] += row["end_s"] - row["start_s"]
+            used.add(row["id"])
+            progress = True
+        if not progress:
+            break
+    for row in rows:
+        row.pop("_review_scores", None)
+
+
 def _assign_windows(turns: list[dict], boxes: list[dict], source: bytes | Path, frame_sampler, face_checker) -> list[dict]:
     valid = [(index, turn) for index, turn in enumerate(turns)
              if math.isfinite(float(turn["start_s"])) and math.isfinite(float(turn["end_s"]))
@@ -383,8 +414,13 @@ def _assign_windows(turns: list[dict], boxes: list[dict], source: bytes | Path, 
             frames = frame_sampler(source, start, end)
             candidate, confidence, reason = _visual_candidate(frames, boxes, face_checker)
             append(start, end, active, reason, candidate, confidence)
+            if frames:
+                rows[-1]["_review_scores"] = {int(box["slot_number"]):
+                                              float(mouth_motion(frames, box) or 0.0)
+                                              for box in boxes}
         append(core_end, right, active, "speaker_boundary")
     _resolve_cluster_faces(rows)
+    _select_review_windows(rows, boxes)
     return rows
 
 
@@ -472,6 +508,19 @@ def assigned_audio_for_slot(samples: np.ndarray, sample_rate_hz: int, segments: 
              if _usable_interval(samples[round(start * sample_rate_hz):round(end * sample_rate_hz)])]
     chunks = [samples[round(start * sample_rate_hz):round(end * sample_rate_hz)] for start, end in clean]
     return (np.concatenate(chunks).astype(np.int16) if chunks else np.array([], dtype=np.int16)), clean
+
+
+def review_audio_for_slot(samples: np.ndarray, sample_rate_hz: int, segments: list[dict],
+                          slot: int) -> np.ndarray:
+    """Stitch saved tentative windows without promoting them to assigned speech."""
+    if sample_rate_hz != 16000:
+        raise ValueError("voice review requires 16 kHz PCM")
+    intervals = sorted((max(0, round(float(row["start_s"]) * sample_rate_hz)),
+                        min(len(samples), round(float(row["end_s"]) * sample_rate_hz)))
+                       for row in segments if row["status"] == "unknown"
+                       and (row.get("evidence") or {}).get("review_slot") == slot)
+    chunks = [samples[start:end] for start, end in intervals if end > start]
+    return np.concatenate(chunks).astype(np.int16) if chunks else np.array([], dtype=np.int16)
 
 
 def build_profiles(samples: np.ndarray, sample_rate_hz: int, segments: list[dict],

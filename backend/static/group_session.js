@@ -66,8 +66,8 @@
     player.preload = "none";
     player.src = `/api/v1/group-sessions/${sessionId}/face-voices/${person.slot_number}/audio`;
     const label = person.label || `participant ${person.slot_number}`;
-    player.setAttribute("aria-label", assigned ? `Speech assigned to ${label}` : `Shared recording for reviewing ${label}`);
-    if (!assigned) card.append(make("p", "field-helper", "Shared recording for review. This voice has not been matched to this participant."));
+    player.setAttribute("aria-label", assigned ? `Speech assigned to ${label}` : `Tentative speech excerpt for ${label}`);
+    if (!assigned) card.append(make("p", "field-helper", "Short stitched speech excerpt near this face's mouth activity. It may contain another voice or overlap and is excluded from training."));
     const stop = () => { player.pause(); if (state.speechStop === stop) state.speechStop = null; };
     player.addEventListener("play", () => {
       if (state.speechStop !== stop) state.speechStop?.();
@@ -77,7 +77,7 @@
     card.append(player);
   }
 
-  function personCard(person, processing, sessionId, recordingAudioAvailable) {
+  function personCard(person, processing, sessionId) {
     const card = make("article", "face-voice-card");
     const header = make("div", "face-voice-card-heading");
     const title = make("div");
@@ -93,9 +93,10 @@
       processing.status === "complete" ? "Voice unavailable" : "Analyzing voice";
     header.append(make("span", `face-voice-badge ${voice?.status === "ready" ? "is-ready" : ""}`, status));
     card.append(header);
-    if (recordingAudioAvailable) addSpeechPlayer(card, person, sessionId, voice?.usable_seconds > 0);
+    if (voice?.status === "ready" || person.review_seconds > 0) addSpeechPlayer(card, person, sessionId, voice?.status === "ready");
     const metrics = make("div", "voice-metrics");
     addMetric(metrics, "Usable speech", fixed(voice?.usable_seconds), " s");
+    if (person.review_seconds > 0) addMetric(metrics, "Tentative excerpt", fixed(person.review_seconds), " s");
     addMetric(metrics, "Assigned windows", person.segments.length);
     addMetric(metrics, "Turns", voice?.metrics?.turn_count ?? "—");
     addMetric(metrics, "Overlap refused", fixed(voice?.metrics?.overlap_refused_s), " s");
@@ -109,6 +110,10 @@
     const body = make("div", "face-voice-detail-body");
     body.append(make("h4", "", "Assigned speech windows"));
     addSegments(body, person.segments);
+    if (person.review_segments?.length) {
+      body.append(make("h4", "", "Tentative review windows"));
+      addSegments(body, person.review_segments);
+    }
     body.append(make("h4", "", "Voice measures"));
     body.append(make("pre", "voice-json", JSON.stringify({
       status: voice?.status ?? "pending", engine: voice?.engine ?? null,
@@ -148,7 +153,7 @@
       `${unknown.length} speech windows stayed unassigned. No voice measures or combined training features are available for this recording.` :
       processing.status === "not_analyzed" ? "This recording was processed before voice matching was available." :
       processing.status === "failed" ? `Voice matching failed${processing.reason ? `: ${processing.reason}` : "."}` : "";
-    byId("face-voice-list").replaceChildren(...people.map((person) => personCard(person, processing, state.selected, data.recording_audio_available)));
+    byId("face-voice-list").replaceChildren(...people.map((person) => personCard(person, processing, state.selected)));
     byId("unknown-voice").hidden = unknown.length === 0;
     byId("unknown-count").textContent = unknown.length;
     byId("unknown-list").replaceChildren();
