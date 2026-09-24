@@ -1,8 +1,7 @@
-"""Train one image classifier per marksheet item from marked face crops.
+"""Train one classifier per marksheet item from paired face and voice features.
 
-Labels come from the session spreadsheet. The feature is the face crop on the
-first frame, numbered from the right. This is a research baseline. It does not
-establish a psychological condition, and it does not identify a person.
+Labels come from the session spreadsheet. Features belong to numbers in one
+recording. This baseline does not establish a psychological condition.
 """
 
 from __future__ import annotations
@@ -16,8 +15,8 @@ from sklearn.metrics import accuracy_score, f1_score
 from research.group_observation import assign_group_splits
 
 
-MODEL_VERSION = "group-face-1.0.0"
-FEATURE_NAME = "face_grid_8x8_v1"
+MODEL_VERSION = "group-face-voice-1.0.0"
+FEATURE_NAME = "face_and_voice_v1"
 MIN_SESSIONS = 5
 MIN_NONZERO = 5
 

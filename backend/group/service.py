@@ -26,6 +26,7 @@ from .labels import LabelSheetError, parse_label_csv
 from .media import MediaError, validate_video
 from .rubric import CONSENT_VERSION, MARKSHEET_VERSION, PROTOCOL_VERSION, RubricError, validate_marksheet
 from .seats import MAX_PARTICIPANTS, MIN_PARTICIPANTS, SeatError, order_seats, overhead_row_regions
+from .voice import assign_windows, build_profiles, training_feature
 
 
 _SESSION_CODE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$")
@@ -207,7 +208,7 @@ class GroupObservationService:
             )
         return summaries
 
-    def upload_recording(self, actor: Principal, session_id: str, filename: str, data: bytes) -> dict:
+    def upload_recording(self, actor: Principal, session_id: str, filename: str, data: bytes, *, enqueue: bool = True) -> dict:
         self._require(actor, "operator")
         self._session(session_id)
         if self.store.recording_for_session(session_id):
@@ -245,11 +246,14 @@ class GroupObservationService:
             raise GroupError("storage_error", "Stored recording hash did not match the upload", 500)
         self._apply_filename_facts(session_id, filename)
         self._place_overhead_seats(session_id)
-        job = self.store.enqueue_job(
+        job = self._enqueue_recording_job(session_id) if enqueue else None
+        self._audit(actor, "upload_recording", session_id, {"sha256": digest, "job_id": None if job is None else job["id"]})
+        return {"recording": _public_recording(recording), "job": job}
+
+    def _enqueue_recording_job(self, session_id: str) -> dict:
+        return self.store.enqueue_job(
             {"id": str(uuid4()), "group_session_id": session_id, "job_type": "process_recording", "state": "queued", "error": None}
         )
-        self._audit(actor, "upload_recording", session_id, {"sha256": digest, "job_id": job["id"]})
-        return {"recording": _public_recording(recording), "job": job}
 
     def ingest_video(self, actor: Principal, filename: str, data: bytes) -> dict:
         self._require(actor, "operator")
@@ -273,11 +277,12 @@ class GroupObservationService:
             }
         created = self.create_session(actor, {"participant_count": len(faces)})
         session_id = created["session"]["id"]
-        uploaded = self.upload_recording(actor, session_id, filename, data)
+        uploaded = self.upload_recording(actor, session_id, filename, data, enqueue=False)
         if jpeg:
             stored = self.storage.put_immutable(f"group-recordings/{session_id}/marked-faces.jpg", jpeg, "image/jpeg")
             self.store.update_session(session_id, marked_frame_object_key=stored.key)
         self._store_face_seats(actor, session_id, faces, float(inspected["duration_s"]))
+        self._enqueue_recording_job(session_id)
         view = self.get_session(actor, session_id)
         self._audit(actor, "mark_faces", session_id, {"face_count": len(faces), "time_s": marked.get("time_s")})
         return {
@@ -329,10 +334,20 @@ class GroupObservationService:
     def training_status(self, actor: Principal) -> dict:
         self._require(actor, "operator", "psychologist", "reviewer")
         labels = self.store.all_training_labels()
+        labeled_keys = {(row["group_session_id"], int(row["slot_number"])) for row in labels}
+        faces = {(row["group_session_id"], int(row["slot_number"])): row
+                 for row in self.store.all_face_samples()}
+        voices = self.store.all_voice_profiles()
         return {
             "sessions": len({row["group_session_id"] for row in labels}),
             "scores": len(labels),
-            "faces": len(self.store.all_face_samples()),
+            "faces": len(faces),
+            "ready_voices": sum(row["status"] == "ready" for row in voices),
+            "trainable_voices": sum(
+                training_feature(faces[key]["feature"], row) is not None
+                for row in voices if (key := (row["group_session_id"], int(row["slot_number"]))) in faces
+                and key in labeled_keys
+            ),
         }
 
     def train_faces(self, actor: Principal) -> dict:
@@ -341,10 +356,25 @@ class GroupObservationService:
             (row["group_session_id"], int(row["slot_number"])): row
             for row in self.store.all_face_samples()
         }
+        profiles = {
+            (row["group_session_id"], int(row["slot_number"])): row
+            for row in self.store.all_voice_profiles() if row["status"] == "ready"
+        }
+        labeled_keys = {(row["group_session_id"], int(row["slot_number"]))
+                        for row in self.store.all_training_labels()}
+        eligible_voice_keys = {
+            key for key, profile in profiles.items()
+            if key in samples and key in labeled_keys
+            and training_feature(samples[key]["feature"], profile) is not None
+        }
         examples = []
         for label in self.store.all_training_labels():
-            sample = samples.get((label["group_session_id"], int(label["slot_number"])))
-            if sample is None:
+            key = (label["group_session_id"], int(label["slot_number"]))
+            sample, profile = samples.get(key), profiles.get(key)
+            if sample is None or profile is None:
+                continue
+            feature = training_feature(sample["feature"], profile)
+            if feature is None:
                 continue
             examples.append(
                 {
@@ -353,12 +383,18 @@ class GroupObservationService:
                     "item_letter": label["item_letter"],
                     "score": label["score"],
                     "class_name": label.get("class_name") or "",
-                    "feature": list(sample["feature"]),
+                    "feature": feature,
                 }
             )
         if not examples:
-            raise GroupError("no_training_data", "Upload a recording and its spreadsheet before training", 400)
+            raise GroupError(
+                "no_training_data",
+                f"No labeled face has complete voice measures; {len(profiles)} voice profiles are ready and {len(eligible_voice_keys)} have trainable features",
+                400,
+            )
         result = train_face_items(examples)
+        result["ready_voices"] = len(profiles)
+        result["trainable_voices"] = len(eligible_voice_keys)
         self._audit(actor, "train_faces", actor.id, {"sessions": result["sessions"], "examples": result["examples"]})
         return result
 
@@ -857,9 +893,11 @@ class GroupObservationService:
                 raise ValueError("extractor returned no processing record")
             self._store_derived_media(session_id, derived)
             self.store.replace_turns(session_id, list(derived.get("turns") or []))
+            voice_state = self._process_voices(session_id, data, derived)
             reasons = list(derived.get("failure_reasons") or [])
             fatal = "audio_samples_not_extracted" in reasons or any(reason.startswith("audio_extraction_failed") for reason in reasons)
-            kept = {key: value for key, value in derived.items() if key not in {"turns", "audio_wav", "thumbnail_jpeg"}}
+            kept = {key: value for key, value in derived.items() if key not in {"turns", "audio_wav", "thumbnail_jpeg", "pcm_samples", "sample_rate_hz"}}
+            kept["voice_matching"] = voice_state
             self.store.update_recording(
                 session_id,
                 processing_state="failed" if fatal else "complete",
@@ -880,6 +918,26 @@ class GroupObservationService:
             return
         failed = self.store.recording_for_session(session_id)["processing_state"] == "failed"
         self.store.finish_job(job["id"], state="failed" if failed else "complete", error=None if not failed else "audio_not_extracted")
+
+    def _process_voices(self, session_id: str, data: bytes, derived: dict) -> dict:
+        samples = derived.get("pcm_samples")
+        rate = derived.get("sample_rate_hz")
+        boxes = self.store.face_samples_for(session_id)
+        if samples is None or rate != 16000 or not boxes:
+            return {"status": "unavailable", "ready_voices": 0}
+        try:
+            segments = assign_windows(list(derived.get("turns") or []), boxes, data)
+            profiles = build_profiles(samples, rate, segments, boxes, list(derived.get("transcript") or []))
+            for row in segments:
+                row["group_session_id"] = session_id
+            for row in profiles:
+                row["group_session_id"] = session_id
+            self.store.replace_voice_segments(session_id, segments)
+            self.store.replace_voice_profiles(session_id, profiles)
+            return {"status": "complete", "ready_voices": sum(row["status"] == "ready" for row in profiles),
+                    "unknown_windows": sum(row["status"] == "unknown" for row in segments)}
+        except Exception as exc:
+            return {"status": "failed", "ready_voices": 0, "reason": type(exc).__name__}
 
     def _apply_filename_facts(self, session_id: str, filename: str) -> None:
         name = PathName(filename)
