@@ -44,8 +44,13 @@
           </div>
           <span id="voice-status" class="voice-status" role="status">Waiting for voice analysis</span>
         </div>
-        <p class="field-helper">Speech is matched using acoustic speaker turns and tracked mouth motion. Detected overlap, speaker changes and uncertain matches are withheld.</p>
+        <div class="voice-tabs" role="tablist" aria-label="Voice analysis method">
+          <button type="button" id="voice-tab-existing" role="tab" aria-selected="true">Existing</button>
+          <button type="button" id="voice-tab-nvidia" role="tab" aria-selected="false">NVIDIA</button>
+        </div>
+        <p class="field-helper">These methods keep separate results. Only ready NVIDIA profiles can enter training. Playback joins saved clean intervals from the original recording.</p>
         <p id="voice-summary" class="voice-summary" role="status"></p>
+        <button type="button" id="run-nvidia" hidden>Run NVIDIA analysis</button>
         <div id="face-voice-list" class="face-voice-list"></div>
         <details class="unknown-voice">
           <summary>Who speaks when</summary>

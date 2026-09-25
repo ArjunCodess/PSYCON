@@ -1,5 +1,5 @@
 (() => {
-  const state = { selected: null, step: 1, refresh: null, speechStop: null };
+  const state = { selected: null, step: 1, refresh: null, speechStop: null, method: "existing" };
   const byId = (id) => document.getElementById(id);
   const make = (tag, className, value) => {
     const node = document.createElement(tag);
@@ -55,7 +55,9 @@
     }
     const list = make("ol", "voice-segments");
     for (const row of segments) {
-      list.append(make("li", "", `${fixed(row.start_s, 2)}–${fixed(row.end_s, 2)} s · confidence ${fixed(row.confidence, 2)}${row.overlap_refused_s ? ` · ${fixed(row.overlap_refused_s, 2)} s overlap refused` : ""}`));
+      const evidence = row.evidence || {};
+      const support = evidence.support_windows ? ` · ${evidence.support_windows} visual votes across ${fixed(evidence.support_seconds, 1)} s` : "";
+      list.append(make("li", "", `${fixed(row.start_s, 2)}–${fixed(row.end_s, 2)} s · evidence consistency ${fixed(row.confidence, 2)} · ${(evidence.reason || "assigned").replaceAll("_", " ")}${support}${row.overlap_refused_s ? ` · ${fixed(row.overlap_refused_s, 2)} s overlap refused` : ""}`));
     }
     parent.append(list);
   }
@@ -64,10 +66,9 @@
     const player = make("audio", "face-voice-audio");
     player.controls = true;
     player.preload = "none";
-    player.src = `/api/v1/group-sessions/${sessionId}/face-voices/${person.slot_number}/audio`;
+    player.src = `/api/v1/group-sessions/${sessionId}/face-voices/${person.slot_number}/audio?method=${state.method}`;
     const label = person.label || `participant ${person.slot_number}`;
     player.setAttribute("aria-label", assigned ? `Speech assigned to ${label}` : `Tentative speech excerpt for ${label}`);
-    if (!assigned) card.append(make("p", "field-helper", "Short stitched speech excerpt near this face's mouth activity. It may contain another voice or overlap and is excluded from training."));
     const stop = () => { player.pause(); if (state.speechStop === stop) state.speechStop = null; };
     player.addEventListener("play", () => {
       if (state.speechStop !== stop) state.speechStop?.();
@@ -95,7 +96,7 @@
       processing.status === "complete" ? "Voice unavailable" : "Analyzing voice";
     header.append(make("span", `face-voice-badge ${voice?.status === "ready" ? "is-ready" : ""}`, status));
     card.append(header);
-    if (voice?.status === "ready" || person.review_seconds > 0) addSpeechPlayer(card, person, sessionId, voice?.status === "ready");
+    if ((state.method === "nvidia" && voice?.usable_seconds > 0) || voice?.status === "ready" || (state.method === "existing" && person.review_seconds > 0)) addSpeechPlayer(card, person, sessionId, state.method === "nvidia" || voice?.status === "ready");
     const metrics = make("div", "voice-metrics");
     addMetric(metrics, tentative ? "Confirmed speech" : "Usable speech", fixed(voice?.usable_seconds), " s");
     if (person.review_seconds > 0) addMetric(metrics, "Tentative excerpt", fixed(person.review_seconds), " s");
@@ -143,6 +144,7 @@
   function renderVoice(data) {
     state.speechStop?.();
     const processing = data.voice_matching || { status: "pending" };
+    byId("run-nvidia").hidden = state.method !== "nvidia" || !["not_analyzed", "failed", "unavailable"].includes(processing.status);
     const people = data.people || [];
     const ready = people.filter((person) => person.voice?.status === "ready").length;
     const tentative = people.filter((person) => person.voice?.metrics?.tentative).length;
@@ -154,7 +156,9 @@
     })[processing.status] || "Voice analysis pending";
     byId("voice-status").classList.toggle("is-ready", processing.status === "complete");
     const unknown = data.unknown_segments || [];
-    byId("voice-summary").textContent = processing.status === "complete" && !ready ?
+    byId("voice-summary").textContent = state.method === "nvidia" && processing.status === "complete" ?
+      `${fixed(processing.unknown_seconds)} s unassigned · ${fixed(processing.overlap_seconds)} s overlapping and excluded.${processing.capacity_warning ? " All eight acoustic channels were active, so an additional speaker cannot be ruled out." : ""}` :
+      processing.status === "complete" && !ready ?
       `${unknown.length} speech windows stayed unassigned. Tentative excerpt measures are shown where available; combined training still needs confirmed speech.` :
       processing.status === "not_analyzed" ? "This recording was processed before voice matching was available." :
       processing.status === "failed" ? `Voice matching failed${processing.reason ? `: ${processing.reason}` : "."}` : "";
@@ -166,7 +170,7 @@
     const timeline = make("ol", "voice-segments");
     for (const row of data.speaking_timeline || []) {
       const name = row.status === "assigned" ? `Participant ${row.slot_number}` : "Unknown";
-      const reason = row.status === "assigned" ? "" : ` · ${(row.evidence?.reason || "uncertain").replaceAll("_", " ")}`;
+      const reason = ` · ${(row.evidence?.reason || "uncertain").replaceAll("_", " ")}`;
       timeline.append(make("li", "", `${fixed(row.start_s, 2)}–${fixed(row.end_s, 2)} s · ${name}${reason}`));
     }
     byId("speaking-timeline").replaceChildren(timeline);
@@ -176,8 +180,9 @@
     if (!state.selected || state.step !== 2) return;
     try {
       const sessionId = state.selected;
-      const data = await api(`/api/v1/group-sessions/${sessionId}/face-voices`);
-      if (state.step !== 2 || state.selected !== sessionId) return;
+      const method = state.method;
+      const data = await api(`/api/v1/group-sessions/${sessionId}/face-voices?method=${method}`);
+      if (state.step !== 2 || state.selected !== sessionId || state.method !== method) return;
       renderVoice(data);
       if (["pending", "running"].includes(data.voice_matching?.status)) {
         state.refresh = setTimeout(refreshVoice, 2500);
@@ -187,6 +192,29 @@
       if (state.step === 2) state.refresh = setTimeout(refreshVoice, 5000);
     }
   }
+
+  for (const method of ["existing", "nvidia"]) {
+    byId(`voice-tab-${method}`).addEventListener("click", () => {
+      state.speechStop?.();
+      document.querySelectorAll(".face-voice-audio").forEach((audio) => { audio.pause(); audio.removeAttribute("src"); audio.load(); });
+      if (state.refresh) clearTimeout(state.refresh);
+      state.method = method;
+      for (const option of ["existing", "nvidia"]) byId(`voice-tab-${option}`).setAttribute("aria-selected", String(option === method));
+      refreshVoice();
+    });
+  }
+  byId("run-nvidia").addEventListener("click", async () => {
+    if (!state.selected) return;
+    byId("run-nvidia").disabled = true;
+    try {
+      await api(`/api/v1/group-sessions/${state.selected}/face-voices/nvidia/reprocess`, { method: "POST" });
+      refreshVoice();
+    } catch (error) {
+      byId("voice-summary").textContent = error.message;
+    } finally {
+      byId("run-nvidia").disabled = false;
+    }
+  });
 
   function openMarkedSession(sessionId, faceCount) {
     state.selected = sessionId;
