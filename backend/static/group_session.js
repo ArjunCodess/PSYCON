@@ -60,7 +60,8 @@
     for (const row of segments) {
       const evidence = row.evidence || {};
       const support = evidence.support_windows ? ` · ${evidence.support_windows} visual votes across ${fixed(evidence.support_seconds, 1)} s` : "";
-      list.append(make("li", "", `${fixed(row.start_s, 2)}–${fixed(row.end_s, 2)} s · evidence consistency ${fixed(row.confidence, 2)} · ${(evidence.reason || "assigned").replaceAll("_", " ")}${support}${row.overlap_refused_s ? ` · ${fixed(row.overlap_refused_s, 2)} s overlap refused` : ""}`));
+      const confidence = String(evidence.reason || "").startsWith("operator_confirmed") ? "operator reviewed" : `evidence consistency ${fixed(row.confidence, 2)}`;
+      list.append(make("li", "", `${fixed(row.start_s, 2)}–${fixed(row.end_s, 2)} s · ${confidence} · ${(evidence.reason || "assigned").replaceAll("_", " ")}${support}${row.overlap_refused_s ? ` · ${fixed(row.overlap_refused_s, 2)} s overlap refused` : ""}`));
     }
     parent.append(list);
   }

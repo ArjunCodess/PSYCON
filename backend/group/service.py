@@ -437,7 +437,7 @@ class GroupObservationService:
             raise GroupError("identity_conflict", "This speaker or face has a conflicting saved assignment", 409)
         selected["slot_number"] = slot
         selected["status"] = "assigned"
-        selected["confidence"] = 1.0
+        selected["confidence"] = 0.0
         selected["evidence"] = {**(selected.get("evidence") or {}),
                                 "reason": "operator_confirmed_from_original_video",
                                 "reviewed_by": actor.id, "reviewed_at": _stamp(),
@@ -456,7 +456,7 @@ class GroupObservationService:
                             if observation.get("candidate_slot") not in (None, slot)]
                 if contrary:
                     continue
-                row.update(slot_number=slot, status="assigned", confidence=1.0)
+                row.update(slot_number=slot, status="assigned", confidence=0.0)
                 row["evidence"] = {**(row.get("evidence") or {}),
                                    "reason": "operator_confirmed_speaker_identity_propagated",
                                    "mapping_slot": slot,
