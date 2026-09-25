@@ -11,7 +11,9 @@ import numpy as np
 import pytest
 
 from backend.group.faces import face_feature, number_faces
+from backend.group import nvidia
 from backend.group.extract import _energy_segments
+from backend.group.errors import GroupError
 from backend.group.labels import parse_label_csv
 from backend.group.memory import MemoryGroupStore
 from backend.group.service import GroupObservationService
@@ -140,7 +142,7 @@ def test_upload_marks_faces_and_stores_the_spreadsheet() -> None:
     people = details.get_json()["people"]
     assert [person["slot_number"] for person in people] == [1, 2]
     assert people[0]["voice"]["status"] == "ready"
-    assert people[0]["combined_feature_ready"] is True
+    assert people[0]["combined_feature_ready"] is False
     assert people[0]["marksheet"]["scores"]["A"] == "3"
     assert people[0]["segments"][0]["confidence"] == 0.8
     assert people[1]["voice"]["status"] == "insufficient_speech"
@@ -184,6 +186,28 @@ def test_upload_marks_faces_and_stores_the_spreadsheet() -> None:
                               headers={**auth(token), "Range": "bytes=0-43"})
     assert source_range.status_code == 206
     assert source_range.data == unavailable.data[:44]
+    service.store.replace_voice_analysis(session_id, [
+        {"id": "nvidia-clean", "slot_number": 1, "start_s": 0.0, "end_s": 1.0,
+         "confidence": 0.9, "overlap_refused_s": 0.0, "status": "assigned"},
+        {"id": "nvidia-overlap", "slot_number": None, "start_s": 1.0, "end_s": 2.0,
+         "confidence": 0.0, "overlap_refused_s": 1.0, "status": "unknown"},
+        {"id": "nvidia-clean-2", "slot_number": 1, "start_s": 2.0, "end_s": 3.0,
+         "confidence": 0.9, "overlap_refused_s": 0.0, "status": "assigned"},
+    ], [{"id": "nvidia-profile", "slot_number": 1, "status": "insufficient_speech",
+         "usable_seconds": 2.0}], "nvidia")
+    service.store.update_recording(session_id, processing={
+        "voice_matching": {"status": "complete", "version": MATCHING_VERSION},
+        "nvidia_matching": {"status": "complete", "version": "nemotron-face-voice-1",
+                            "model_revision": nvidia.MODEL_REVISION},
+    })
+    nvidia_clip = client.get(f"/api/v1/group-sessions/{session_id}/face-voices/1/audio?method=nvidia", headers=auth(token))
+    assert nvidia_clip.status_code == 200
+    with wave.open(io.BytesIO(nvidia_clip.data), "rb") as wav:
+        assert np.array_equal(np.frombuffer(wav.readframes(wav.getnframes()), dtype="<i2"),
+                              np.concatenate([samples[:16000], samples[2 * 16000:3 * 16000]]))
+    nvidia_range = client.get(f"/api/v1/group-sessions/{session_id}/face-voices/1/audio?method=nvidia",
+                              headers={**auth(token), "Range": "bytes=0-43"})
+    assert nvidia_range.status_code == 206 and nvidia_range.data == nvidia_clip.data[:44]
     assert client.get(f"/api/v1/group-sessions/{session_id}/face-voices/3/audio", headers=auth(token)).status_code == 404
     service.store.voice_segments[session_id][0]["end_s"] = 4.5
     assert client.get(f"/api/v1/group-sessions/{session_id}/face-voices/1/audio", headers=auth(token)).status_code == 409
@@ -315,36 +339,43 @@ def test_training_requires_ready_voice_for_the_same_session_and_slot() -> None:
     for index in range(5):
         session = f"s{index}"
         store.insert_recording({"group_session_id": session, "processing_state": "complete",
-                                "processing": {"voice_matching": {"status": "complete"}}})
+                                "processing": {"nvidia_matching": {"status": "complete", "version": nvidia.MATCHING_VERSION, "model_revision": nvidia.MODEL_REVISION}}})
         faces = [{"group_session_id": session, "slot_number": slot,
                   "feature": [float(index), float(slot)] + [0.0] * 78} for slot in (1, 2)]
         store.replace_face_samples(session, faces)
+        store.replace_voice_analysis(session, [], [
+            {"group_session_id": session, "slot_number": slot, "status": "ready",
+             "usable_seconds": 50.0, "vector": [0.5] * 32,
+             "metrics": {"matching_version": MATCHING_VERSION,
+                         **{name: 1.0 for name in SCALAR_NAMES}}}
+            for slot in (1, 2)
+        ])
         store.replace_training_labels(session, [
             {"group_session_id": session, "slot_number": slot, "item_letter": "T", "score": str(slot)}
             for slot in (1, 2)
         ])
-        store.replace_voice_profiles(session, [
-            {"group_session_id": session, "slot_number": 1, "status": "ready", "vector": [0.1] * 32,
-             "metrics": {"matching_version": MATCHING_VERSION, **{name: 1.0 for name in SCALAR_NAMES}}},
-            {"group_session_id": session, "slot_number": 2, "status": "insufficient_speech", "vector": None,
+        store.replace_voice_analysis(session, [], [
+            {"group_session_id": session, "slot_number": 1, "status": "ready", "usable_seconds": 3.5, "vector": [0.1] * 32,
+             "metrics": {"matching_version": "nemotron-face-voice-1", **{name: 1.0 for name in SCALAR_NAMES}}},
+            {"group_session_id": session, "slot_number": 2, "status": "insufficient_speech", "usable_seconds": 1.0, "vector": None,
              "metrics": {}},
-        ])
+        ], "nvidia")
     first = service.train_faces(actor)
     assert first["examples"] == 5
     assert first["ready_voices"] == first["trainable_voices"] == 5
     assert first["items"][0]["status"] == "unavailable"
     for index in range(5):
         session = f"s{index}"
-        store.replace_voice_profiles(session, [
-            {"group_session_id": session, "slot_number": slot, "status": "ready", "vector": [float(slot)] * 32,
-             "metrics": {"matching_version": MATCHING_VERSION, **{name: float(slot) for name in SCALAR_NAMES}}} for slot in (1, 2)
-        ])
+        store.replace_voice_analysis(session, [], [
+            {"group_session_id": session, "slot_number": slot, "status": "ready", "usable_seconds": 3.5, "vector": [float(slot)] * 32,
+             "metrics": {"matching_version": "nemotron-face-voice-1", **{name: float(slot) for name in SCALAR_NAMES}}} for slot in (1, 2)
+        ], "nvidia")
     fitted = service.train_faces(actor)
-    assert fitted["feature"] == "face_and_voice_v2"
+    assert fitted["feature"] == "face_and_voice_nvidia_v3"
     assert fitted["examples"] == 10
     assert fitted["trainable_voices"] == 10
     assert fitted["items"][0]["status"] == "fitted"
-    store.update_recording("s0", processing_state="running")
+    store.update_recording("s0", processing={"nvidia_matching": {"status": "running"}})
     assert service.train_faces(actor)["examples"] == 8
 
 
@@ -461,10 +492,8 @@ def test_worker_records_voice_matching_after_extraction(monkeypatch) -> None:
     store.replace_training_labels(session_id, [
         {"group_session_id": session_id, "slot_number": 1, "item_letter": "A", "score": "1"},
     ])
-    trained = service.train_faces(actor)
-    assert trained["examples"] == 1
-    assert trained["feature"] == "face_and_voice_v2"
-    assert trained["items"][0]["status"] == "unavailable"  # existing five-session gate
+    with pytest.raises(GroupError, match="No labeled face has a usable voice profile"):
+        service.train_faces(actor)
 
     def fail(*_):
         raise RuntimeError("decoder failed")
@@ -560,7 +589,7 @@ def test_docker_copy_layout_can_import_the_worker(tmp_path) -> None:
     # Reproduce COPY contents so development-only files cannot hide a broken
     # runtime import. No Docker daemon, model downloads, or services are needed.
     for line in (root / "Dockerfile").read_text().splitlines():
-        if not line.startswith("COPY "):
+        if not line.startswith("COPY ") or line.startswith("COPY --from="):
             continue
         _, source, destination = line.split()
         source_path, target = root / source, tmp_path / destination
