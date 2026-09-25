@@ -523,6 +523,41 @@ def review_audio_for_slot(samples: np.ndarray, sample_rate_hz: int, segments: li
     return np.concatenate(chunks).astype(np.int16) if chunks else np.array([], dtype=np.int16)
 
 
+def _tentative_measures(samples: np.ndarray, sample_rate_hz: int, segments: list[dict],
+                        slot: int, transcript: list[dict]) -> dict | None:
+    """Describe a review excerpt without claiming it belongs to one speaker."""
+    rows = sorted((row for row in segments if row.get("status") == "unknown"
+                   and (row.get("evidence") or {}).get("review_slot") == slot),
+                  key=lambda row: row["start_s"])
+    audio = review_audio_for_slot(samples, sample_rate_hz, segments, slot)
+    if len(audio) < 3 * sample_rate_hz or not _usable_interval(audio):
+        return None
+    intervals = [(float(row["start_s"]), float(row["end_s"])) for row in rows]
+    matched = [row for row in transcript
+               if any(float(row["start_s"]) >= start and float(row["end_s"]) <= end
+                      for start, end in intervals)
+               and float(row["end_s"]) > float(row["start_s"]) and str(row.get("text") or "").strip()]
+    covered = sum(end - start for start, end in _merge_intervals([
+        (float(row["start_s"]), float(row["end_s"])) for row in matched
+    ]))
+    words = sum(len(str(row["text"]).split()) for row in matched)
+    return {
+        "status": "tentative", "engine": "numpy_spectral_v1",
+        "spectral_vector": _spectral_vector(audio),
+        "speaking_duration_s": len(audio) / sample_rate_hz,
+        "window_count": len(rows),
+        "turn_count": len({row.get("source_turn_index") if row.get("source_turn_index") is not None
+                           else (row["start_s"], row["end_s"]) for row in rows}),
+        "pause_total_s": sum(gap for left, right in zip(intervals, intervals[1:])
+                             if 0 < (gap := right[0] - left[1]) <= 2.0),
+        "word_rate_wpm": words / covered * 60 if covered else None,
+        "transcript_coverage_s": covered,
+        "pitch_jitter_relative": None,
+        "overlap_refused_s": None,
+        "caveat": "May contain another voice or overlap; excluded from training.",
+    }
+
+
 def build_profiles(samples: np.ndarray, sample_rate_hz: int, segments: list[dict],
                    boxes: list[dict], transcript: list[dict], *, embedder=None) -> list[dict]:
     if sample_rate_hz != 16000:
@@ -543,6 +578,9 @@ def build_profiles(samples: np.ndarray, sample_rate_hz: int, segments: list[dict
                 "engine": None, "vector": None, "embedding_engine": None, "embedding": None,
                 "metrics": {}, "status": "insufficient_speech"}
         if usable < 3.0:
+            tentative = _tentative_measures(samples, sample_rate_hz, segments, slot, transcript)
+            if tentative is not None:
+                base["metrics"] = {"tentative": tentative}
             profiles.append(base)
             continue
         voice_engine = "numpy_spectral_v1"

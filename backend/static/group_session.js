@@ -86,7 +86,9 @@
     if (person.marksheet?.class_name) title.append(make("span", "face-voice-class", person.marksheet.class_name));
     header.append(title);
     const voice = person.voice;
+    const tentative = voice?.metrics?.tentative;
     const status = voice?.status === "ready" ? "Voice ready" :
+      tentative ? "Tentative voice measures" :
       voice?.status === "insufficient_speech" ? "Insufficient speech" :
       processing.status === "failed" ? "Voice analysis failed" :
       processing.status === "not_analyzed" ? "Reprocessing required" :
@@ -95,15 +97,16 @@
     card.append(header);
     if (voice?.status === "ready" || person.review_seconds > 0) addSpeechPlayer(card, person, sessionId, voice?.status === "ready");
     const metrics = make("div", "voice-metrics");
-    addMetric(metrics, "Usable speech", fixed(voice?.usable_seconds), " s");
+    addMetric(metrics, tentative ? "Confirmed speech" : "Usable speech", fixed(voice?.usable_seconds), " s");
     if (person.review_seconds > 0) addMetric(metrics, "Tentative excerpt", fixed(person.review_seconds), " s");
-    addMetric(metrics, "Assigned windows", person.segments.length);
-    addMetric(metrics, "Turns", voice?.metrics?.turn_count ?? "—");
-    addMetric(metrics, "Overlap refused", fixed(voice?.metrics?.overlap_refused_s), " s");
-    addMetric(metrics, "Pauses", fixed(voice?.metrics?.pause_total_s), " s");
-    addMetric(metrics, "Word rate", fixed(voice?.metrics?.word_rate_wpm, 0), " / min");
-    addMetric(metrics, "Pitch jitter", fixed(voice?.metrics?.pitch_jitter_relative, 4));
-    addMetric(metrics, "Combined feature", person.combined_feature_ready ? "Ready" : "Waiting");
+    addMetric(metrics, tentative ? "Excerpt windows" : "Assigned windows", tentative?.window_count ?? person.segments.length);
+    addMetric(metrics, tentative ? "Excerpt turns" : "Turns", tentative?.turn_count ?? voice?.metrics?.turn_count ?? "—");
+    addMetric(metrics, "Overlap refused", tentative ? "Unknown speaker" : fixed(voice?.metrics?.overlap_refused_s), tentative ? "" : " s");
+    addMetric(metrics, tentative ? "Excerpt pauses" : "Pauses", fixed(tentative?.pause_total_s ?? voice?.metrics?.pause_total_s), " s");
+    const wordRate = tentative?.word_rate_wpm ?? voice?.metrics?.word_rate_wpm;
+    addMetric(metrics, tentative ? "Excerpt word rate" : "Word rate", tentative && wordRate == null ? "No transcript" : fixed(wordRate, 0), wordRate == null ? "" : " / min");
+    addMetric(metrics, "Pitch jitter", tentative ? "Needs clean speech" : fixed(voice?.metrics?.pitch_jitter_relative, 4));
+    addMetric(metrics, "Combined feature", person.combined_feature_ready ? "Ready" : tentative ? "Needs confirmed voice" : "Waiting");
     card.append(metrics);
     const detail = make("details", "face-voice-detail");
     detail.append(make("summary", "", "View windows, measures and vectors"));
@@ -124,6 +127,7 @@
     body.append(make("pre", "voice-json", JSON.stringify({
       face_vector: person.face?.vector ?? null,
       spectral_voice_vector: voice?.vector ?? null,
+      tentative_spectral_vector: tentative?.spectral_vector ?? null,
       speaker_embedding: voice?.embedding ?? null,
       face_box: person.face?.box ?? null,
     }, null, 2)));
@@ -141,16 +145,17 @@
     const processing = data.voice_matching || { status: "pending" };
     const people = data.people || [];
     const ready = people.filter((person) => person.voice?.status === "ready").length;
+    const tentative = people.filter((person) => person.voice?.metrics?.tentative).length;
     byId("voice-status").textContent = ({
       pending: "Voice analysis queued", running: "Voice analysis running",
-      complete: `${ready} / ${people.length} voices ready`,
+      complete: `${ready} confirmed · ${tentative} tentative / ${people.length} voices`,
       failed: "Voice analysis failed", unavailable: "Voice analysis unavailable",
       not_analyzed: "Voice analysis not run",
     })[processing.status] || "Voice analysis pending";
     byId("voice-status").classList.toggle("is-ready", processing.status === "complete");
     const unknown = data.unknown_segments || [];
     byId("voice-summary").textContent = processing.status === "complete" && !ready ?
-      `${unknown.length} speech windows stayed unassigned. No voice measures or combined training features are available for this recording.` :
+      `${unknown.length} speech windows stayed unassigned. Tentative excerpt measures are shown where available; combined training still needs confirmed speech.` :
       processing.status === "not_analyzed" ? "This recording was processed before voice matching was available." :
       processing.status === "failed" ? `Voice matching failed${processing.reason ? `: ${processing.reason}` : "."}` : "";
     byId("face-voice-list").replaceChildren(...people.map((person) => personCard(person, processing, state.selected)));

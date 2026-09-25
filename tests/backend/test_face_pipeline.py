@@ -56,8 +56,13 @@ def test_review_excerpts_stitch_distinct_short_windows_without_training() -> Non
         expected = np.concatenate([samples[round(row["start_s"] * 16000):round(row["end_s"] * 16000)]
                                    for row in sorted(selected[slot], key=lambda item: item["start_s"])])
         np.testing.assert_array_equal(review_audio_for_slot(samples, 16000, rows, slot), expected)
-    profiles = build_profiles(samples, 16000, rows, boxes, [], embedder=None)
+    profiles = build_profiles(samples, 16000, rows, boxes,
+                              [{"start_s": 0.0, "end_s": 0.8, "text": "hi there"}], embedder=None)
     assert all(profile["status"] == "insufficient_speech" for profile in profiles)
+    assert all(len(profile["metrics"]["tentative"]["spectral_vector"]) == 32 for profile in profiles)
+    assert all(5 <= profile["metrics"]["tentative"]["speaking_duration_s"] <= 8 for profile in profiles)
+    assert profiles[0]["metrics"]["tentative"]["word_rate_wpm"] == pytest.approx(150)
+    assert profiles[1]["metrics"]["tentative"]["word_rate_wpm"] is None
     assert all(training_feature([0.1] * 80, profile) is None for profile in profiles)
 
 
