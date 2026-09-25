@@ -376,7 +376,7 @@ CREATE TABLE IF NOT EXISTS playback_grants (
     object_key TEXT NOT NULL
 );
 
-INSERT INTO schema_version(version) VALUES (1), (2), (3), (4), (5), (6) ON CONFLICT DO NOTHING;
+INSERT INTO schema_version(version) VALUES (1), (2), (3), (4), (5), (6), (7) ON CONFLICT DO NOTHING;
 
 ALTER TABLE recordings ADD COLUMN IF NOT EXISTS audio_object_key TEXT;
 ALTER TABLE recordings ADD COLUMN IF NOT EXISTS thumbnail_object_key TEXT;
@@ -442,3 +442,10 @@ ALTER TABLE voice_segments ADD COLUMN IF NOT EXISTS source_turn_index INTEGER;
 ALTER TABLE voice_segments ADD COLUMN IF NOT EXISTS evidence JSONB NOT NULL DEFAULT '{}'::jsonb;
 ALTER TABLE voice_profiles ADD COLUMN IF NOT EXISTS embedding_engine TEXT;
 ALTER TABLE voice_profiles ADD COLUMN IF NOT EXISTS embedding JSONB;
+ALTER TABLE voice_segments ADD COLUMN IF NOT EXISTS method TEXT NOT NULL DEFAULT 'existing';
+ALTER TABLE voice_profiles ADD COLUMN IF NOT EXISTS method TEXT NOT NULL DEFAULT 'existing';
+ALTER TABLE voice_profiles DROP CONSTRAINT IF EXISTS voice_profiles_group_session_id_slot_number_key;
+CREATE UNIQUE INDEX IF NOT EXISTS voice_profiles_session_method_slot_unique
+    ON voice_profiles(group_session_id, method, slot_number);
+CREATE INDEX IF NOT EXISTS voice_segments_session_method_time
+    ON voice_segments(group_session_id, method, start_s);

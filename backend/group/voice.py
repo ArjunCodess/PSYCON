@@ -608,7 +608,8 @@ def _tentative_measures(samples: np.ndarray, sample_rate_hz: int, segments: list
 
 
 def build_profiles(samples: np.ndarray, sample_rate_hz: int, segments: list[dict],
-                   boxes: list[dict], transcript: list[dict], *, embedder=None) -> list[dict]:
+                   boxes: list[dict], transcript: list[dict], *, embedder=None,
+                   matching_version: str = MATCHING_VERSION) -> list[dict]:
     if sample_rate_hz != 16000:
         raise ValueError("voice profiles require 16 kHz PCM")
     profiles = []
@@ -628,7 +629,7 @@ def build_profiles(samples: np.ndarray, sample_rate_hz: int, segments: list[dict
                 "metrics": {}, "status": "insufficient_speech"}
         # The visual windows are rounded to video timestamps; a few missing
         # frames should not turn an otherwise three-second profile into zero.
-        if usable < 2.95:
+        if usable < (3.0 if matching_version != MATCHING_VERSION else 2.95):
             tentative = _tentative_measures(samples, sample_rate_hz, segments, slot, transcript)
             if tentative is not None:
                 base["metrics"] = {"tentative": tentative}
@@ -678,7 +679,7 @@ def build_profiles(samples: np.ndarray, sample_rate_hz: int, segments: list[dict
                           if any(start < row["end_s"] and row["start_s"] < end for start, end in intervals)})
         base.update(engine=voice_engine, vector=vector, embedding=embedding,
                     embedding_engine=embedding_engine, status="ready", metrics={
-            "matching_version": MATCHING_VERSION,
+            "matching_version": matching_version,
             "speaking_duration_s": usable, "turn_count": turn_count, "overlap_refused_s": refused,
             "pause_total_s": pauses, "word_rate_wpm": words / transcript_seconds * 60 if transcript_seconds else None,
             "transcript_coverage_s": transcript_seconds,
@@ -693,7 +694,7 @@ def training_feature(face: list[float], profile: dict) -> list[float] | None:
     if profile.get("status") != "ready" or len(profile.get("vector") or []) != VECTOR_SIZE:
         return None
     metrics = profile.get("metrics") or {}
-    if metrics.get("matching_version") != MATCHING_VERSION:
+    if metrics.get("matching_version") not in {MATCHING_VERSION, "nemotron-face-voice-1"}:
         return None
     try:
         feature = [*map(float, face), *map(float, profile["vector"])]

@@ -28,6 +28,8 @@ class MemoryGroupStore:
         self.training_labels: list[dict] = []
         self.voice_segments: dict[str, list[dict]] = {}
         self.voice_profiles: dict[str, list[dict]] = {}
+        self.nvidia_segments: dict[str, list[dict]] = {}
+        self.nvidia_profiles: dict[str, list[dict]] = {}
 
     def account_by_token(self, token_hash: str) -> dict | None:
         account_id = self.tokens.get(token_hash)
@@ -236,6 +238,8 @@ class MemoryGroupStore:
         self.face_samples.pop(session_id, None)
         self.voice_segments.pop(session_id, None)
         self.voice_profiles.pop(session_id, None)
+        self.nvidia_segments.pop(session_id, None)
+        self.nvidia_profiles.pop(session_id, None)
         self.training_labels = [row for row in self.training_labels if row["group_session_id"] != session_id]
         return keys
 
@@ -253,23 +257,23 @@ class MemoryGroupStore:
         self.voice_segments[session_id] = copy.deepcopy(rows)
         return self.voice_segments_for(session_id)
 
-    def voice_segments_for(self, session_id: str) -> list[dict]:
-        return copy.deepcopy(self.voice_segments.get(session_id, []))
+    def voice_segments_for(self, session_id: str, method: str = "existing") -> list[dict]:
+        return copy.deepcopy((self.voice_segments if method == "existing" else self.nvidia_segments).get(session_id, []))
 
     def replace_voice_profiles(self, session_id: str, rows: list[dict]) -> list[dict]:
         self.voice_profiles[session_id] = copy.deepcopy(rows)
         return self.voice_profiles_for(session_id)
 
-    def voice_profiles_for(self, session_id: str) -> list[dict]:
-        return copy.deepcopy(self.voice_profiles.get(session_id, []))
+    def voice_profiles_for(self, session_id: str, method: str = "existing") -> list[dict]:
+        return copy.deepcopy((self.voice_profiles if method == "existing" else self.nvidia_profiles).get(session_id, []))
 
-    def all_voice_profiles(self) -> list[dict]:
-        return [copy.deepcopy(row) for rows in self.voice_profiles.values() for row in rows]
+    def all_voice_profiles(self, method: str = "existing") -> list[dict]:
+        return [copy.deepcopy(row) for rows in (self.voice_profiles if method == "existing" else self.nvidia_profiles).values() for row in rows]
 
-    def replace_voice_analysis(self, session_id: str, segments: list[dict], profiles: list[dict]) -> None:
+    def replace_voice_analysis(self, session_id: str, segments: list[dict], profiles: list[dict], method: str = "existing") -> None:
         saved_segments, saved_profiles = copy.deepcopy(segments), copy.deepcopy(profiles)
-        self.voice_segments[session_id] = saved_segments
-        self.voice_profiles[session_id] = saved_profiles
+        (self.voice_segments if method == "existing" else self.nvidia_segments)[session_id] = saved_segments
+        (self.voice_profiles if method == "existing" else self.nvidia_profiles)[session_id] = saved_profiles
 
     def replace_training_labels(self, session_id: str, rows: list[dict]) -> list[dict]:
         self.training_labels = [row for row in self.training_labels if row["group_session_id"] != session_id]

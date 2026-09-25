@@ -146,7 +146,7 @@ def get_group_session(session_id):
 @group_role("operator", "psychologist", "reviewer")
 def get_face_voices(session_id):
     try:
-        return jsonify(_service().face_voice_details(g.principal, str(session_id)))
+        return jsonify(_service().face_voice_details(g.principal, str(session_id), request.args.get("method", "existing")))
     except GroupError as exc:
         return _failure(exc)
 
@@ -155,12 +155,22 @@ def get_face_voices(session_id):
 @group_role("operator", "psychologist", "reviewer")
 def get_face_voice_audio(session_id, slot_number):
     try:
-        data = _service().face_voice_audio(g.principal, str(session_id), slot_number)
+        data = _service().face_voice_audio(g.principal, str(session_id), slot_number, request.args.get("method", "existing"))
     except GroupError as exc:
         return _failure(exc)
     response = send_file(BytesIO(data), mimetype="audio/wav", conditional=True, etag=False, max_age=0)
     response.headers["Cache-Control"] = "private, no-store"
+    response.headers["Accept-Ranges"] = "bytes"
     return response
+
+
+@group_api.post("/group-sessions/<uuid:session_id>/face-voices/nvidia/reprocess")
+@group_role("operator")
+def reprocess_nvidia(session_id):
+    try:
+        return jsonify(_service().enqueue_nvidia(g.principal, str(session_id))), 202
+    except GroupError as exc:
+        return _failure(exc)
 
 
 @group_api.post("/group-sessions/<uuid:session_id>/consent-signatures")

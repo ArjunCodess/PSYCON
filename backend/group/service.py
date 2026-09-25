@@ -28,6 +28,7 @@ from .extract import _energy_segments, extract_group_recording
 from .faces import FaceMarkError, mark_recording, number_faces
 from .labels import LabelSheetError, parse_label_csv
 from .media import MediaError, validate_video
+from . import nvidia
 from .rubric import CONSENT_VERSION, MARKSHEET_VERSION, PROTOCOL_VERSION, RubricError, validate_marksheet
 from .seats import MAX_PARTICIPANTS, MIN_PARTICIPANTS, SeatError, order_seats, overhead_row_regions
 from .voice import MATCHING_VERSION, REVIEW_CLIP_SECONDS, assigned_audio_for_slot, assign_windows, build_profiles, review_audio_for_slot, training_feature
@@ -193,15 +194,20 @@ class GroupObservationService:
         self._require(actor, "operator", "psychologist", "reviewer")
         return self._view(actor, session_id)
 
-    def face_voice_details(self, actor: Principal, session_id: str) -> dict:
+    def face_voice_details(self, actor: Principal, session_id: str, method: str = "existing") -> dict:
         self._require(actor, "operator", "psychologist", "reviewer")
+        if method not in {"existing", "nvidia"}:
+            raise GroupError("invalid_method", "Unknown voice analysis method", 400)
         session = self._session(session_id)
         recording = self.store.recording_for_session(session_id)
         samples = {int(row["slot_number"]): row for row in self.store.face_samples_for(session_id)}
         seats = {int(row["slot_number"]): row for row in self.store.seats_for(session_id)}
-        current_matching = (((recording or {}).get("processing") or {}).get("voice_matching") or {}).get("version") == MATCHING_VERSION
-        profiles = {int(row["slot_number"]): row for row in self.store.voice_profiles_for(session_id)} if current_matching else {}
-        segments = self.store.voice_segments_for(session_id) if current_matching else []
+        method_state = (((recording or {}).get("processing") or {}).get("voice_matching" if method == "existing" else "nvidia_matching") or {})
+        current_matching = method_state.get("version") == (MATCHING_VERSION if method == "existing" else nvidia.MATCHING_VERSION)
+        if method == "nvidia":
+            current_matching = current_matching and method_state.get("model_revision") == nvidia.MODEL_REVISION
+        profiles = {int(row["slot_number"]): row for row in self.store.voice_profiles_for(session_id, method)} if current_matching and method_state.get("status") == "complete" else {}
+        segments = self.store.voice_segments_for(session_id, method) if current_matching and method_state.get("status") == "complete" else []
         labels: dict[int, dict] = {}
         for row in self.store.training_labels_for(session_id):
             slot = int(row["slot_number"])
@@ -228,20 +234,20 @@ class GroupObservationService:
                     key: profile.get(key) for key in
                     ("status", "engine", "embedding_engine", "usable_seconds", "vector", "embedding", "metrics")
                 },
-                "combined_feature_ready": bool(sample and profile and training_feature(sample["feature"], profile) is not None),
+                "combined_feature_ready": bool(method == "nvidia" and sample and profile and training_feature(sample["feature"], profile) is not None),
                 "review_seconds": sum(row["end_s"] - row["start_s"] for row in review_rows),
                 "review_segments": [{"start_s": row["start_s"], "end_s": row["end_s"],
                                      "motion": row["evidence"].get("review_motion"),
                                      "status": row["evidence"].get("review_status")}
                                     for row in review_rows],
                 "segments": [
-                    {key: row.get(key) for key in ("start_s", "end_s", "confidence", "overlap_refused_s")}
+                    {key: row.get(key) for key in ("start_s", "end_s", "confidence", "overlap_refused_s", "evidence")}
                     for row in segments if row.get("status") == "assigned" and row.get("slot_number") == slot
                 ],
                 "marksheet": labels.get(slot),
             })
         processing = (recording or {}).get("processing") or {}
-        voice_matching = processing.get("voice_matching")
+        voice_matching = processing.get("voice_matching" if method == "existing" else "nvidia_matching")
         if voice_matching is None or (voice_matching.get("status") == "complete" and not current_matching):
             recording_state = None if recording is None else recording["processing_state"]
             status = "not_analyzed" if recording_state == "complete" else (
@@ -251,6 +257,7 @@ class GroupObservationService:
             "session_code": session["session_code"],
             "recording_state": None if recording is None else recording["processing_state"],
             "voice_matching": voice_matching,
+            "method": method,
             "people": people,
             "speaking_timeline": [{key: row.get(key) for key in
                                    ("start_s", "end_s", "slot_number", "status", "evidence")} for row in segments],
@@ -260,18 +267,20 @@ class GroupObservationService:
             ],
         }
 
-    def face_voice_audio(self, actor: Principal, session_id: str, slot_number: int) -> bytes:
+    def face_voice_audio(self, actor: Principal, session_id: str, slot_number: int, method: str = "existing") -> bytes:
         self._require(actor, "operator", "psychologist", "reviewer")
+        if method not in {"existing", "nvidia"}:
+            raise GroupError("invalid_method", "Unknown voice analysis method", 400)
         self._session(session_id)
         participant = next((row for row in self.store.participants(session_id)
                             if int(row["slot_number"]) == slot_number and not row.get("withdrawn_at")), None)
         if participant is None:
             raise GroupError("participant_not_found", "Participant not found", 404)
-        profile = next((row for row in self.store.voice_profiles_for(session_id)
+        profile = next((row for row in self.store.voice_profiles_for(session_id, method)
                         if int(row["slot_number"]) == slot_number), None)
         recording = self._recording(session_id)
-        matching = (recording.get("processing") or {}).get("voice_matching") or {}
-        if recording.get("processing_state") != "complete":
+        matching = (recording.get("processing") or {}).get("voice_matching" if method == "existing" else "nvidia_matching") or {}
+        if method == "existing" and recording.get("processing_state") != "complete":
             raise GroupError("voice_unavailable", "Recording processing must finish before playback", 409)
         key = recording.get("audio_object_key")
         if not key:
@@ -284,16 +293,19 @@ class GroupObservationService:
                 samples = np.frombuffer(source.readframes(source.getnframes()), dtype="<i2")
         except (KeyError, OSError, EOFError, ValueError, wave.Error) as exc:
             raise GroupError("audio_unavailable", "The source audio cannot be read", 409) from exc
-        if matching.get("version") != MATCHING_VERSION or matching.get("status") != "complete":
+        if (matching.get("version") != (MATCHING_VERSION if method == "existing" else nvidia.MATCHING_VERSION)
+                or matching.get("status") != "complete"
+                or (method == "nvidia" and matching.get("model_revision") != nvidia.MODEL_REVISION)):
             raise GroupError("voice_unavailable", "Voice matching must finish before playback", 409)
-        segments = self.store.voice_segments_for(session_id)
-        if profile is not None and profile.get("status") == "ready":
+        segments = self.store.voice_segments_for(session_id, method)
+        if method == "nvidia" or (profile is not None and profile.get("status") == "ready"):
             audio, _ = assigned_audio_for_slot(samples, 16000, segments, slot_number)
-            if abs(len(audio) / 16000 - float(profile["usable_seconds"])) > 1 / 16000 or not len(audio):
+            if profile is None or abs(len(audio) / 16000 - float(profile["usable_seconds"])) > 1 / 16000 or not len(audio):
                 raise GroupError("voice_mismatch", "The saved voice profile no longer matches its speech windows", 409)
-            audio = audio[:round(REVIEW_CLIP_SECONDS * 16000)]
+            if method == "existing":
+                audio = audio[:round(REVIEW_CLIP_SECONDS * 16000)]
         else:
-            audio = review_audio_for_slot(samples, 16000, segments, slot_number)
+            audio = review_audio_for_slot(samples, 16000, segments, slot_number) if method == "existing" else np.empty(0, dtype=np.int16)
             if not len(audio):
                 raise GroupError("voice_unavailable", "No short speech excerpt was found for this participant", 409)
         output = io.BytesIO()
@@ -369,6 +381,22 @@ class GroupObservationService:
         return self.store.enqueue_job(
             {"id": str(uuid4()), "group_session_id": session_id, "job_type": "process_recording", "state": "queued", "error": None}
         )
+
+    def enqueue_nvidia(self, actor: Principal, session_id: str) -> dict:
+        self._require(actor, "operator")
+        recording = self._recording(session_id)
+        if not recording.get("audio_object_key"):
+            raise GroupError("audio_unavailable", "Shared 16 kHz PCM must be extracted first", 409)
+        processing = dict(recording.get("processing") or {})
+        if (processing.get("nvidia_matching") or {}).get("status") in {"queued", "running"}:
+            raise GroupError("analysis_running", "NVIDIA analysis is already queued", 409)
+        processing["nvidia_matching"] = {"status": "queued", "version": nvidia.MATCHING_VERSION,
+                                         "model_revision": nvidia.MODEL_REVISION, "ready_voices": 0}
+        self.store.replace_voice_analysis(session_id, [], [], "nvidia")
+        self.store.update_recording(session_id, processing=processing)
+        job = self.store.enqueue_job({"id": str(uuid4()), "group_session_id": session_id,
+                                      "job_type": "process_nvidia", "state": "queued", "error": None})
+        return {"job": job, "nvidia_matching": processing["nvidia_matching"]}
 
     def ingest_video(self, actor: Principal, filename: str, data: bytes) -> dict:
         self._require(actor, "operator")
@@ -516,15 +544,18 @@ class GroupObservationService:
     def _ready_voice_profiles(self) -> list[dict]:
         complete_sessions = {}
         profiles = []
-        for row in self.store.all_voice_profiles():
+        for row in self.store.all_voice_profiles("nvidia"):
             session_id = row["group_session_id"]
             if session_id not in complete_sessions:
                 recording = self.store.recording_for_session(session_id)
                 complete_sessions[session_id] = bool(
-                    recording and recording["processing_state"] == "complete"
-                    and (recording.get("processing") or {}).get("voice_matching", {}).get("status") == "complete"
+                    recording and (recording.get("processing") or {}).get("nvidia_matching", {}).get("status") == "complete"
+                    and (recording.get("processing") or {}).get("nvidia_matching", {}).get("model_revision") == nvidia.MODEL_REVISION
+                    and (recording.get("processing") or {}).get("nvidia_matching", {}).get("version") == nvidia.MATCHING_VERSION
                 )
-            if row["status"] == "ready" and complete_sessions[session_id] and (row.get("metrics") or {}).get("matching_version") == MATCHING_VERSION:
+            if (row["status"] == "ready" and float(row.get("usable_seconds") or 0) >= 3.0
+                    and complete_sessions[session_id]
+                    and (row.get("metrics") or {}).get("matching_version") == nvidia.MATCHING_VERSION):
                 profiles.append(row)
         return profiles
 
@@ -1014,6 +1045,9 @@ class GroupObservationService:
         return self.store.claim_job(worker_id)
 
     def run_job(self, job: dict) -> None:
+        if job.get("job_type") == "process_nvidia":
+            self._run_nvidia_job(job)
+            return
         session_id = job["group_session_id"]
         recording = self.store.recording_for_session(session_id)
         try:
@@ -1039,6 +1073,9 @@ class GroupObservationService:
                 fatal = True
             kept = {key: value for key, value in derived.items() if key not in {"turns", "audio_wav", "thumbnail_jpeg", "pcm_samples", "sample_rate_hz"}}
             kept["voice_matching"] = voice_state
+            other_method = (self._recording(session_id).get("processing") or {}).get("nvidia_matching")
+            if other_method is not None:
+                kept["nvidia_matching"] = other_method
             self.store.update_recording(
                 session_id,
                 processing_state="failed" if fatal else "complete",
@@ -1063,6 +1100,57 @@ class GroupObservationService:
             return
         failed = self.store.recording_for_session(session_id)["processing_state"] == "failed"
         self.store.finish_job(job["id"], state="failed" if failed else "complete", error=None if not failed else "recording_processing_failed")
+        if (not failed and not (recording.get("processing") or {}).get("nvidia_matching")
+                and self.store.recording_for_session(session_id).get("audio_object_key")):
+            self.enqueue_nvidia(self.local_principal(), session_id)
+
+    def _run_nvidia_job(self, job: dict) -> None:
+        session_id = job["group_session_id"]
+        recording = self._recording(session_id)
+        def state(status, **extra):
+            current = self._recording(session_id)
+            processing = dict(current.get("processing") or {})
+            processing["nvidia_matching"] = {"status": status, "version": nvidia.MATCHING_VERSION,
+                                             "model_revision": nvidia.MODEL_REVISION, **extra}
+            self.store.update_recording(session_id, processing=processing)
+        state("running", ready_voices=0)
+        self.store.replace_voice_analysis(session_id, [], [], "nvidia")
+        try:
+            source = self.storage.get(recording["audio_object_key"])
+            with wave.open(io.BytesIO(source), "rb") as handle:
+                if (handle.getnchannels(), handle.getsampwidth(), handle.getframerate()) != (1, 2, 16000):
+                    raise ValueError("nemotron_requires_16khz_mono_pcm")
+                samples = np.frombuffer(handle.readframes(handle.getnframes()), dtype="<i2").copy()
+            boxes = self.store.face_samples_for(session_id)
+            if len(boxes) > nvidia.MAX_SPEAKERS:
+                raise ValueError("nemotron_eight_speaker_capacity_exceeded")
+            if not boxes:
+                raise ValueError("marked_faces_missing")
+            probabilities = nvidia.streaming_logits(samples, 16000)
+            turns = nvidia.activity_segments(probabilities)
+            if len({turn["cluster_label"] for turn in turns}) == nvidia.MAX_SPEAKERS and len(boxes) == nvidia.MAX_SPEAKERS:
+                # An off-camera voice could exceed capacity; mark the result for review.
+                capacity_warning = "all_eight_channels_active_capacity_unverifiable"
+            else:
+                capacity_warning = None
+            rows = nvidia.clean_windows(turns, duration_s=len(samples) / 16000)
+            video = self.storage.get(recording["object_key"])
+            observations = nvidia.visual_observations(rows, boxes, video)
+            mapping = nvidia.map_speakers(rows, observations, {int(box["slot_number"]) for box in boxes})
+            profiles = build_profiles(samples, 16000, rows, boxes, [], matching_version=nvidia.MATCHING_VERSION)
+            for row in rows + profiles:
+                row["group_session_id"] = session_id
+            self.store.replace_voice_analysis(session_id, rows, profiles, "nvidia")
+            state("complete", ready_voices=sum(p["status"] == "ready" for p in profiles),
+                  speaker_count=len({turn["cluster_label"] for turn in turns}),
+                  mapping=mapping, capacity_warning=capacity_warning,
+                  unknown_seconds=round(sum(r["end_s"]-r["start_s"] for r in rows if r["status"] == "unknown" and not r["overlap_refused_s"]), 2),
+                  overlap_seconds=round(sum(r["overlap_refused_s"] for r in rows), 2))
+            self.store.finish_job(job["id"], state="complete", error=None)
+        except Exception as exc:
+            self.store.replace_voice_analysis(session_id, [], [], "nvidia")
+            state("failed", ready_voices=0, reason=f"{type(exc).__name__}:{exc}")
+            self.store.finish_job(job["id"], state="failed", error=type(exc).__name__)
 
     def _process_voices(self, session_id: str, data: bytes, derived: dict) -> dict:
         samples = derived.get("pcm_samples")

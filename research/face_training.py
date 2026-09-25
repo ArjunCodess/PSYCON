@@ -17,8 +17,8 @@ from sklearn.preprocessing import StandardScaler
 from research.group_observation import assign_group_splits
 
 
-MODEL_VERSION = "group-face-voice-1.1.0"
-FEATURE_NAME = "face_and_voice_v2"
+MODEL_VERSION = "group-face-voice-2.0.0"
+FEATURE_NAME = "face_and_voice_nvidia_v3"
 MIN_SESSIONS = 5
 MIN_NONZERO = 5
 
