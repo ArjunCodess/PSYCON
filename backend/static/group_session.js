@@ -1,5 +1,5 @@
 (() => {
-  const state = { selected: null, step: 1, refresh: null, speechStop: null, method: "existing" };
+  const state = { selected: null, step: 1, refresh: null, speechStop: null, method: "existing", reviewSegmentId: null };
   const byId = (id) => document.getElementById(id);
   const make = (tag, className, value) => {
     const node = document.createElement(tag);
@@ -23,7 +23,10 @@
     byId("screen-done").hidden = step !== 3;
     byId("notice").hidden = true;
     if (step !== 2 && state.refresh) clearTimeout(state.refresh);
-    if (step !== 2) state.speechStop?.();
+    if (step !== 2) {
+      state.speechStop?.();
+      byId("voice-review-video").pause();
+    }
   }
 
   async function api(path, options = {}) {
@@ -165,8 +168,42 @@
     byId("face-voice-list").replaceChildren(...people.map((person) => personCard(person, processing, state.selected)));
     byId("unknown-voice").hidden = unknown.length === 0;
     byId("unknown-count").textContent = unknown.length;
-    byId("unknown-list").replaceChildren();
-    addSegments(byId("unknown-list"), unknown);
+    const unknownList = make("ol", "voice-segments");
+    for (const row of unknown) {
+      const item = make("li", "", `${fixed(row.start_s, 2)}–${fixed(row.end_s, 2)} s · ${row.cluster_label || "overlap"} · ${(row.evidence?.reason || "unknown").replaceAll("_", " ")}`);
+      if (state.method === "nvidia" && row.cluster_label && !row.overlap_refused_s) {
+        const review = make("button", "voice-review-open", "Review in original video");
+        review.type = "button";
+        review.addEventListener("click", async () => {
+          state.reviewSegmentId = row.id;
+          byId("nvidia-review-form").hidden = false;
+          byId("voice-review-target").textContent = `${row.cluster_label} · ${fixed(row.start_s, 2)}–${fixed(row.end_s, 2)} s`;
+          byId("voice-review-note").value = "";
+          byId("voice-review-message").textContent = "Loading original recording at this interval.";
+          state.speechStop?.();
+          const video = byId("voice-review-video");
+          video.pause();
+          video.hidden = false;
+          try {
+            const grant = await api(`/api/v1/group-sessions/${state.selected}/recording/playback`, { method: "POST" });
+            video.addEventListener("loadedmetadata", () => { video.currentTime = Math.max(0, row.start_s - 0.5); }, { once: true });
+            video.src = `${grant.media_path}?playback_token=${encodeURIComponent(grant.playback_token)}`;
+            byId("voice-review-message").textContent = "Compare the video and sound before confirming.";
+          } catch (error) {
+            byId("voice-review-message").textContent = error.message;
+          }
+        });
+        item.append(" ", review);
+      }
+      unknownList.append(item);
+    }
+    byId("unknown-list").replaceChildren(unknownList);
+    byId("nvidia-review").hidden = state.method !== "nvidia" || processing.status !== "complete";
+    byId("voice-review-slot").replaceChildren(...people.map((person) => {
+      const option = make("option", "", `Participant ${person.slot_number}`);
+      option.value = String(person.slot_number);
+      return option;
+    }));
     const timeline = make("ol", "voice-segments");
     for (const row of data.speaking_timeline || []) {
       const name = row.status === "assigned" ? `Participant ${row.slot_number}` : "Unknown";
@@ -196,6 +233,13 @@
   for (const method of ["existing", "nvidia"]) {
     byId(`voice-tab-${method}`).addEventListener("click", () => {
       state.speechStop?.();
+      state.reviewSegmentId = null;
+      byId("nvidia-review-form").hidden = true;
+      const video = byId("voice-review-video");
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+      video.hidden = true;
       document.querySelectorAll(".face-voice-audio").forEach((audio) => { audio.pause(); audio.removeAttribute("src"); audio.load(); });
       if (state.refresh) clearTimeout(state.refresh);
       state.method = method;
@@ -203,6 +247,26 @@
       refreshVoice();
     });
   }
+  byId("nvidia-review-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!state.selected || !state.reviewSegmentId || state.method !== "nvidia") return;
+    const button = event.currentTarget.querySelector("button[type=submit]");
+    button.disabled = true;
+    try {
+      await api(`/api/v1/group-sessions/${state.selected}/face-voices/nvidia/review`, {
+        method: "POST", body: { segment_id: state.reviewSegmentId,
+          slot_number: Number(byId("voice-review-slot").value), note: byId("voice-review-note").value },
+      });
+      byId("voice-review-message").textContent = "Reviewed interval saved. Its clean audio now appears on the selected participant card.";
+      state.reviewSegmentId = null;
+      byId("nvidia-review-form").hidden = true;
+      refreshVoice();
+    } catch (error) {
+      byId("voice-review-message").textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
   byId("run-nvidia").addEventListener("click", async () => {
     if (!state.selected) return;
     byId("run-nvidia").disabled = true;

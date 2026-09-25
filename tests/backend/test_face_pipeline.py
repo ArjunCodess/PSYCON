@@ -197,7 +197,7 @@ def test_upload_marks_faces_and_stores_the_spreadsheet() -> None:
          "usable_seconds": 2.0}], "nvidia")
     service.store.update_recording(session_id, processing={
         "voice_matching": {"status": "complete", "version": MATCHING_VERSION},
-        "nvidia_matching": {"status": "complete", "version": "nemotron-face-voice-1",
+        "nvidia_matching": {"status": "complete", "version": nvidia.MATCHING_VERSION,
                             "model_revision": nvidia.MODEL_REVISION},
     })
     nvidia_clip = client.get(f"/api/v1/group-sessions/{session_id}/face-voices/1/audio?method=nvidia", headers=auth(token))
@@ -356,7 +356,7 @@ def test_training_requires_ready_voice_for_the_same_session_and_slot() -> None:
         ])
         store.replace_voice_analysis(session, [], [
             {"group_session_id": session, "slot_number": 1, "status": "ready", "usable_seconds": 3.5, "vector": [0.1] * 32,
-             "metrics": {"matching_version": "nemotron-face-voice-1", **{name: 1.0 for name in SCALAR_NAMES}}},
+             "metrics": {"matching_version": nvidia.MATCHING_VERSION, **{name: 1.0 for name in SCALAR_NAMES}}},
             {"group_session_id": session, "slot_number": 2, "status": "insufficient_speech", "usable_seconds": 1.0, "vector": None,
              "metrics": {}},
         ], "nvidia")
@@ -368,7 +368,7 @@ def test_training_requires_ready_voice_for_the_same_session_and_slot() -> None:
         session = f"s{index}"
         store.replace_voice_analysis(session, [], [
             {"group_session_id": session, "slot_number": slot, "status": "ready", "usable_seconds": 3.5, "vector": [float(slot)] * 32,
-             "metrics": {"matching_version": "nemotron-face-voice-1", **{name: float(slot) for name in SCALAR_NAMES}}} for slot in (1, 2)
+             "metrics": {"matching_version": nvidia.MATCHING_VERSION, **{name: float(slot) for name in SCALAR_NAMES}}} for slot in (1, 2)
         ], "nvidia")
     fitted = service.train_faces(actor)
     assert fitted["feature"] == "face_and_voice_nvidia_v3"

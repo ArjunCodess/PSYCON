@@ -7,6 +7,7 @@ import io
 import re
 import wave
 from base64 import b64encode
+from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable
 from uuid import uuid4
@@ -260,9 +261,11 @@ class GroupObservationService:
             "method": method,
             "people": people,
             "speaking_timeline": [{key: row.get(key) for key in
-                                   ("start_s", "end_s", "slot_number", "status", "evidence")} for row in segments],
+                                   ("id", "start_s", "end_s", "cluster_label", "slot_number", "status", "evidence")}
+                                  for row in segments],
             "unknown_segments": [
-                {key: row.get(key) for key in ("start_s", "end_s", "confidence", "overlap_refused_s")}
+                {key: row.get(key) for key in
+                 ("id", "start_s", "end_s", "cluster_label", "confidence", "overlap_refused_s", "evidence")}
                 for row in segments if row.get("status") == "unknown"
             ],
         }
@@ -397,6 +400,86 @@ class GroupObservationService:
         job = self.store.enqueue_job({"id": str(uuid4()), "group_session_id": session_id,
                                       "job_type": "process_nvidia", "state": "queued", "error": None})
         return {"job": job, "nvidia_matching": processing["nvidia_matching"]}
+
+    def review_nvidia_interval(self, actor: Principal, session_id: str, payload: dict) -> dict:
+        """Attach one clean acoustic interval to a face after source-video review."""
+        self._require(actor, "operator")
+        recording = self._recording(session_id)
+        processing = dict(recording.get("processing") or {})
+        state = dict(processing.get("nvidia_matching") or {})
+        if (state.get("status") != "complete" or state.get("version") != nvidia.MATCHING_VERSION
+                or state.get("model_revision") != nvidia.MODEL_REVISION):
+            raise GroupError("nvidia_not_ready", "Current NVIDIA analysis must finish before review", 409)
+        segment_id = str(payload.get("segment_id") or "")
+        note = str(payload.get("note") or "").strip()
+        if not note or len(note) > 240:
+            raise GroupError("review_note_required", "Describe the visible and audible evidence in 1–240 characters", 400)
+        try:
+            slot = int(payload["slot_number"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise GroupError("invalid_slot", "Choose a marked participant number", 400) from exc
+        boxes = self.store.face_samples_for(session_id)
+        if slot not in {int(box["slot_number"]) for box in boxes}:
+            raise GroupError("invalid_slot", "Choose a marked participant number", 400)
+        participant = next((person for person in self.store.participants(session_id)
+                            if int(person["slot_number"]) == slot), None)
+        if participant is None or participant.get("withdrawn_at"):
+            raise GroupError("invalid_slot", "Choose an active participant number", 400)
+        rows = deepcopy(self.store.voice_segments_for(session_id, "nvidia"))
+        selected = next((row for row in rows if row.get("id") == segment_id), None)
+        if (selected is None or selected.get("status") != "unknown" or
+                selected.get("cluster_label") is None or selected.get("overlap_refused_s")):
+            raise GroupError("invalid_segment", "Only a saved, non-overlapping speaker interval can be reviewed", 400)
+        if any(row.get("status") == "assigned" and row.get("id") != segment_id
+               and ((row.get("cluster_label") == selected["cluster_label"] and row.get("slot_number") != slot)
+                    or (row.get("slot_number") == slot and row.get("cluster_label") != selected["cluster_label"]))
+               for row in rows):
+            raise GroupError("identity_conflict", "This speaker or face has a conflicting saved assignment", 409)
+        selected["slot_number"] = slot
+        selected["status"] = "assigned"
+        selected["confidence"] = 1.0
+        selected["evidence"] = {**(selected.get("evidence") or {}),
+                                "reason": "operator_confirmed_from_original_video",
+                                "reviewed_by": actor.id, "reviewed_at": _stamp(),
+                                "review_note": note, "mapping_slot": slot}
+        confirmations = [row for row in rows
+                         if row.get("cluster_label") == selected["cluster_label"]
+                         and row.get("slot_number") == slot
+                         and (row.get("evidence") or {}).get("reason") == "operator_confirmed_from_original_video"]
+        if len(confirmations) >= 2 and max(row["start_s"] for row in confirmations) - min(
+                row["start_s"] for row in confirmations) >= 5.0:
+            for row in rows:
+                if (row.get("status") != "unknown" or row.get("cluster_label") != selected["cluster_label"]
+                        or row.get("overlap_refused_s")):
+                    continue
+                contrary = [observation for observation in (row.get("evidence") or {}).get("visual_observations", [])
+                            if observation.get("candidate_slot") not in (None, slot)]
+                if contrary:
+                    continue
+                row.update(slot_number=slot, status="assigned", confidence=1.0)
+                row["evidence"] = {**(row.get("evidence") or {}),
+                                   "reason": "operator_confirmed_speaker_identity_propagated",
+                                   "mapping_slot": slot,
+                                   "reviewed_source_segments": [item["id"] for item in confirmations]}
+        source = self.storage.get(recording["audio_object_key"])
+        with wave.open(io.BytesIO(source), "rb") as handle:
+            if (handle.getnchannels(), handle.getsampwidth(), handle.getframerate()) != (1, 2, 16000):
+                raise GroupError("audio_unavailable", "Shared PCM is not 16 kHz mono", 409)
+            samples = np.frombuffer(handle.readframes(handle.getnframes()), dtype="<i2").copy()
+        profiles = build_profiles(samples, 16000, rows, boxes, [], matching_version=nvidia.MATCHING_VERSION)
+        for profile in profiles:
+            profile["group_session_id"] = session_id
+        self.store.replace_voice_analysis(session_id, rows, profiles, "nvidia")
+        state.update(ready_voices=sum(profile["status"] == "ready" for profile in profiles),
+                     reviewed_intervals=sum(row.get("evidence", {}).get("reason") ==
+                                            "operator_confirmed_from_original_video" for row in rows),
+                     unknown_seconds=round(sum(row["end_s"] - row["start_s"] for row in rows
+                                               if row["status"] == "unknown" and not row["overlap_refused_s"]), 2))
+        processing["nvidia_matching"] = state
+        self.store.update_recording(session_id, processing=processing)
+        self._audit(actor, "review_nvidia_interval", session_id,
+                    {"segment_id": segment_id, "slot_number": slot, "note": note})
+        return {"segment_id": segment_id, "slot_number": slot, "voice_matching": state}
 
     def ingest_video(self, actor: Principal, filename: str, data: bytes) -> dict:
         self._require(actor, "operator")

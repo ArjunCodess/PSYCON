@@ -173,6 +173,16 @@ def reprocess_nvidia(session_id):
         return _failure(exc)
 
 
+@group_api.post("/group-sessions/<uuid:session_id>/face-voices/nvidia/review")
+@group_role("operator")
+def review_nvidia_interval(session_id):
+    try:
+        return jsonify(_service().review_nvidia_interval(g.principal, str(session_id),
+                                                         request.get_json(silent=True) or {}))
+    except GroupError as exc:
+        return _failure(exc)
+
+
 @group_api.post("/group-sessions/<uuid:session_id>/consent-signatures")
 @group_role("operator")
 def store_consent_signature(session_id):

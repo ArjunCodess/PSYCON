@@ -10,7 +10,7 @@ MODEL_ID = "nvidia/Nemotron-3-Diarization"
 MODEL_REVISION = "f667ed73aee57d40cc39428eb768b4fd87a0a29e"
 TRANSFORMERS_REVISION = "6da3313a6f89fb3fe0d51c02fe06e3664cd436b0"
 ENGINE = "nemotron-3-diarization/transformers-streaming-v1"
-MATCHING_VERSION = "nemotron-face-voice-1"
+MATCHING_VERSION = "nemotron-face-voice-2"
 MAX_SPEAKERS = 8
 BOUNDARY_GUARD_S = 0.15
 MIN_CLEAN_S = 0.3
@@ -120,6 +120,19 @@ def clean_windows(turns: list[dict], *, duration_s: float) -> list[dict]:
 
 def map_speakers(rows: list[dict], observations: list[dict], slots: set[int]) -> dict[str, int]:
     """Require repeated, consistent visual votes and a one-to-one mapping."""
+    by_source: dict[str, list[dict]] = {}
+    for item in observations:
+        if item.get("source_segment_id"):
+            by_source.setdefault(str(item["source_segment_id"]), []).append(item)
+    for row in rows:
+        items = by_source.get(str(row.get("id")), [])
+        if items:
+            row["evidence"]["visual_observations"] = [
+                {"start_s": x["start_s"], "end_s": x["end_s"],
+                 "candidate_slot": x.get("slot_number"), "score": x.get("score"),
+                 "reason": x.get("reason")}
+                for x in items
+            ]
     votes: dict[str, dict[int, list[dict]]] = {}
     for item in observations:
         speaker, slot = item.get("cluster_label"), item.get("slot_number")
@@ -133,11 +146,45 @@ def map_speakers(rows: list[dict], observations: list[dict], slots: set[int]) ->
         slot, support = ranked[0]
         seconds = sum(float(x["end_s"])-float(x["start_s"]) for x in support)
         total = sum(float(x["end_s"])-float(x["start_s"]) for members in options.values() for x in members)
-        if len(support) >= 3 and seconds >= 1.2 and seconds / total >= .9:
+        distinct_turns = {x.get("source_segment_id", (x["start_s"], x["end_s"])) for x in support}
+        mean_margin = sum(float(x.get("score", 1.0)) for x in support) / len(support)
+        if (len(support) >= 3 and len(distinct_turns) >= 2
+                and seconds >= 1.2 and seconds / total >= .7 and mean_margin >= .8
+                and len(support) >= 2 * max((len(members) for other, members in options.items()
+                                             if other != slot), default=0)):
             mapping[speaker] = slot
             confidence[speaker] = seconds / total
     conflicts = {slot for slot in mapping.values() if list(mapping.values()).count(slot) > 1}
     mapping = {speaker: slot for speaker, slot in mapping.items() if slot not in conflicts}
+    local: dict[str, tuple[int, list[dict]]] = {}
+    for row in rows:
+        speaker = row.get("cluster_label")
+        if speaker is None or speaker in mapping or row.get("overlap_refused_s"):
+            continue
+        support = [x for x in by_source.get(str(row.get("id")), []) if x.get("reliable")]
+        if len(support) < 2 or len({x.get("slot_number") for x in support}) != 1:
+            continue
+        slot = support[0]["slot_number"]
+        if slot not in slots or slot in mapping.values():
+            continue
+        first, last = min(x["start_s"] for x in support), max(x["end_s"] for x in support)
+        mean_margin = sum(float(x.get("score") or 0) for x in support) / len(support)
+        if (first - row["start_s"] <= 2.1 and row["end_s"] - last <= 2.1
+                and last - first >= 3.0 and mean_margin >= .7):
+            local[str(row["id"])] = (slot, support)
+    local_by_slot: dict[int, dict[str, float]] = {}
+    for row in rows:
+        if str(row.get("id")) in local:
+            slot = local[str(row["id"])][0]
+            speaker = row["cluster_label"]
+            score = sum(x["end_s"] - x["start_s"] for x in local[str(row["id"])][1])
+            by_speaker = local_by_slot.setdefault(slot, {})
+            by_speaker[speaker] = by_speaker.get(speaker, 0) + score
+    accepted_local: dict[int, str] = {}
+    for slot, speakers in local_by_slot.items():
+        ranked = sorted(speakers.items(), key=lambda pair: pair[1], reverse=True)
+        if len(ranked) == 1 or ranked[0][1] >= 2 * ranked[1][1]:
+            accepted_local[slot] = ranked[0][0]
     for row in rows:
         speaker = row.get("cluster_label")
         if speaker in mapping and not row.get("overlap_refused_s"):
@@ -154,6 +201,16 @@ def map_speakers(rows: list[dict], observations: list[dict], slots: set[int]) ->
                                    support_observations=[{"start_s": x["start_s"], "end_s": x["end_s"],
                                                           "score": x.get("score")}
                                                          for x in votes[speaker][mapping[speaker]]])
+        elif (str(row.get("id")) in local and
+              accepted_local.get(local[str(row["id"])][0]) == speaker):
+            slot, support = local[str(row["id"])]
+            row.update(slot_number=slot, status="assigned",
+                       confidence=sum(float(x.get("score") or 0) for x in support) / len(support))
+            row["evidence"].update(reason="local_repeated_visual_evidence", mapping_slot=slot,
+                                   support_windows=len(support),
+                                   support_seconds=sum(x["end_s"]-x["start_s"] for x in support))
+        elif speaker is not None and row["evidence"].get("visual_observations"):
+            row["evidence"]["reason"] = "speaker_face_conflict_or_insufficient_evidence"
     return mapping
 
 
@@ -165,31 +222,17 @@ def visual_observations(rows: list[dict], boxes: list[dict], video: bytes, *, sa
     import tempfile
 
     observations = []
-    by_bucket: dict[tuple[str, int], list[dict]] = {}
-    for row in rows:
-        speaker = row.get("cluster_label")
-        if speaker is not None and row["end_s"] - row["start_s"] >= 0.8:
-            by_bucket.setdefault((speaker, int(row["start_s"] // 120)), []).append(row)
-    selected = []
-    for options in by_bucket.values():
-        selected.extend(sorted(options, key=lambda row: row["end_s"] - row["start_s"], reverse=True)[:2])
-    selected = sorted(selected, key=lambda row: row["start_s"])
-    counts: dict[str, int] = {}
+    selected = _visual_windows(rows)
 
     def inspect(frame_sampler, source):
-        for row in selected:
-            speaker = row.get("cluster_label")
-            if counts.get(speaker, 0) >= 16:
-                continue
-            counts[speaker] = counts.get(speaker, 0) + 1
-            start = row["start_s"]
-            end = min(row["end_s"], start + 2.0)
+        for speaker, start, end, source_id in selected:
             frames = frame_sampler(source, start, end)
             tracked_boxes = _locate_faces(frames, boxes) if checker is None else boxes
             slot, score, reason = _candidate_from_tracks(frames, tracked_boxes, checker)
             observations.append({"cluster_label": speaker, "slot_number": slot,
                                  "start_s": start, "end_s": end, "score": score,
-                                 "reason": reason, "reliable": slot is not None})
+                                 "reason": reason, "reliable": slot is not None,
+                                 "source_segment_id": source_id})
 
     if sampler is not None:
         inspect(sampler, video)
@@ -200,6 +243,30 @@ def visual_observations(rows: list[dict], boxes: list[dict], video: bytes, *, sa
             with WindowFrameSampler(source) as frame_sampler:
                 inspect(frame_sampler, source)
     return observations
+
+
+def _visual_windows(rows: list[dict], *, limit_per_speaker: int = 24) -> list[tuple[str, float, float, str]]:
+    """Visit distinct turns first, then revisit long turns at separated times."""
+    by_speaker: dict[str, list[dict]] = {}
+    for row in rows:
+        speaker = row.get("cluster_label")
+        if speaker is not None and not row.get("overlap_refused_s") and row["end_s"] - row["start_s"] >= .42:
+            by_speaker.setdefault(speaker, []).append(row)
+    selected = []
+    for speaker, turns in by_speaker.items():
+        passes: list[list[tuple[str, float, float, str]]] = [[], [], []]
+        for row in sorted(turns, key=lambda item: item["start_s"]):
+            start, end = float(row["start_s"]), float(row["end_s"])
+            length = end - start
+            source_id = str(row.get("id") or f"{speaker}:{start}")
+            passes[0].append((speaker, start, min(end, start + 2.0), source_id))
+            if length >= 4.0:
+                passes[1].append((speaker, end - 2.0, end, source_id))
+            if length >= 6.0:
+                middle = (start + end) / 2
+                passes[2].append((speaker, middle - 1.0, middle + 1.0, source_id))
+        selected.extend((passes[0] + passes[1] + passes[2])[:limit_per_speaker])
+    return sorted(selected, key=lambda item: item[1])
 
 
 def _candidate_from_tracks(frames: list[np.ndarray], boxes: list[dict], checker=None):

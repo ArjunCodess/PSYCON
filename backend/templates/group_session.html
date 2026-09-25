@@ -60,6 +60,20 @@
           <summary>Unassigned speech · <span id="unknown-count">0</span> windows</summary>
           <div id="unknown-list"></div>
         </details>
+        <section id="nvidia-review" class="unknown-voice" hidden aria-labelledby="nvidia-review-title">
+          <h3 id="nvidia-review-title">Review a short or uncertain voice</h3>
+          <p class="field-helper">Open an unassigned interval above, compare the original picture and sound, then confirm a face only when the speaker is clear. Two confirmed turns at least five seconds apart can carry that acoustic identity to other clean intervals without contrary visual evidence. Under three usable seconds remains insufficient for training.</p>
+          <video id="voice-review-video" controls preload="metadata" hidden aria-label="Original recording at selected speech interval"></video>
+          <form id="nvidia-review-form" class="stack-form" hidden>
+            <p id="voice-review-target"></p>
+            <label for="voice-review-slot">Marked participant</label>
+            <select id="voice-review-slot" required></select>
+            <label for="voice-review-note">Visible and audible evidence</label>
+            <textarea id="voice-review-note" maxlength="240" required></textarea>
+            <button type="submit">Confirm this interval</button>
+          </form>
+          <p id="voice-review-message" role="status"></p>
+        </section>
       </section>
       <form id="csv-form" class="stack-form">
         <label class="field-label" for="csv-file">Marksheet spreadsheet</label>
@@ -77,6 +91,6 @@
 
     <div id="notice" class="success-message" role="status" hidden></div>
   </main>
-  <script src="{{ url_for('static', filename='group_session.js', v='group-console-16') }}" defer></script>
+  <script src="{{ url_for('static', filename='group_session.js', v='group-console-17') }}" defer></script>
 </body>
 </html>

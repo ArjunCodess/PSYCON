@@ -62,6 +62,10 @@ select:focus, textarea:focus { border-color: var(--accent); outline: 3px solid r
 .voice-json { max-height: 260px; margin: 0; padding: 12px; overflow: auto; border: 1px solid var(--line); background: var(--paper); font: 11px/1.5 "Geist Mono", monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .unknown-voice { margin-top: 18px; padding: 16px; border: 1px solid var(--line); background: var(--surface); }
 .unknown-voice .voice-segments { margin-top: 10px; }
+.voice-review-open { margin-left: 8px; padding: 3px 7px; border: 1px solid var(--line); background: var(--paper); color: var(--accent); cursor: pointer; font: inherit; }
+#nvidia-review video { display: block; width: min(100%, 960px); max-height: 540px; margin: 16px 0; background: #111; }
+#nvidia-review-form { max-width: 420px; margin-top: 12px; }
+#voice-review-message { color: var(--muted); font-size: 12px; }
 
 .score-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .score-button[aria-pressed="true"] { background: var(--accent); color: white; }

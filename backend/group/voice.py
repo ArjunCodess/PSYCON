@@ -694,7 +694,8 @@ def training_feature(face: list[float], profile: dict) -> list[float] | None:
     if profile.get("status") != "ready" or len(profile.get("vector") or []) != VECTOR_SIZE:
         return None
     metrics = profile.get("metrics") or {}
-    if metrics.get("matching_version") not in {MATCHING_VERSION, "nemotron-face-voice-1"}:
+    from .nvidia import MATCHING_VERSION as NVIDIA_MATCHING_VERSION
+    if metrics.get("matching_version") not in {MATCHING_VERSION, NVIDIA_MATCHING_VERSION}:
         return None
     try:
         feature = [*map(float, face), *map(float, profile["vector"])]
