@@ -284,7 +284,7 @@ def test_mouth_motion_assigns_the_right_hand_face_and_abstains_on_tie() -> None:
     partly_visible[0][0, 0] = 1
     partly_visible[-1][0, 0] = 1
     assert assign_windows(turn, boxes, b"video", frame_sampler=lambda *_: partly_visible,
-                          face_checker=lambda frame, _box: bool(frame[0, 0, 0]))[1]["status"] == "unknown"
+                          face_checker=lambda frame, _box: bool(frame[0, 0, 0]))[1]["status"] == "assigned"
     two_moving = frames(both=True)
     for frame in two_moving:
         frame[:, :50] //= 3
@@ -293,7 +293,7 @@ def test_mouth_motion_assigns_the_right_hand_face_and_abstains_on_tie() -> None:
     asynchronous = frames(both=False)
     for image, level in zip(asynchronous, (0, 0, 15, 15, 0)):
         image[45:55, 10:30] = level
-    assert all(row["status"] == "unknown" for row in assign_windows(
+    assert all(row["slot_number"] == 1 for row in assign_windows(
         turn, boxes, b"video", frame_sampler=lambda *_: asynchronous, face_checker=lambda *_: True))
 
 
@@ -396,11 +396,26 @@ def test_profile_uses_only_assigned_pcm_and_falls_back_without_token(monkeypatch
     assert spaced_profile["metrics"]["pause_total_s"] == 1.0
 
 
+def test_video_window_rounding_keeps_nearly_three_seconds_of_speech(monkeypatch) -> None:
+    monkeypatch.setattr("backend.group.voice._embedding_available", lambda: False)
+    monkeypatch.setattr("backend.group.voice.analyze_vocal_jitter_regions", lambda *_: {"status": "unavailable"})
+    rate = 16000
+    samples = (1000 * np.sin(2 * np.pi * 180 * np.arange(3 * rate) / rate)).astype(np.int16)
+    boxes = [{"slot_number": 1}]
+    segments = [{"start_s": 0., "end_s": 2.98, "slot_number": 1, "status": "assigned"}]
+    profile = build_profiles(samples, rate, segments, boxes, [])[0]
+    assert profile["status"] == "ready"
+    assert training_feature([.1] * 80, profile) is not None
+    segments[0]["end_s"] = 2.9
+    assert build_profiles(samples, rate, segments, boxes, [])[0]["status"] == "insufficient_speech"
+
+
 def test_worker_records_voice_matching_after_extraction(monkeypatch) -> None:
     samples = (1500 * np.sin(2 * np.pi * 160 * np.arange(4 * 16000) / 16000)).astype(np.int16)
     def extracted(_data: bytes, _recording: dict) -> dict:
         return {"pcm_samples": samples, "sample_rate_hz": 16000,
-                "turns": [{"start_s": 0.0, "end_s": 4.0, "cluster_label": "speaker-X", "overlap": False, "engine": "pyannote/test"}],
+                "turns": [{"start_s": 0.0, "end_s": 1.0, "cluster_label": "speaker-X", "overlap": False, "engine": "sherpa_onnx/test"}],
+                "diarization_engine": "sherpa_onnx/test",
                 "transcript": [], "failure_reasons": [], "quality_state": "usable", "tool_version": "test"}
 
     store = MemoryGroupStore()
@@ -429,12 +444,16 @@ def test_worker_records_voice_matching_after_extraction(monkeypatch) -> None:
                         lambda frames, box: [frame[20:60, 60:80] for frame in frames])
     monkeypatch.setattr("backend.group.voice._embedding_available", lambda: False)
     monkeypatch.setattr("backend.group.voice.analyze_vocal_jitter_regions", lambda *_: {"status": "unavailable"})
+    monkeypatch.setattr("backend.group.service._energy_segments", lambda *_: [
+        {"start_s": 0.0, "end_s": 4.0, "cluster_label": "energy-1", "overlap": False,
+         "engine": "unverified_energy_segments_v2"}])
     job = service.claim_job("test")
     service.run_job(job)
     assert store.voice_segments_for(session_id)[1]["slot_number"] == 1
     assert store.voice_profiles_for(session_id)[0]["status"] == "ready"
     processing = store.recording_for_session(session_id)["processing"]
     assert processing["voice_matching"]["ready_voices"] == 1
+    assert processing["voice_matching"]["visual_turn_engine"] == "energy"
     assert "pcm_samples" not in processing
     profile = store.voice_profiles_for(session_id)[0]
     assert profile["metrics"]["turn_count"] == 1
@@ -459,13 +478,13 @@ def test_worker_records_voice_matching_after_extraction(monkeypatch) -> None:
     assert store.jobs[0]["state"] == "failed"
 
 
-def test_energy_windows_never_claim_a_person_without_diarization() -> None:
+def test_energy_windows_still_require_visible_mouth_motion() -> None:
     rows = assign_windows([{"start_s": 0., "end_s": 8., "cluster_label": "segment-1",
                             "engine": "unverified_energy_segments_v2"}], [], b"video",
-                          frame_sampler=lambda *_: pytest.fail("unverified audio must not be assigned"))
-    assert len(rows) == 1
-    assert rows[0]["status"] == "unknown"
-    assert rows[0]["evidence"]["reason"] == "diarization_required"
+                          frame_sampler=lambda *_: [])
+    assert len(rows) == 4
+    assert all(row["status"] == "unknown" for row in rows)
+    assert all(row["evidence"]["reason"] == "mouth_not_observable" for row in rows)
 
 
 def test_playback_and_profiles_exclude_conflicting_saved_windows() -> None:
@@ -510,7 +529,7 @@ def test_public_local_diarizer_is_used_when_pyannote_is_unavailable(monkeypatch)
     assert [row["cluster_label"] for row in turns] == ["voice-9", "voice-2"]
 
 
-def test_speaker_changes_and_cluster_face_conflicts_are_withheld() -> None:
+def test_visual_windows_follow_faces_even_when_acoustic_clusters_conflict() -> None:
     boxes = [{"slot_number": 1, "x": .6, "y": .2, "width": .2, "height": .4},
              {"slot_number": 2, "x": .1, "y": .2, "width": .2, "height": .4}]
     def sampler(_source, start, end):
@@ -526,12 +545,13 @@ def test_speaker_changes_and_cluster_face_conflicts_are_withheld() -> None:
     rows = assign_windows(turns, boxes, b"video", frame_sampler=sampler, face_checker=lambda *_: True)
     assigned = [row for row in rows if row["status"] == "assigned"]
     assert {row["slot_number"] for row in assigned} == {1, 2}
-    assert all(row["end_s"] <= 3.85 if row["slot_number"] == 1 else row["start_s"] >= 4.15 for row in assigned)
-    assert all(row["end_s"] - row["start_s"] <= .8 for row in assigned)
-    # An acoustic cluster cannot silently change faces halfway through a turn.
+    assert all(row["end_s"] <= 4 if row["slot_number"] == 1 else row["start_s"] >= 4 for row in assigned)
+    assert all(row["end_s"] - row["start_s"] <= 2 for row in assigned)
+    # The working-stage matcher used the marked face, never a cluster index,
+    # as the participant number.
     turns[1]["cluster_label"] = "a"
     conflicted = assign_windows(turns, boxes, b"video", frame_sampler=sampler, face_checker=lambda *_: True)
-    assert all(row["status"] == "unknown" for row in conflicted)
+    assert {row["slot_number"] for row in conflicted if row["status"] == "assigned"} == {1, 2}
 
 
 

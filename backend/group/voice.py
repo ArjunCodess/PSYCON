@@ -19,9 +19,9 @@ from ml.src.voice_quality import analyze_vocal_jitter_regions, unavailable_vocal
 VECTOR_SIZE = 32
 SCALAR_NAMES = ("speaking_duration_s", "turn_count", "overlap_refused_s", "pause_total_s", "word_rate_wpm", "pitch_jitter_relative")
 OPTIONAL_SCALARS = frozenset({"word_rate_wpm", "pitch_jitter_relative", "overlap_refused_s"})
-MATCHING_VERSION = "face-voice-strict-1"
+MATCHING_VERSION = "face-voice-visual-3"
 REVIEW_CLIP_SECONDS = 8.0
-MAX_WINDOW_S = 0.8
+MAX_WINDOW_S = 2.0
 BOUNDARY_GUARD_S = 0.15
 MIN_MOTION = 0.55
 MAX_VOICE_CLIP_S = 10.0
@@ -105,6 +105,19 @@ def _mouth_motion_series(frames: list[np.ndarray], box: dict) -> np.ndarray | No
     return np.asarray(changes, dtype=np.float32) if len(changes) >= 2 else None
 
 
+def _mouth_level_series(frames: list[np.ndarray], box: dict) -> np.ndarray:
+    values = []
+    for frame in frames:
+        height, width = frame.shape[:2]
+        x0 = max(0, round(float(box["x"]) * width))
+        x1 = min(width, round((float(box["x"]) + float(box["width"])) * width))
+        y0 = max(0, round((float(box["y"]) + float(box["height"]) * .52) * height))
+        y1 = min(height, round((float(box["y"]) + float(box["height"]) * .9) * height))
+        crop = frame[y0:y1, x0:x1]
+        values.append(float(np.mean(crop)) if crop.size else 0.0)
+    return np.asarray(values, dtype=np.float32)
+
+
 def _head_motion_ratio(frames: list[np.ndarray], box: dict) -> float:
     height, width = frames[0].shape[:2]
     x0 = max(0, round(float(box["x"]) * width))
@@ -132,6 +145,16 @@ def _frontal_face_detector():
     return detector
 
 
+@lru_cache(maxsize=1)
+def _profile_face_detector():
+    import cv2
+
+    detector = cv2.CascadeClassifier(str(Path(cv2.data.haarcascades) / "haarcascade_profileface.xml"))
+    if detector.empty():
+        raise RuntimeError("face_visibility_detector_unavailable")
+    return detector
+
+
 def face_visible(frame: np.ndarray, box: dict) -> bool:
     """Require a frontal face at the saved position before using its mouth crop."""
     import cv2
@@ -145,6 +168,11 @@ def face_visible(frame: np.ndarray, box: dict) -> bool:
         return False
     gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY) if crop.ndim == 3 else crop
     found = list(_frontal_face_detector().detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(20, 20)))
+    profile = _profile_face_detector()
+    found.extend(profile.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3, minSize=(20, 20)))
+    for dx, dy, dw, dh in profile.detectMultiScale(cv2.flip(gray, 1), scaleFactor=1.1,
+                                                   minNeighbors=3, minSize=(20, 20)):
+        found.append((gray.shape[1] - dx - dw, dy, dw, dh))
     for dx, dy, dw, dh in found:
         overlap_w = max(0.0, min(x1, x0 + dx + dw, (x + w) * width) - max(x0 + dx, x * width))
         overlap_h = max(0.0, min(y1, y0 + dy + dh, (y + h) * height) - max(y0 + dy, y * height))
@@ -302,6 +330,35 @@ def _visual_candidate(frames, boxes, face_checker) -> tuple[int | None, float, s
     return winner, min(1.0, (best - second) / max(best, 1e-9)), "visual_candidate"
 
 
+def _visual_candidate_from_working_stage(frames, boxes, face_checker) -> tuple[int | None, float, str]:
+    """Use the per-window mouth comparison that produced the original profiles."""
+    if not frames or not boxes:
+        return None, 0.0, "mouth_not_observable"
+    series = {int(box["slot_number"]): _mouth_motion_series(frames, box) for box in boxes}
+    if any(values is None for values in series.values()):
+        return None, 0.0, "mouth_not_observable"
+    ranked = sorted(((slot, float(np.median(values))) for slot, values in series.items()),
+                    key=lambda pair: pair[1], reverse=True)
+    winner, best = ranked[0]
+    second = ranked[1][1] if len(ranked) > 1 else 0.0
+    winning_box = next(box for box in boxes if int(box["slot_number"]) == winner)
+    checked = (frames[0], frames[len(frames) // 2], frames[-1])
+    if sum(bool(face_checker(frame, winning_box)) for frame in checked) < 2:
+        return None, 0.0, "face_not_visible"
+    if _head_motion_ratio(frames, winning_box) > .82:
+        return None, 0.0, "head_motion"
+    if len(ranked) > 1 and second >= .1:
+        second_box = next(box for box in boxes if int(box["slot_number"]) == ranked[1][0])
+        first_levels = _mouth_level_series(frames, winning_box)
+        second_levels = _mouth_level_series(frames, second_box)
+        if np.std(first_levels) > .5 and np.std(second_levels) > .5:
+            if float(np.corrcoef(first_levels, second_levels)[0, 1]) >= .8:
+                return None, 0.0, "moving_together"
+    if best < MIN_MOTION or best < second * 1.8 or best - second < .35:
+        return None, 0.0, "weak_visual_evidence"
+    return winner, float(min(1.0, (best - second) / max(best, 1e-9))), "visual_match"
+
+
 def _resolve_cluster_faces(rows: list[dict]) -> None:
     votes: dict[str, dict[int, float]] = {}
     counts: dict[tuple[str, int], int] = {}
@@ -391,9 +448,6 @@ def _assign_windows(turns: list[dict], boxes: list[dict], source: bytes | Path, 
         if len(clusters) > 1:
             append(left, right, active, "overlapping_speakers")
             continue
-        if not all(_trusted_turn(turn) for _, turn in active):
-            append(left, right, active, "diarization_required")
-            continue
         # A standalone overlap flag without an interval must also fail closed.
         unexplained_overlap = any(turn.get("overlap") and not any(
             other["cluster_label"] != turn["cluster_label"] and
@@ -402,24 +456,19 @@ def _assign_windows(turns: list[dict], boxes: list[dict], source: bytes | Path, 
         if unexplained_overlap:
             append(left, right, active, "overlapping_speakers")
             continue
-        core_start, core_end = left + BOUNDARY_GUARD_S, right - BOUNDARY_GUARD_S
-        if core_end - core_start < 0.4:
-            append(left, right, active, "short_or_boundary_speech")
-            continue
-        append(left, core_start, active, "speaker_boundary")
-        count = max(1, math.ceil((core_end - core_start) / MAX_WINDOW_S))
+        count = max(1, math.ceil((right - left) / MAX_WINDOW_S))
         for window in range(count):
-            start = core_start + (core_end - core_start) * window / count
-            end = core_start + (core_end - core_start) * (window + 1) / count
+            start = left + (right - left) * window / count
+            end = left + (right - left) * (window + 1) / count
             frames = frame_sampler(source, start, end)
-            candidate, confidence, reason = _visual_candidate(frames, boxes, face_checker)
+            candidate, confidence, reason = _visual_candidate_from_working_stage(frames, boxes, face_checker)
             append(start, end, active, reason, candidate, confidence)
+            if candidate is not None:
+                rows[-1].update(slot_number=candidate, status="assigned")
             if frames:
                 rows[-1]["_review_scores"] = {int(box["slot_number"]):
                                               float(mouth_motion(frames, box) or 0.0)
                                               for box in boxes}
-        append(core_end, right, active, "speaker_boundary")
-    _resolve_cluster_faces(rows)
     _select_review_windows(rows, boxes)
     return rows
 
@@ -577,7 +626,9 @@ def build_profiles(samples: np.ndarray, sample_rate_hz: int, segments: list[dict
         base = {"id": str(uuid4()), "slot_number": slot, "usable_seconds": usable,
                 "engine": None, "vector": None, "embedding_engine": None, "embedding": None,
                 "metrics": {}, "status": "insufficient_speech"}
-        if usable < 3.0:
+        # The visual windows are rounded to video timestamps; a few missing
+        # frames should not turn an otherwise three-second profile into zero.
+        if usable < 2.95:
             tentative = _tentative_measures(samples, sample_rate_hz, segments, slot, transcript)
             if tentative is not None:
                 base["metrics"] = {"tentative": tentative}

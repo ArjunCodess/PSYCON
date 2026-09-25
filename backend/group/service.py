@@ -24,13 +24,13 @@ from research.group_observation import (
 )
 
 from .errors import GroupError
-from .extract import extract_group_recording
+from .extract import _energy_segments, extract_group_recording
 from .faces import FaceMarkError, mark_recording, number_faces
 from .labels import LabelSheetError, parse_label_csv
 from .media import MediaError, validate_video
 from .rubric import CONSENT_VERSION, MARKSHEET_VERSION, PROTOCOL_VERSION, RubricError, validate_marksheet
 from .seats import MAX_PARTICIPANTS, MIN_PARTICIPANTS, SeatError, order_seats, overhead_row_regions
-from .voice import MATCHING_VERSION, assigned_audio_for_slot, assign_windows, build_profiles, review_audio_for_slot, training_feature
+from .voice import MATCHING_VERSION, REVIEW_CLIP_SECONDS, assigned_audio_for_slot, assign_windows, build_profiles, review_audio_for_slot, training_feature
 
 
 _SESSION_CODE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$")
@@ -291,6 +291,7 @@ class GroupObservationService:
             audio, _ = assigned_audio_for_slot(samples, 16000, segments, slot_number)
             if abs(len(audio) / 16000 - float(profile["usable_seconds"])) > 1 / 16000 or not len(audio):
                 raise GroupError("voice_mismatch", "The saved voice profile no longer matches its speech windows", 409)
+            audio = audio[:round(REVIEW_CLIP_SECONDS * 16000)]
         else:
             audio = review_audio_for_slot(samples, 16000, segments, slot_number)
             if not len(audio):
@@ -1070,7 +1071,13 @@ class GroupObservationService:
         if samples is None or rate != 16000 or not boxes:
             return {"status": "unavailable", "ready_voices": 0}
         try:
-            segments = assign_windows(list(derived.get("turns") or []), boxes, data)
+            acoustic_turns = list(derived.get("turns") or [])
+            # The local diarizer fragments this group recording into short
+            # turns; the original working visual matcher used energy windows.
+            visual_turns = (_energy_segments(samples, rate)
+                            if str(derived.get("diarization_engine") or "").startswith("sherpa_onnx/")
+                            else acoustic_turns)
+            segments = assign_windows(visual_turns, boxes, data)
             profiles = build_profiles(samples, rate, segments, boxes, list(derived.get("transcript") or []))
             for row in segments:
                 row["group_session_id"] = session_id
@@ -1079,6 +1086,7 @@ class GroupObservationService:
             self.store.replace_voice_analysis(session_id, segments, profiles)
             return {"status": "complete", "version": MATCHING_VERSION,
                     "diarization_engine": derived.get("diarization_engine"),
+                    "visual_turn_engine": "energy" if visual_turns is not acoustic_turns else "diarization",
                     "ready_voices": sum(row["status"] == "ready" for row in profiles),
                     "unknown_windows": sum(row["status"] == "unknown" for row in segments)}
         except Exception as exc:
