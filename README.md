@@ -91,13 +91,48 @@ There is no approved recorded-speech dataset, synchronized device dataset, real 
 
 ### Week 5 research workflow
 
-Week 5 built the study controls and the full analysis path, but it produced no PSYCON study result. The repository has no completed psychologist marksheets or matching participant recordings, and the previously generated fake-data results were removed.
+Week 5 has two paths, and neither has a human-study result. The current path is group observation: one discussion video, seats numbered from the right of the frame toward the left, psychologist marksheet version 4.0 scored **0–4 or N/O**, and evidence-linked predictions that never overwrite the ratings. [`research/group_observation.py`](research/group_observation.py) keeps a shared recording in one split and hides model metrics when an item lacks enough independent sessions. The operator and psychologist workflow is at `/group`.
 
-[`research/schema.py`](research/schema.py) validates anonymous session metadata, approval, consent, withdrawal state, calibration references, timestamps, and synchronization quality. [`research/dataset.py`](research/dataset.py) joins physiology, speech, and context on common time windows, rejects conflicting labels and duplicate windows, and preserves missing or unusable inputs. [`research/evaluation.py`](research/evaluation.py) freezes one participant-level split across all comparisons, trains logistic-regression and random-forest candidates, selects by validation F1, and prepares grouped cross-validation, participant-level intervals, errors, ablations, environment and motion slices, duration summaries, confusion matrices, and ROC curves. [`research/run_study.py`](research/run_study.py) connects those stages for approved data and hashes every source file used by a run.
+The earlier binary comparison remains in [`research/evaluation.py`](research/evaluation.py). It joins physiology, speech, and context for a 0/1 label and does not train the marksheet. [`research/run_study.py`](research/run_study.py) is the runner for that device path. A shared table microphone is not an individual physiological sensor.
 
-The psychologist marksheet supplies 20 behavioral ratings, session context, recording quality, and evidence timestamps. It does not supply the physiological and speech inputs needed for a PSYCON model. We can analyze the marksheets alone, but model training requires matching wrist and audio records with the same participant and session IDs.
+See the [Week 5 implementation record](docs/WEEK_5_IMPLEMENTATION.md) and [data handoff requirements](docs/research/DATA_REQUIREMENTS.md). Collection is still blocked on approval, consent version `group-consent-2.0`, and completed ratings. The commands to start the console are in [Run the group observation console](#run-the-group-observation-console).
 
-See the complete [Week 5 implementation record](docs/WEEK_5_IMPLEMENTATION.md), [data handoff requirements](docs/research/DATA_REQUIREMENTS.md), and [research operating instructions](docs/research/README.md). Week 5 currently counts as implemented software and documentation with an open research exit gate.
+## Run the group observation console
+
+The group page is part of the Week 4 backend, not the five-minute audio demo on port 5000. Start PostgreSQL, MinIO, the API, and the worker:
+
+```powershell
+docker compose up --build -d
+```
+
+Open `http://localhost:8000/group`. The device dashboard stays at `http://localhost:8000`. Stop the stack with `docker compose down`. That keeps the database and object-store volumes.
+
+1. Press **Upload and mark faces** and choose one video. Accepted files are mp4, mov, webm, or mkv, from 1 minute to 3 hours, up to 2 GB, with the original audio track. The page shows the first frame with each face numbered from the right side toward the left. That number is Participant 1, Participant 2, and so on for this recording only.
+2. Add a CSV whose `participant` column uses those numbers, whose `class` column is the class for that person, and whose columns `A` through `T` are scores `0`–`4` or `N/O`. Class can differ from row to row. Press **Add spreadsheet to training**.
+3. After several sessions are stored, press **Run training**. An item stays unavailable until five sessions and five nonzero scores exist. The result is a research baseline, not a validated psychological finding.
+
+The marksheet on the page can still be filled in by hand. A score above zero needs an evidence start, evidence end, the preceding event, and the observed response. Items Q–T also need a baseline interval and a trigger interval that you type in. Those intervals are not filled in for you. `0` means there was a fair opportunity and the behaviour was not seen. `N/O` needs a reason. An optional PDF can be attached; its text is not used as a label.
+
+Press **Compare answers** to see session patterns and any model claims side by side. A claim button opens the recording at the cited interval. With only one session, the model stays unavailable: an item needs at least five independent group sessions and five nonzero scores before test metrics are reported. Press **Build export** for the versioned package. The export hash and example count appear under the comparison.
+
+The worker container processes the upload. The image includes ffmpeg and checksum-pinned public ONNX diarization models. It uses pyannote when available, otherwise local sherpa-onnx segmentation and speaker clustering without an HF token. For a non-Docker worker, run `python -m backend.group.install_voice_models` once; `PSYCON_DIARIZATION_MODELS` selects the model directory. If neither diarizer runs, energy segments remain unknown and cannot produce participant voice profiles. Local transcription uses faster-whisper when available and otherwise records `transcription_unavailable`. Compose pulls MinIO from `quay.io/minio/minio`.
+
+Voice matching requires repeated agreement between an anonymous acoustic speaker and a marked face's tracked mouth motion. It stabilizes face crops, rejects competing mouth motion and detected overlap, and trims speaker boundaries. Screen 02 shows the assignment timeline and a native audio player above each card's stats when assigned audio exists. Playback reconstructs those exact windows from the shared PCM; it does not store another audio copy. Under three usable seconds, the card remains `insufficient_speech` and training excludes it. Old matching versions must be reprocessed before playback or training.
+
+These checks are conservative heuristics, not source separation or guaranteed speaker identity. Hidden mouths, head movement, small faces, ambiguous acoustic clusters, and simultaneous speech can leave a recording with no trainable profiles. The timeline records why each window was withheld; missing voice measures stay unavailable. Training still joins by this recording's face number, never the diarizer's speaker index.
+
+To score an exported set of sessions, save the export's `examples` array as one JSON file and a session list as another. Each session object needs `group_session_id` and `participant_ids`. Use the same anonymous research code when one person appears in more than one session, so those sessions stay in one split.
+
+```powershell
+python -m research.run_group_study `
+  --examples D:\approved-study\examples.json `
+  --sessions D:\approved-study\sessions.json `
+  --turns D:\approved-study\turns.json `
+  --output-dir D:\approved-study\results\group-1 `
+  --seed 42
+```
+
+`--turns` is optional. The command writes `split_assignment.json` before it writes `evaluation.json` and `manifest.json`. Items without enough independent sessions are marked unavailable. This runner does not replace `python -m research.run_study`, which remains the binary wrist-and-speech comparison.
 
 ### Week 6 validation and integration
 
@@ -153,7 +188,10 @@ python -m pip install -r requirements.txt
 python -m pytest
 python -m demo.audio_demo
 python -m demo.audio_web_app
+docker compose up --build -d
 ```
+
+The group observation console is `http://localhost:8000/group` after Compose is up. Account setup, video limits, and the evaluation command are in [Run the group observation console](#run-the-group-observation-console).
 
 The web demo opens at `http://127.0.0.1:5000`; stop it with `Ctrl+C`. Set `PSYCON_PROFILE_KEY` to a random secret of at least 32 characters before enrollment, and supply `HF_TOKEN` after accepting the Community-1 model terms to enable real diarization. Python tests use deterministic model fakes, the synthetic demo writes a reproducible JSON decision report, and web tests exercise uploads and encrypted profile lifecycle without downloading gated models. Three raw-WESAD integration tests skip when `data/raw/wesad/S*/S*.pkl` is absent; after obtaining WESAD under its terms, place the files there and rerun `python main.py` and the tests.
 

@@ -30,7 +30,7 @@ services:
       retries: 20
 
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
     command: server /data --console-address :9001
     environment:
       MINIO_ROOT_USER: psycon
@@ -40,14 +40,11 @@ services:
       - "9001:9001"
     volumes:
       - psycon_objects:/data
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
 
   api:
-    build: .
+    build:
+      context: .
+      target: base
     environment: *backend-environment
     ports:
       - "8000:8000"
@@ -55,7 +52,7 @@ services:
       postgres:
         condition: service_healthy
       minio:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/ready', timeout=3)"]
       interval: 10s
@@ -63,9 +60,15 @@ services:
       retries: 10
 
   worker:
-    build: .
+    build:
+      context: .
+      target: nvidia
     command: ["python", "-m", "backend.worker"]
     environment: *backend-environment
+    gpus: all
+    volumes:
+      - .:/app
+      - psycon_models:/opt/psycon/hf-cache
     depends_on:
       api:
         condition: service_healthy
@@ -73,3 +76,4 @@ services:
 volumes:
   psycon_postgres:
   psycon_objects:
+  psycon_models:

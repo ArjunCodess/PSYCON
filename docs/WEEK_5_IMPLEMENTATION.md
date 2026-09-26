@@ -1,6 +1,16 @@
 # Week 5 implementation record
 
-Week 5 prepared the complete data and evaluation path for the multimodal research comparison. It did not produce a PSYCON study result because the repository does not contain completed psychologist marksheets or matching participant recordings.
+Week 5 now has two paths.
+
+The **group observation path** (`group-observation-1.0.0`) is the current target. An operator uploads one discussion video, numbers seats from the right of the frame toward the left, and maps anonymous voice clusters by hand. A named psychologist enters marksheet version 4.0, which scores items A–T as **0–4 or N/O**. A second rater can score blind, and a reviewer stores an adjudicated sheet without erasing either original. Training rows keep the recording hash and the evidence intervals. Predictions are written to `model_predictions` and do not replace ratings. `research/group_observation.py` freezes connected session splits, abstains when evidence is thin, and withholds model metrics until an item has enough independent sessions and nonzero scores.
+
+The **binary device path** in `research/evaluation.py` is unchanged and still expects a 0/1 label. It cannot train the marksheet. The centre device in a group recording is shared audio only. A wrist score for one person needs a later wearer mapping and its own protocol.
+
+No approved human session has been collected. The software rehearsal uses synthetic recordings inside the tests. Week 5 is not empirically complete until real consented sessions, completed ratings, and a held-out report state which items had enough evidence.
+
+## Earlier binary-path record
+
+The notes below describe the wrist-and-speech comparison prepared before the marksheet scale was fixed at 0–4 or N/O.
 
 The earlier generated dataset and its accuracy, F1, ROC, confusion-matrix, prediction, and chart files were removed. Small artificial values remain inside unit tests, where they verify code behavior without being reported as research evidence.
 
@@ -69,33 +79,20 @@ Human-study inputs and outputs belong in the approved encrypted store. The repos
 
 | Week 5 item | Current state | Evidence or blocker |
 | --- | --- | --- |
-| Freeze research questions | Implemented | `docs/research/STUDY_PROTOCOL.md` |
-| Prepare the study workflow | Implemented | Study protocol and session checklist |
-| Define anonymous participant and session records | Implemented | Metadata template and validator |
-| Define consent, withdrawal, minimization, storage, and access | Implemented as documentation and validation | Consent and data-management files; approval is still required before collection |
-| Synchronize physiology, speech, language, light, and motion features | Implemented in code | Dataset assembler; matching recordings have not been supplied |
-| Reuse one participant split for all comparisons | Implemented in code | Split assignment and leakage checks |
-| Train and validate candidates | Runner implemented; empirical work blocked | No completed marksheet and device dataset |
-| Produce statistics, metrics, charts, ablations, and intervals | Reporting code implemented; empirical outputs blocked | No completed marksheet and device dataset |
-| Define the model-update lifecycle | Implemented | `docs/research/MODEL_LIFECYCLE.md` |
-| Calibrate the hardware | Blocked | Requires the assembled modules and recorded measurements |
-| Run approved participant sessions | Blocked | Requires approval, consent, calibrated hardware, marksheets, and recordings |
-| Record device and environmental conditions | Schema prepared; records blocked | Requires real sessions |
-| External validation | Blocked | Requires a separate compatible dataset |
-
-## What the marksheets change
-
-The psychologist marksheet has 20 observable behavior domains labeled `A` through `T`, each scored from 1 to 5 or marked `N/O`. It also records the participant code, session ID, observation time, background noise, recording quality, language, session events, and evidence timestamps.
-
-Those ratings can define behavioral targets after the psychologist decides whether to model individual domains, approved groups of domains, or another preregistered score. `N/O` stays missing. A total across all 20 domains will not be used automatically because the domains describe different behaviors.
-
-Marksheets alone support rating distributions, missingness, domain relationships, and rater agreement. Training PSYCON requires wrist and audio records from the same participant and session. Evidence timestamps provide the best connection between a behavioral observation and a sensor window; a session-level score only supports session-level analysis.
-
-The full handoff contract is in `docs/research/DATA_REQUIREMENTS.md`.
+| Group consent version 2.0 | Draft written | `docs/PSYCON_Group_Session_Consent_Form.tex`. Collection still needs school or ethics approval |
+| Marksheet 0–4 or N/O | Implemented | Rubric version 4.0. N/O is not stored as zero |
+| Group session schema, upload, seats, voices, marksheets, review, export | Implemented | `backend/group/` and `/group` |
+| Audio, frames, thumbnail, diarization, transcript | Implemented | ffmpeg extracts audio and frames. Pyannote diarization is attempted. If it is unavailable, anonymous energy segments are kept and the failure is recorded |
+| Evidence interval accuracy and speaker mapping error | Implemented | `research/group_observation.py` |
+| Group study runner | Implemented | `python -m research.run_group_study` |
+| Binary wrist-and-speech comparison | Kept separate | `research/evaluation.py` and `research/run_study.py` |
+| Real approved sessions and held-out ratings | Blocked | No consented human recordings or completed psychologist marksheets |
+| Wrist physiology for one person in the group video | Out of scope | The centre device is a shared microphone. A wrist study needs its own wearer mapping |
 
 ## Current verification and completion
 
-The last repository run completed with 120 passing tests and 5 skipped tests. Sixteen passing tests cover the Week 5 metadata, dataset, split, evaluation, artifact-writing, external-overlap, and approved-runner logic. The skipped tests require external WESAD data or other gated resources.
+Group-observation tests cover upload checks, right-to-left seats, mapping corrections, N/O, evidence rules, PDF ownership, roles, withdrawal, split leakage, evidence-interval accuracy, and the group runner. The binary path's metadata, dataset, split, and evaluation tests still pass.
 
-Week 5 is complete as a software and documentation preparation task. Its research exit gate remains open because there is no real dataset package, trained multimodal result, minimum-duration result, hardware calibration evidence, participant-session evidence, backup verification for participant data, or external validation.
+Week 5 is not empirically complete. The software can rehearse the workflow on a test file. It cannot report a validated model result until approved sessions and completed ratings are evaluated on held-out groups, with each item marked available only when it has enough evidence.
+
 

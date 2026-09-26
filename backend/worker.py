@@ -17,9 +17,16 @@ def run_worker(*, once: bool = False, poll_seconds: float = 1.0) -> None:
         repository.heartbeat(worker_id)
         job = repository.claim_job(worker_id)
         if job is None:
+            group_job = app.extensions["psycon_group"].claim_job(worker_id)
+            if group_job is None:
+                if once:
+                    return
+                time.sleep(poll_seconds)
+                continue
+            app.extensions["psycon_group"].run_job(group_job)
+            repository.heartbeat(worker_id)
             if once:
                 return
-            time.sleep(poll_seconds)
             continue
         repository.heartbeat(worker_id, job["id"])
         try:

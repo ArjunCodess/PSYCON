@@ -16,6 +16,10 @@ You will wear a wrist device that records pulse-related optical signals, skin co
 
 This prototype studies non-clinical patterns in sensor data. It does not diagnose a health condition, provide medical advice, or replace care from a qualified professional.
 
+## Group discussion sessions
+
+A recorded group discussion uses `docs/PSYCON_Group_Session_Consent_Form.tex`, consent version `group-consent-2.0`, not this wrist template alone. That form covers the video, extracted shared audio, transcription, marksheet scoring, model training, named access, retention, and withdrawal. The centre device is a shared microphone. It does not authorize an individual wrist or physiological score.
+
 ## Speech and voice processing
 
 If you consent to audio, the device records [continuous or scheduled] speech during [approved parts]. The project processes recordings locally to calculate acoustic features and, if approved, transcripts and language features. Recordings may contain other people's voices, so collection must follow the approved bystander procedure: [procedure].
