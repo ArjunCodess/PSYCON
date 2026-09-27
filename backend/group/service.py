@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+import os
 import re
 import wave
 from base64 import b64encode
@@ -29,7 +30,7 @@ from .extract import _energy_segments, extract_group_recording
 from .faces import FaceMarkError, mark_recording, number_faces
 from .labels import LabelSheetError, parse_label_csv
 from .media import MediaError, validate_video
-from . import nvidia
+from . import nvidia, psycon, talknet
 from .rubric import CONSENT_VERSION, MARKSHEET_VERSION, PROTOCOL_VERSION, RubricError, validate_marksheet
 from .seats import MAX_PARTICIPANTS, MIN_PARTICIPANTS, SeatError, order_seats, overhead_row_regions
 from .voice import MATCHING_VERSION, REVIEW_CLIP_SECONDS, assigned_audio_for_slot, assign_windows, build_profiles, review_audio_for_slot, training_feature
@@ -197,16 +198,20 @@ class GroupObservationService:
 
     def face_voice_details(self, actor: Principal, session_id: str, method: str = "existing") -> dict:
         self._require(actor, "operator", "psychologist", "reviewer")
-        if method not in {"existing", "nvidia"}:
+        if method not in {"existing", "nvidia", "psycon"}:
             raise GroupError("invalid_method", "Unknown voice analysis method", 400)
         session = self._session(session_id)
         recording = self.store.recording_for_session(session_id)
         samples = {int(row["slot_number"]): row for row in self.store.face_samples_for(session_id)}
         seats = {int(row["slot_number"]): row for row in self.store.seats_for(session_id)}
-        method_state = (((recording or {}).get("processing") or {}).get("voice_matching" if method == "existing" else "nvidia_matching") or {})
-        current_matching = method_state.get("version") == (MATCHING_VERSION if method == "existing" else nvidia.MATCHING_VERSION)
-        if method == "nvidia":
-            current_matching = current_matching and method_state.get("model_revision") == nvidia.MODEL_REVISION
+        state_key = {"existing": "voice_matching", "nvidia": "nvidia_matching", "psycon": "psycon_matching"}[method]
+        revision = {"existing": MATCHING_VERSION, "nvidia": nvidia.MATCHING_VERSION,
+                    "psycon": psycon.MATCHING_VERSION}[method]
+        method_state = (((recording or {}).get("processing") or {}).get(state_key) or {})
+        current_matching = method_state.get("version") == revision
+        if method in {"nvidia", "psycon"}:
+            current_matching = current_matching and method_state.get("model_revision") == (
+                nvidia.MODEL_REVISION if method == "nvidia" else psycon.MODEL_REVISION)
         profiles = {int(row["slot_number"]): row for row in self.store.voice_profiles_for(session_id, method)} if current_matching and method_state.get("status") == "complete" else {}
         segments = self.store.voice_segments_for(session_id, method) if current_matching and method_state.get("status") == "complete" else []
         labels: dict[int, dict] = {}
@@ -218,6 +223,8 @@ class GroupObservationService:
         for person in sorted(self.store.participants(session_id), key=lambda row: row["slot_number"]):
             slot = int(person["slot_number"])
             sample, seat, profile = samples.get(slot), seats.get(slot), profiles.get(slot)
+            playback_intervals, mixed_seconds = (psycon.playback_intervals(segments, slot)
+                                                  if method == "psycon" else ([], 0.))
             review_rows = [row for row in segments if row.get("status") == "unknown"
                            and (row.get("evidence") or {}).get("review_slot") == slot]
             face = None if sample is None else {
@@ -235,7 +242,9 @@ class GroupObservationService:
                     key: profile.get(key) for key in
                     ("status", "engine", "embedding_engine", "usable_seconds", "vector", "embedding", "metrics")
                 },
-                "combined_feature_ready": bool(method == "nvidia" and sample and profile and training_feature(sample["feature"], profile) is not None),
+                "combined_feature_ready": bool(method == "psycon" and sample and profile and psycon.training_vector(sample["feature"], profile) is not None),
+                "playback_seconds": sum(end-start for start, end in playback_intervals),
+                "mixed_overlap_seconds": mixed_seconds,
                 "review_seconds": sum(row["end_s"] - row["start_s"] for row in review_rows),
                 "review_segments": [{"start_s": row["start_s"], "end_s": row["end_s"],
                                      "motion": row["evidence"].get("review_motion"),
@@ -248,7 +257,7 @@ class GroupObservationService:
                 "marksheet": labels.get(slot),
             })
         processing = (recording or {}).get("processing") or {}
-        voice_matching = processing.get("voice_matching" if method == "existing" else "nvidia_matching")
+        voice_matching = processing.get(state_key)
         if voice_matching is None or (voice_matching.get("status") == "complete" and not current_matching):
             recording_state = None if recording is None else recording["processing_state"]
             status = "not_analyzed" if recording_state == "complete" else (
@@ -257,6 +266,7 @@ class GroupObservationService:
         return {
             "session_code": session["session_code"],
             "recording_state": None if recording is None else recording["processing_state"],
+            "video_rotation_degrees": int(processing.get("face_rotation_degrees", 0)),
             "voice_matching": voice_matching,
             "method": method,
             "people": people,
@@ -272,7 +282,7 @@ class GroupObservationService:
 
     def face_voice_audio(self, actor: Principal, session_id: str, slot_number: int, method: str = "existing") -> bytes:
         self._require(actor, "operator", "psychologist", "reviewer")
-        if method not in {"existing", "nvidia"}:
+        if method not in {"existing", "nvidia", "psycon"}:
             raise GroupError("invalid_method", "Unknown voice analysis method", 400)
         self._session(session_id)
         participant = next((row for row in self.store.participants(session_id)
@@ -282,7 +292,8 @@ class GroupObservationService:
         profile = next((row for row in self.store.voice_profiles_for(session_id, method)
                         if int(row["slot_number"]) == slot_number), None)
         recording = self._recording(session_id)
-        matching = (recording.get("processing") or {}).get("voice_matching" if method == "existing" else "nvidia_matching") or {}
+        matching = (recording.get("processing") or {}).get(
+            {"existing": "voice_matching", "nvidia": "nvidia_matching", "psycon": "psycon_matching"}[method]) or {}
         if method == "existing" and recording.get("processing_state") != "complete":
             raise GroupError("voice_unavailable", "Recording processing must finish before playback", 409)
         key = recording.get("audio_object_key")
@@ -296,16 +307,24 @@ class GroupObservationService:
                 samples = np.frombuffer(source.readframes(source.getnframes()), dtype="<i2")
         except (KeyError, OSError, EOFError, ValueError, wave.Error) as exc:
             raise GroupError("audio_unavailable", "The source audio cannot be read", 409) from exc
-        if (matching.get("version") != (MATCHING_VERSION if method == "existing" else nvidia.MATCHING_VERSION)
+        if (matching.get("version") != {"existing": MATCHING_VERSION, "nvidia": nvidia.MATCHING_VERSION,
+                                          "psycon": psycon.MATCHING_VERSION}[method]
                 or matching.get("status") != "complete"
-                or (method == "nvidia" and matching.get("model_revision") != nvidia.MODEL_REVISION)):
+                or (method == "nvidia" and matching.get("model_revision") != nvidia.MODEL_REVISION)
+                or (method == "psycon" and matching.get("model_revision") != psycon.MODEL_REVISION)):
             raise GroupError("voice_unavailable", "Voice matching must finish before playback", 409)
         segments = self.store.voice_segments_for(session_id, method)
-        if method == "nvidia" or (profile is not None and profile.get("status") == "ready"):
+        if method in {"nvidia", "psycon"} or (profile is not None and profile.get("status") == "ready"):
             audio, _ = assigned_audio_for_slot(samples, 16000, segments, slot_number)
-            if profile is None or abs(len(audio) / 16000 - float(profile["usable_seconds"])) > 1 / 16000 or not len(audio):
+            if profile is None or abs(len(audio) / 16000 - float(profile["usable_seconds"])) > 1 / 16000:
                 raise GroupError("voice_mismatch", "The saved voice profile no longer matches its speech windows", 409)
-            if method == "existing":
+            if method == "psycon":
+                audio, _, _ = psycon.playback_audio_for_slot(samples, segments, slot_number)
+                if not len(audio):
+                    raise GroupError("voice_unavailable", "No speech has been attributed to this participant", 409)
+            elif not len(audio):
+                raise GroupError("voice_mismatch", "The saved voice profile no longer matches its speech windows", 409)
+            elif method == "existing":
                 audio = audio[:round(REVIEW_CLIP_SECONDS * 16000)]
         else:
             audio = review_audio_for_slot(samples, 16000, segments, slot_number) if method == "existing" else np.empty(0, dtype=np.int16)
@@ -400,6 +419,106 @@ class GroupObservationService:
         job = self.store.enqueue_job({"id": str(uuid4()), "group_session_id": session_id,
                                       "job_type": "process_nvidia", "state": "queued", "error": None})
         return {"job": job, "nvidia_matching": processing["nvidia_matching"]}
+
+    def enqueue_psycon(self, actor: Principal, session_id: str) -> dict:
+        self._require(actor, "operator")
+        recording = self._recording(session_id)
+        if not recording.get("audio_object_key"):
+            raise GroupError("audio_unavailable", "Shared 16 kHz PCM must be extracted first", 409)
+        processing = dict(recording.get("processing") or {})
+        if (processing.get("psycon_matching") or {}).get("status") in {"queued", "running"}:
+            raise GroupError("analysis_running", "PSYCON analysis is already queued", 409)
+        processing["psycon_matching"] = {"status": "queued", "version": psycon.MATCHING_VERSION,
+                                         "model_revision": psycon.MODEL_REVISION, "ready_voices": 0}
+        self.store.replace_voice_analysis(session_id, [], [], "psycon")
+        self.store.update_recording(session_id, processing=processing)
+        job = self.store.enqueue_job({"id": str(uuid4()), "group_session_id": session_id,
+                                      "job_type": "process_psycon", "state": "queued", "error": None})
+        return {"job": job, "psycon_matching": processing["psycon_matching"]}
+
+    def review_psycon_interval(self, actor: Principal, session_id: str, payload: dict) -> dict:
+        self._require(actor, "operator", "reviewer")
+        recording = self._recording(session_id)
+        processing = dict(recording.get("processing") or {})
+        state = dict(processing.get("psycon_matching") or {})
+        if (state.get("status") != "complete" or state.get("version") != psycon.MATCHING_VERSION
+                or state.get("model_revision") != psycon.MODEL_REVISION):
+            raise GroupError("psycon_not_ready", "Current PSYCON analysis must finish before review", 409)
+        note = str(payload.get("note") or "").strip()
+        if not 1 <= len(note) <= 240:
+            raise GroupError("review_note_required", "Describe the evidence in 1–240 characters", 400)
+        try:
+            slot = int(payload["slot_number"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise GroupError("invalid_slot", "Choose a marked participant number", 400) from exc
+        boxes = self.store.face_samples_for(session_id)
+        if slot not in {int(box["slot_number"]) for box in boxes}:
+            raise GroupError("invalid_slot", "Choose a marked participant number", 400)
+        rows = deepcopy(self.store.voice_segments_for(session_id, "psycon"))
+        selected = next((row for row in rows if row["id"] == str(payload.get("segment_id"))), None)
+        if not selected or not selected.get("cluster_label") or selected.get("overlap_refused_s"):
+            raise GroupError("invalid_segment", "Review a clean speaker interval", 400)
+        if any(row["id"] != selected["id"] and row["status"] == "assigned" and
+               row["cluster_label"] == selected["cluster_label"] and row["slot_number"] != slot and
+               row["evidence"].get("reason") == "reviewer_confirmed_from_original_video" and
+               psycon._similar(row["evidence"].get("voice_embedding"),
+                               selected["evidence"].get("voice_embedding"), .55)
+               for row in rows):
+            raise GroupError("identity_conflict", "This acoustic speaker already has another confirmed face", 409)
+        if any(row["id"] != selected["id"] and row["status"] == "assigned" and
+               row["cluster_label"] != selected["cluster_label"] and row["slot_number"] == slot and
+               not psycon._similar(row["evidence"].get("voice_embedding"),
+                                   selected["evidence"].get("voice_embedding"), .55)
+               for row in rows):
+            raise GroupError("identity_conflict", "Another acoustic cluster on this face lacks matching voice evidence", 409)
+        for row in rows:
+            if (row["id"] != selected["id"] and row["cluster_label"] == selected["cluster_label"]
+                    and row["status"] == "assigned" and row["slot_number"] != slot and
+                    (row["evidence"].get("voice_embedding") is None or
+                     selected["evidence"].get("voice_embedding") is None or
+                     psycon._similar(row["evidence"].get("voice_embedding"),
+                                     selected["evidence"].get("voice_embedding"), .55))):
+                row.update(status="unknown", slot_number=None, confidence=0.)
+                row["evidence"].update(reason="review_correction_requires_new_evidence")
+        selected.update(status="assigned", slot_number=slot, confidence=1.)
+        selected["evidence"].update(reason="reviewer_confirmed_from_original_video",
+                                    reviewed_by=actor.id, reviewed_at=_stamp(), review_note=note,
+                                    training_eligible=True)
+        confirmed = [row for row in rows if row["cluster_label"] == selected["cluster_label"] and
+                     row["slot_number"] == slot and row["evidence"].get("reason") ==
+                     "reviewer_confirmed_from_original_video"]
+        if len(confirmed) >= 2 and max(row["start_s"] for row in confirmed)-min(row["start_s"] for row in confirmed) >= 5:
+            reference = confirmed[0]["evidence"].get("voice_embedding")
+            for row in rows:
+                if row["status"] != "unknown" or row["cluster_label"] != selected["cluster_label"]:
+                    continue
+                if row["evidence"].get("reason") in {"identity_conflict", "voice_inconsistent"}:
+                    continue
+                if any(item.get("reliable") and item.get("slot_number") != slot
+                       for item in row["evidence"].get("visual_observations", [])):
+                    continue
+                if not psycon._similar(reference, row["evidence"].get("voice_embedding"), .55):
+                    continue
+                row.update(status="assigned", slot_number=slot, confidence=1.)
+                row["evidence"].update(reason="reviewer_identity_propagated",
+                                       source_segments=[item["id"] for item in confirmed])
+        psycon.mark_playback_overlap(rows)
+        source = self.storage.get(recording["audio_object_key"])
+        with wave.open(io.BytesIO(source), "rb") as handle:
+            samples = np.frombuffer(handle.readframes(handle.getnframes()), dtype="<i2").copy()
+        exclusive = [psycon.SpeakerTurn(**turn) for turn in state.get("exclusive_turns", [])]
+        profiles = psycon.make_profiles(samples, rows, boxes, exclusive,
+                                        transcriber=psycon.FasterWhisperTranscriber(device="cuda"))
+        for row in rows + profiles:
+            row["group_session_id"] = session_id
+        self.store.replace_voice_analysis(session_id, rows, profiles, "psycon")
+        state.update(ready_voices=sum(row["status"] == "ready" for row in profiles),
+                     unknown_seconds=sum(row["end_s"]-row["start_s"] for row in rows if row["status"] == "unknown" and not row["overlap_refused_s"]))
+        processing["psycon_matching"] = state
+        self.store.update_recording(session_id, processing=processing)
+        self._audit(actor, "review_psycon_interval", session_id,
+                    {"segment_id": selected["id"], "slot_number": slot, "note": note})
+        return {"segment_id": selected["id"], "slot_number": slot, "voice_matching": state}
 
     def review_nvidia_interval(self, actor: Principal, session_id: str, payload: dict) -> dict:
         """Attach one clean acoustic interval to a face after source-video review."""
@@ -504,10 +623,19 @@ class GroupObservationService:
         created = self.create_session(actor, {"participant_count": len(faces)})
         session_id = created["session"]["id"]
         uploaded = self.upload_recording(actor, session_id, filename, data, enqueue=False)
+        recording = self._recording(session_id)
+        self.store.update_recording(session_id, processing={
+            **(recording.get("processing") or {}),
+            "face_rotation_degrees": int(marked.get("rotation_degrees", 0)),
+            "face_frame_time_s": float(marked.get("time_s", 0)),
+            "face_identity_vectors": {str(face["slot_number"]): face["identity_vector"]
+                                      for face in faces if face.get("identity_vector")},
+        })
         if jpeg:
             stored = self.storage.put_immutable(f"group-recordings/{session_id}/marked-faces.jpg", jpeg, "image/jpeg")
             self.store.update_session(session_id, marked_frame_object_key=stored.key)
-        self._store_face_seats(actor, session_id, faces, float(inspected["duration_s"]))
+        self._store_face_seats(actor, session_id, faces, float(inspected["duration_s"]),
+                               frame_time_s=float(marked.get("time_s", 0)))
         self._enqueue_recording_job(session_id)
         view = self.get_session(actor, session_id)
         self._audit(actor, "mark_faces", session_id, {"face_count": len(faces), "time_s": marked.get("time_s")})
@@ -570,7 +698,7 @@ class GroupObservationService:
             "faces": len(faces),
             "ready_voices": sum(row["status"] == "ready" for row in voices),
             "trainable_voices": sum(
-                training_feature(faces[key]["feature"], row) is not None
+                psycon.training_vector(faces[key]["feature"], row) is not None
                 for row in voices if (key := (row["group_session_id"], int(row["slot_number"]))) in faces
                 and key in labeled_keys
             ),
@@ -591,7 +719,7 @@ class GroupObservationService:
         eligible_voice_keys = {
             key for key, profile in profiles.items()
             if key in samples and key in labeled_keys
-            and training_feature(samples[key]["feature"], profile) is not None
+            and psycon.training_vector(samples[key]["feature"], profile) is not None
         }
         examples = []
         for label in self.store.all_training_labels():
@@ -599,7 +727,7 @@ class GroupObservationService:
             sample, profile = samples.get(key), profiles.get(key)
             if sample is None or profile is None:
                 continue
-            feature = training_feature(sample["feature"], profile)
+            feature = psycon.training_vector(sample["feature"], profile)
             if feature is None:
                 continue
             examples.append(
@@ -627,22 +755,24 @@ class GroupObservationService:
     def _ready_voice_profiles(self) -> list[dict]:
         complete_sessions = {}
         profiles = []
-        for row in self.store.all_voice_profiles("nvidia"):
+        for row in self.store.all_voice_profiles("psycon"):
             session_id = row["group_session_id"]
             if session_id not in complete_sessions:
                 recording = self.store.recording_for_session(session_id)
                 complete_sessions[session_id] = bool(
-                    recording and (recording.get("processing") or {}).get("nvidia_matching", {}).get("status") == "complete"
-                    and (recording.get("processing") or {}).get("nvidia_matching", {}).get("model_revision") == nvidia.MODEL_REVISION
-                    and (recording.get("processing") or {}).get("nvidia_matching", {}).get("version") == nvidia.MATCHING_VERSION
+                    recording and (recording.get("processing") or {}).get("psycon_matching", {}).get("status") == "complete"
+                    and (recording.get("processing") or {}).get("psycon_matching", {}).get("model_revision") == psycon.MODEL_REVISION
+                    and (recording.get("processing") or {}).get("psycon_matching", {}).get("version") == psycon.MATCHING_VERSION
                 )
             if (row["status"] == "ready" and float(row.get("usable_seconds") or 0) >= 3.0
                     and complete_sessions[session_id]
-                    and (row.get("metrics") or {}).get("matching_version") == nvidia.MATCHING_VERSION):
+                    and (row.get("metrics") or {}).get("matching_version") == psycon.MATCHING_VERSION
+                    and (row.get("metrics") or {}).get("feature_schema") == psycon.FEATURE_SCHEMA):
                 profiles.append(row)
         return profiles
 
-    def _store_face_seats(self, actor: Principal, session_id: str, faces: list[dict], duration_s: float) -> None:
+    def _store_face_seats(self, actor: Principal, session_id: str, faces: list[dict], duration_s: float,
+                          *, frame_time_s: float = 0) -> None:
         session = self._session(session_id)
         regions = []
         for face in faces:
@@ -679,7 +809,7 @@ class GroupObservationService:
                     "valid_to_s": region["valid_to_s"],
                     "camera_orientation": _CAMERA_ORIENTATION,
                     "marked_frame_object_key": session.get("marked_frame_object_key"),
-                    "frame_time_s": 0,
+                    "frame_time_s": frame_time_s,
                     "confirmed_by": actor.id,
                     "confirmed_at": _stamp(),
                 }
@@ -1128,11 +1258,24 @@ class GroupObservationService:
         return self.store.claim_job(worker_id)
 
     def run_job(self, job: dict) -> None:
+        if job.get("job_type") == "process_psycon":
+            self._run_psycon_job(job)
+            return
         if job.get("job_type") == "process_nvidia":
             self._run_nvidia_job(job)
             return
         session_id = job["group_session_id"]
         recording = self.store.recording_for_session(session_id)
+        prior_processing = dict(recording.get("processing") or {})
+        if "psycon_matching" in prior_processing:
+            self.store.replace_voice_analysis(session_id, [], [], "psycon")
+            prior_processing["psycon_matching"] = {
+                "status": "not_analyzed", "version": psycon.MATCHING_VERSION,
+                "model_revision": psycon.MODEL_REVISION, "ready_voices": 0,
+                "reason": "shared_audio_reprocessed",
+            }
+            self.store.update_recording(session_id, processing=prior_processing)
+            recording = self.store.recording_for_session(session_id)
         try:
             self.store.update_recording(
                 session_id, processing_state="running", failure_reason=None,
@@ -1159,6 +1302,12 @@ class GroupObservationService:
             other_method = (self._recording(session_id).get("processing") or {}).get("nvidia_matching")
             if other_method is not None:
                 kept["nvidia_matching"] = other_method
+            psycon_state = (self._recording(session_id).get("processing") or {}).get("psycon_matching")
+            if psycon_state is not None:
+                kept["psycon_matching"] = psycon_state
+            kept["face_rotation_degrees"] = (self._recording(session_id).get("processing") or {}).get("face_rotation_degrees", 0)
+            kept["face_frame_time_s"] = (self._recording(session_id).get("processing") or {}).get("face_frame_time_s", 0)
+            kept["face_identity_vectors"] = (self._recording(session_id).get("processing") or {}).get("face_identity_vectors", {})
             self.store.update_recording(
                 session_id,
                 processing_state="failed" if fatal else "complete",
@@ -1232,6 +1381,72 @@ class GroupObservationService:
             self.store.finish_job(job["id"], state="complete", error=None)
         except Exception as exc:
             self.store.replace_voice_analysis(session_id, [], [], "nvidia")
+            state("failed", ready_voices=0, reason=f"{type(exc).__name__}:{exc}")
+            self.store.finish_job(job["id"], state="failed", error=type(exc).__name__)
+
+    def _run_psycon_job(self, job: dict) -> None:
+        session_id = job["group_session_id"]
+        recording = self._recording(session_id)
+        def state(status, **extra):
+            current = self._recording(session_id)
+            processing = dict(current.get("processing") or {})
+            processing["psycon_matching"] = {"status": status, "version": psycon.MATCHING_VERSION,
+                                             "model_revision": psycon.MODEL_REVISION, **extra}
+            self.store.update_recording(session_id, processing=processing)
+        state("running", ready_voices=0)
+        self.store.replace_voice_analysis(session_id, [], [], "psycon")
+        try:
+            if not psycon.MODEL_REVISION:
+                raise RuntimeError("PSYCON_COMMUNITY1_REVISION is required")
+            if not os.getenv("HF_TOKEN"):
+                raise RuntimeError("HF_TOKEN is required for gated Community-1 access")
+            if not talknet.weights_path().is_file():
+                raise RuntimeError("pretrained_talknet_weights_missing")
+            source = self.storage.get(recording["audio_object_key"])
+            with wave.open(io.BytesIO(source), "rb") as handle:
+                if (handle.getnchannels(), handle.getsampwidth(), handle.getframerate(), handle.getcomptype()) != (1, 2, 16000, "NONE"):
+                    raise ValueError("psycon_requires_16khz_mono_pcm")
+                samples = np.frombuffer(handle.readframes(handle.getnframes()), dtype="<i2").copy()
+            boxes = [{**box, "rotation_degrees":
+                      (recording.get("processing") or {}).get("face_rotation_degrees", 0),
+                      "identity_vector": ((recording.get("processing") or {}).get("face_identity_vectors") or {})
+                      .get(str(box["slot_number"]))}
+                     for box in self.store.face_samples_for(session_id)]
+            if not boxes:
+                raise ValueError("marked_faces_missing")
+            result = psycon.diarize(samples)
+            quality_windows = psycon.audio_quality_windows(samples)
+            rows = psycon.clean_windows(result.regular_turns, len(samples)/16000, quality_windows)
+            video = self.storage.get(recording["object_key"])
+            observations = psycon.active_observations(rows, boxes, video, samples)
+            embedder = psycon.SpeechBrainEmbedder(device="cuda")
+            embeddings = {}
+            for row in rows:
+                if row["cluster_label"] is None:
+                    continue
+                clip = samples[round(row["start_s"]*16000):round(row["end_s"]*16000)]
+                if len(clip) >= 16000:
+                    embeddings[row["id"]] = embedder.embed(clip, 16000)
+                    row["evidence"]["voice_embedding"] = embeddings[row["id"]].tolist()
+            mapping = psycon.link_faces(rows, observations, embeddings,
+                                        {int(box["slot_number"]) for box in boxes},
+                                        threshold=max(.55, embedder.verification_threshold))
+            psycon.mark_playback_overlap(rows)
+            profiles = psycon.make_profiles(samples, rows, boxes, result.exclusive_turns,
+                                            embedder=embedder)
+            for row in rows + profiles:
+                row["group_session_id"] = session_id
+            self.store.replace_voice_analysis(session_id, rows, profiles, "psycon")
+            state("complete", ready_voices=sum(profile["status"] == "ready" for profile in profiles),
+                  mapping=mapping, regular_turns=[turn.to_dict() for turn in result.regular_turns],
+                  exclusive_turns=[turn.to_dict() for turn in result.exclusive_turns],
+                  audio_quality_windows=quality_windows,
+                  unknown_seconds=round(sum(row["end_s"]-row["start_s"] for row in rows
+                                            if row["status"] == "unknown" and not row["overlap_refused_s"]), 2),
+                  overlap_seconds=round(sum(row["overlap_refused_s"] for row in rows), 2))
+            self.store.finish_job(job["id"], state="complete", error=None)
+        except Exception as exc:
+            self.store.replace_voice_analysis(session_id, [], [], "psycon")
             state("failed", ready_voices=0, reason=f"{type(exc).__name__}:{exc}")
             self.store.finish_job(job["id"], state="failed", error=type(exc).__name__)
 

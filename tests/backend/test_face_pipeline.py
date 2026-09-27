@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from backend.group.faces import face_feature, number_faces
+from backend.group.faces import face_feature, number_faces, mark_recording
 from backend.group import nvidia
 from backend.group.extract import _energy_segments
 from backend.group.errors import GroupError
@@ -35,6 +35,33 @@ def test_faces_are_numbered_from_the_right() -> None:
     assert numbered[0]["x"] == 0.72
     image = np.full((32, 32, 3), 30, dtype=np.uint8)
     assert len(face_feature(image, (0.1, 0.1, 0.4, 0.4))) == 80
+
+
+def test_marker_orients_the_frame_before_numbering(monkeypatch) -> None:
+    from backend.group import faces
+
+    inverted = np.zeros((40, 40, 3), dtype=np.uint8)
+    inverted[0, 0] = (1, 1, 1)
+    monkeypatch.setattr(faces, "read_frame_at", lambda _data, _second: inverted)
+    monkeypatch.setattr(faces, "detect_faces", lambda image: number_faces([
+        {"x": x, "y": .2, "width": .1, "height": .2, "feature": [0.] * 80}
+        for x in ((.1, .7) if image[-1, -1, 0] else (.1,))]))
+    result = mark_recording(b"video")
+    assert result["rotation_degrees"] == 180
+    assert len(result["faces"]) == 2
+    assert [face["slot_number"] for face in result["faces"]] == [1, 2]
+
+
+def test_marker_handles_a_portrait_quarter_turn(monkeypatch) -> None:
+    from backend.group import faces
+
+    sideways = np.zeros((32, 48, 3), dtype=np.uint8)
+    sideways[0, 0] = (1, 1, 1)
+    monkeypatch.setattr(faces, "read_frame_at", lambda _data, _second: sideways)
+    monkeypatch.setattr(faces, "detect_faces", lambda image: number_faces([
+        {"x": x, "y": .2, "width": .1, "height": .2, "feature": [0.] * 80}
+        for x in ((.1, .7) if image.shape[:2] == (48, 32) and image[0, -1, 0] else (.1,))]))
+    assert mark_recording(b"video")["rotation_degrees"] == 90
 
 
 def test_review_excerpts_stitch_distinct_short_windows_without_training() -> None:
@@ -82,10 +109,13 @@ def test_upload_marks_faces_and_stores_the_spreadsheet() -> None:
     def marker(_data: bytes) -> dict:
         return {
             "jpeg": b"\xff\xd8marked",
-            "time_s": 0,
+            "time_s": 5,
+            "rotation_degrees": 90,
             "faces": [
-                {"x": 0.08, "y": 0.35, "width": 0.16, "height": 0.22, "feature": [0.1] * 80},
-                {"x": 0.70, "y": 0.35, "width": 0.16, "height": 0.22, "feature": [0.9] * 80},
+                {"x": 0.08, "y": 0.35, "width": 0.16, "height": 0.22, "feature": [0.1] * 80,
+                 "identity_vector": [1., 0.]},
+                {"x": 0.70, "y": 0.35, "width": 0.16, "height": 0.22, "feature": [0.9] * 80,
+                 "identity_vector": [0., 1.]},
             ],
         }
 
@@ -103,6 +133,10 @@ def test_upload_marks_faces_and_stores_the_spreadsheet() -> None:
     assert body["face_count"] == 2
     assert body["marked_frame_base64"]
     session_id = body["group_session"]["session"]["id"]
+    processing = service.store.recording_for_session(session_id)["processing"]
+    assert processing["face_rotation_degrees"] == 90
+    assert processing["face_frame_time_s"] == 5
+    assert processing["face_identity_vectors"]["1"] == [0., 1.]
     seats = body["group_session"]["seats"]
     assert seats[0]["slot_number"] == 1
     assert seats[0]["center_x"] > seats[1]["center_x"]
@@ -332,6 +366,7 @@ def test_energy_segments_do_not_disappear_after_one_loud_peak() -> None:
 
 
 def test_training_requires_ready_voice_for_the_same_session_and_slot() -> None:
+    from backend.group import psycon
     store = MemoryGroupStore()
     service = GroupObservationService(store, MemoryStorage(), probe=probe)
     service.provision_account(label="Operator", role="operator", account_code="OP-VOICE")
@@ -339,7 +374,7 @@ def test_training_requires_ready_voice_for_the_same_session_and_slot() -> None:
     for index in range(5):
         session = f"s{index}"
         store.insert_recording({"group_session_id": session, "processing_state": "complete",
-                                "processing": {"nvidia_matching": {"status": "complete", "version": nvidia.MATCHING_VERSION, "model_revision": nvidia.MODEL_REVISION}}})
+                                "processing": {"psycon_matching": {"status": "complete", "version": psycon.MATCHING_VERSION, "model_revision": psycon.MODEL_REVISION}}})
         faces = [{"group_session_id": session, "slot_number": slot,
                   "feature": [float(index), float(slot)] + [0.0] * 78} for slot in (1, 2)]
         store.replace_face_samples(session, faces)
@@ -360,6 +395,13 @@ def test_training_requires_ready_voice_for_the_same_session_and_slot() -> None:
             {"group_session_id": session, "slot_number": 2, "status": "insufficient_speech", "usable_seconds": 1.0, "vector": None,
              "metrics": {}},
         ], "nvidia")
+        store.replace_voice_analysis(session, [], [
+            {"group_session_id": session, "slot_number": 1, "status": "ready", "usable_seconds": 3.5, "vector": [0.1] * 32,
+             "metrics": {"matching_version": psycon.MATCHING_VERSION, "feature_schema": psycon.FEATURE_SCHEMA,
+                         **{name: 1.0 for name in SCALAR_NAMES}}},
+            {"group_session_id": session, "slot_number": 2, "status": "insufficient_speech", "usable_seconds": 1.0,
+             "vector": None, "metrics": {}},
+        ], "psycon")
     first = service.train_faces(actor)
     assert first["examples"] == 5
     assert first["ready_voices"] == first["trainable_voices"] == 5
@@ -368,14 +410,15 @@ def test_training_requires_ready_voice_for_the_same_session_and_slot() -> None:
         session = f"s{index}"
         store.replace_voice_analysis(session, [], [
             {"group_session_id": session, "slot_number": slot, "status": "ready", "usable_seconds": 3.5, "vector": [float(slot)] * 32,
-             "metrics": {"matching_version": nvidia.MATCHING_VERSION, **{name: float(slot) for name in SCALAR_NAMES}}} for slot in (1, 2)
-        ], "nvidia")
+             "metrics": {"matching_version": psycon.MATCHING_VERSION, "feature_schema": psycon.FEATURE_SCHEMA,
+                         **{name: float(slot) for name in SCALAR_NAMES}}} for slot in (1, 2)
+        ], "psycon")
     fitted = service.train_faces(actor)
-    assert fitted["feature"] == "face_and_voice_nvidia_v3"
+    assert fitted["feature"] == psycon.FEATURE_SCHEMA
     assert fitted["examples"] == 10
     assert fitted["trainable_voices"] == 10
     assert fitted["items"][0]["status"] == "fitted"
-    store.update_recording("s0", processing={"nvidia_matching": {"status": "running"}})
+    store.update_recording("s0", processing={"psycon_matching": {"status": "running"}})
     assert service.train_faces(actor)["examples"] == 8
 
 

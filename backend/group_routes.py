@@ -173,6 +173,25 @@ def reprocess_nvidia(session_id):
         return _failure(exc)
 
 
+@group_api.post("/group-sessions/<uuid:session_id>/face-voices/psycon/reprocess")
+@group_role("operator")
+def reprocess_psycon(session_id):
+    try:
+        return jsonify(_service().enqueue_psycon(g.principal, str(session_id))), 202
+    except GroupError as exc:
+        return _failure(exc)
+
+
+@group_api.post("/group-sessions/<uuid:session_id>/face-voices/psycon/review")
+@group_role("operator", "reviewer")
+def review_psycon_interval(session_id):
+    try:
+        return jsonify(_service().review_psycon_interval(g.principal, str(session_id),
+                                                         request.get_json(silent=True) or {}))
+    except GroupError as exc:
+        return _failure(exc)
+
+
 @group_api.post("/group-sessions/<uuid:session_id>/face-voices/nvidia/review")
 @group_role("operator")
 def review_nvidia_interval(session_id):

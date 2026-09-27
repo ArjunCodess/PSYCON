@@ -72,7 +72,9 @@
     player.preload = "none";
     player.src = `/api/v1/group-sessions/${sessionId}/face-voices/${person.slot_number}/audio?method=${state.method}`;
     const label = person.label || `participant ${person.slot_number}`;
-    player.setAttribute("aria-label", assigned ? `Speech assigned to ${label}` : `Tentative speech excerpt for ${label}`);
+    player.setAttribute("aria-label", assigned ?
+      `Speech assigned to ${label}${state.method === "psycon" && person.mixed_overlap_seconds > 0 ? "; overlap contains other voices" : ""}` :
+      `Tentative speech excerpt for ${label}`);
     const stop = () => { player.pause(); if (state.speechStop === stop) state.speechStop = null; };
     player.addEventListener("play", () => {
       if (state.speechStop !== stop) state.speechStop?.();
@@ -100,9 +102,17 @@
       processing.status === "complete" ? "Voice unavailable" : "Analyzing voice";
     header.append(make("span", `face-voice-badge ${voice?.status === "ready" ? "is-ready" : ""}`, status));
     card.append(header);
-    if ((state.method === "nvidia" && voice?.usable_seconds > 0) || voice?.status === "ready" || (state.method === "existing" && person.review_seconds > 0)) addSpeechPlayer(card, person, sessionId, state.method === "nvidia" || voice?.status === "ready");
+    if ((state.method === "nvidia" && voice?.usable_seconds > 0) ||
+        (state.method === "psycon" && person.playback_seconds > 0) ||
+        voice?.status === "ready" || (state.method === "existing" && person.review_seconds > 0)) {
+      addSpeechPlayer(card, person, sessionId, state.method !== "existing" || voice?.status === "ready");
+    }
     const metrics = make("div", "voice-metrics");
     addMetric(metrics, tentative ? "Confirmed speech" : "Usable speech", fixed(voice?.usable_seconds), " s");
+    if (state.method === "psycon" && person.playback_seconds > 0) {
+      addMetric(metrics, "Playback", fixed(person.playback_seconds), " s");
+      if (person.mixed_overlap_seconds > 0) addMetric(metrics, "Mixed overlap included", fixed(person.mixed_overlap_seconds), " s");
+    }
     if (person.review_seconds > 0) addMetric(metrics, "Tentative excerpt", fixed(person.review_seconds), " s");
     addMetric(metrics, tentative ? "Excerpt windows" : "Assigned windows", tentative?.window_count ?? person.segments.length);
     addMetric(metrics, tentative ? "Excerpt turns" : "Turns", tentative?.turn_count ?? voice?.metrics?.turn_count ?? "—");
@@ -149,6 +159,7 @@
     state.speechStop?.();
     const processing = data.voice_matching || { status: "pending" };
     byId("run-nvidia").hidden = state.method !== "nvidia" || !["not_analyzed", "failed", "unavailable"].includes(processing.status);
+    byId("run-psycon").hidden = state.method !== "psycon" || !["not_analyzed", "failed", "unavailable"].includes(processing.status);
     const people = data.people || [];
     const ready = people.filter((person) => person.voice?.status === "ready").length;
     const tentative = people.filter((person) => person.voice?.metrics?.tentative).length;
@@ -160,7 +171,7 @@
     })[processing.status] || "Voice analysis pending";
     byId("voice-status").classList.toggle("is-ready", processing.status === "complete");
     const unknown = data.unknown_segments || [];
-    byId("voice-summary").textContent = state.method === "nvidia" && processing.status === "complete" ?
+    byId("voice-summary").textContent = ["nvidia", "psycon"].includes(state.method) && processing.status === "complete" ?
       `${fixed(processing.unknown_seconds)} s unassigned · ${fixed(processing.overlap_seconds)} s overlapping and excluded.${processing.capacity_warning ? " All eight acoustic channels were active, so an additional speaker cannot be ruled out." : ""}` :
       processing.status === "complete" && !ready ?
       `${unknown.length} speech windows stayed unassigned. Tentative excerpt measures are shown where available; combined training still needs confirmed speech.` :
@@ -169,37 +180,39 @@
     byId("face-voice-list").replaceChildren(...people.map((person) => personCard(person, processing, state.selected)));
     byId("unknown-voice").hidden = unknown.length === 0;
     byId("unknown-count").textContent = unknown.length;
+    async function openReview(row) {
+      state.reviewSegmentId = row.id;
+      byId("nvidia-review-form").hidden = false;
+      byId("voice-review-target").textContent = `${row.cluster_label} · ${fixed(row.start_s, 2)}–${fixed(row.end_s, 2)} s`;
+      byId("voice-review-note").value = "";
+      byId("voice-review-message").textContent = "Loading original recording at this interval.";
+      state.speechStop?.();
+      const video = byId("voice-review-video");
+      video.pause();
+      video.hidden = false;
+      video.style.transform = `rotate(${Number(data.video_rotation_degrees) || 0}deg)`;
+      try {
+        const grant = await api(`/api/v1/group-sessions/${state.selected}/recording/playback`, { method: "POST" });
+        video.addEventListener("loadedmetadata", () => { video.currentTime = Math.max(0, row.start_s - 0.5); }, { once: true });
+        video.src = `${grant.media_path}?playback_token=${encodeURIComponent(grant.playback_token)}`;
+        byId("voice-review-message").textContent = "Compare the video and sound before confirming.";
+      } catch (error) {
+        byId("voice-review-message").textContent = error.message;
+      }
+    }
     const unknownList = make("ol", "voice-segments");
     for (const row of unknown) {
       const item = make("li", "", `${fixed(row.start_s, 2)}–${fixed(row.end_s, 2)} s · ${row.cluster_label || "overlap"} · ${(row.evidence?.reason || "unknown").replaceAll("_", " ")}`);
-      if (state.method === "nvidia" && row.cluster_label && !row.overlap_refused_s) {
+      if (["nvidia", "psycon"].includes(state.method) && row.cluster_label && !row.overlap_refused_s) {
         const review = make("button", "voice-review-open", "Review in original video");
         review.type = "button";
-        review.addEventListener("click", async () => {
-          state.reviewSegmentId = row.id;
-          byId("nvidia-review-form").hidden = false;
-          byId("voice-review-target").textContent = `${row.cluster_label} · ${fixed(row.start_s, 2)}–${fixed(row.end_s, 2)} s`;
-          byId("voice-review-note").value = "";
-          byId("voice-review-message").textContent = "Loading original recording at this interval.";
-          state.speechStop?.();
-          const video = byId("voice-review-video");
-          video.pause();
-          video.hidden = false;
-          try {
-            const grant = await api(`/api/v1/group-sessions/${state.selected}/recording/playback`, { method: "POST" });
-            video.addEventListener("loadedmetadata", () => { video.currentTime = Math.max(0, row.start_s - 0.5); }, { once: true });
-            video.src = `${grant.media_path}?playback_token=${encodeURIComponent(grant.playback_token)}`;
-            byId("voice-review-message").textContent = "Compare the video and sound before confirming.";
-          } catch (error) {
-            byId("voice-review-message").textContent = error.message;
-          }
-        });
+        review.addEventListener("click", () => openReview(row));
         item.append(" ", review);
       }
       unknownList.append(item);
     }
     byId("unknown-list").replaceChildren(unknownList);
-    byId("nvidia-review").hidden = state.method !== "nvidia" || processing.status !== "complete";
+    byId("nvidia-review").hidden = !["nvidia", "psycon"].includes(state.method) || processing.status !== "complete";
     byId("voice-review-slot").replaceChildren(...people.map((person) => {
       const option = make("option", "", `Participant ${person.slot_number}`);
       option.value = String(person.slot_number);
@@ -209,7 +222,14 @@
     for (const row of data.speaking_timeline || []) {
       const name = row.status === "assigned" ? `Participant ${row.slot_number}` : "Unknown";
       const reason = ` · ${(row.evidence?.reason || "uncertain").replaceAll("_", " ")}`;
-      timeline.append(make("li", "", `${fixed(row.start_s, 2)}–${fixed(row.end_s, 2)} s · ${name}${reason}`));
+      const item = make("li", "", `${fixed(row.start_s, 2)}–${fixed(row.end_s, 2)} s · ${name}${reason}`);
+      if (state.method === "psycon" && row.status === "assigned" && row.cluster_label) {
+        const correct = make("button", "voice-review-open", "Correct in original video");
+        correct.type = "button";
+        correct.addEventListener("click", () => openReview(row));
+        item.append(" ", correct);
+      }
+      timeline.append(item);
     }
     byId("speaking-timeline").replaceChildren(timeline);
   }
@@ -231,7 +251,7 @@
     }
   }
 
-  for (const method of ["existing", "nvidia"]) {
+  for (const method of ["existing", "nvidia", "psycon"]) {
     byId(`voice-tab-${method}`).addEventListener("click", () => {
       state.speechStop?.();
       state.reviewSegmentId = null;
@@ -244,17 +264,17 @@
       document.querySelectorAll(".face-voice-audio").forEach((audio) => { audio.pause(); audio.removeAttribute("src"); audio.load(); });
       if (state.refresh) clearTimeout(state.refresh);
       state.method = method;
-      for (const option of ["existing", "nvidia"]) byId(`voice-tab-${option}`).setAttribute("aria-selected", String(option === method));
+      for (const option of ["existing", "nvidia", "psycon"]) byId(`voice-tab-${option}`).setAttribute("aria-selected", String(option === method));
       refreshVoice();
     });
   }
   byId("nvidia-review-form").addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (!state.selected || !state.reviewSegmentId || state.method !== "nvidia") return;
+    if (!state.selected || !state.reviewSegmentId || !["nvidia", "psycon"].includes(state.method)) return;
     const button = event.currentTarget.querySelector("button[type=submit]");
     button.disabled = true;
     try {
-      await api(`/api/v1/group-sessions/${state.selected}/face-voices/nvidia/review`, {
+      await api(`/api/v1/group-sessions/${state.selected}/face-voices/${state.method}/review`, {
         method: "POST", body: { segment_id: state.reviewSegmentId,
           slot_number: Number(byId("voice-review-slot").value), note: byId("voice-review-note").value },
       });
@@ -278,6 +298,18 @@
       byId("voice-summary").textContent = error.message;
     } finally {
       byId("run-nvidia").disabled = false;
+    }
+  });
+  byId("run-psycon").addEventListener("click", async () => {
+    if (!state.selected) return;
+    byId("run-psycon").disabled = true;
+    try {
+      await api(`/api/v1/group-sessions/${state.selected}/face-voices/psycon/reprocess`, { method: "POST" });
+      refreshVoice();
+    } catch (error) {
+      byId("voice-summary").textContent = error.message;
+    } finally {
+      byId("run-psycon").disabled = false;
     }
   });
 
