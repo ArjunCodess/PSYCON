@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 ROOT = Path('instance/group_batch')
-METHODS = ('existing', 'nvidia', 'psycon')
+METHODS = ('existing', 'nvidia', 'psycon', 'psycon-recovered')
 inventory = json.loads((ROOT / 'inventory.json').read_text())
 errors = []
 complete = 0
@@ -67,7 +67,7 @@ for item in inventory:
             if slot is not None:
                 check(1 <= slot <= item['detected_faces'],
                       f'{stem}/{method}: row slot out of range')
-            if method == 'psycon' and row.get('overlap_refused_s'):
+            if method in ('psycon', 'psycon-recovered') and row.get('overlap_refused_s'):
                 check(row['status'] != 'assigned',
                       f'{stem}/{method}: overlap admitted to clean rows')
     manifest_path = folder / 'playback/manifest.json'

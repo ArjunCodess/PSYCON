@@ -46,7 +46,7 @@ for item in items:
     output = folder / 'playback'
     output.mkdir(exist_ok=True)
     manifest = []
-    for method in ('existing', 'nvidia', 'psycon'):
+    for method in ('existing', 'nvidia', 'psycon', 'psycon-recovered'):
         detail_path = folder / f'{method}-detail.json'
         if not detail_path.exists():
             continue
@@ -58,8 +58,15 @@ for item in items:
         rows = detail['rows']
         for profile in detail['profiles']:
             slot = int(profile['slot_number'])
-            if method == 'psycon':
+            review_only = False
+            if method in ('psycon', 'psycon-recovered'):
                 audio, intervals, mixed = psycon.playback_audio_for_slot(samples, rows, slot)
+                if not len(audio):
+                    audio = review_audio_for_slot(samples, 16000, rows, slot)
+                    review_only = bool(len(audio))
+                    intervals = [(row['start_s'], row['end_s']) for row in rows
+                                 if row['status'] == 'unknown' and
+                                 (row.get('evidence') or {}).get('review_slot') == slot]
             else:
                 audio, intervals = assigned_audio_for_slot(samples, 16000, rows, slot)
                 mixed = 0.
@@ -69,6 +76,7 @@ for item in items:
                         intervals = limited_intervals(intervals, len(audio) / 16000)
                     else:
                         audio = review_audio_for_slot(samples, 16000, rows, slot)
+                        review_only = bool(len(audio))
                         intervals = [(row['start_s'], row['end_s']) for row in rows
                                      if row['status'] == 'unknown' and
                                      (row.get('evidence') or {}).get('review_slot') == slot]
@@ -78,6 +86,7 @@ for item in items:
             path = output / f'{method}-p{slot:02d}.wav'
             wav(path, audio)
             manifest.append({'method': method, 'slot': slot, 'path': str(path),
+                             'clip_kind': 'tentative_review' if review_only else 'assigned_playback',
                              'profile_status': profile['status'],
                              'profile_usable_s': profile['usable_seconds'],
                              'clip_s': round(len(audio)/16000, 2),
