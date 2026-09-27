@@ -52,6 +52,7 @@ docs/engineering_prd/*.synctex.gz
 
 # Local sample recordings. These stay on the machine that collected them.
 WhatsApp Video*.mp4
+group_discussions/
 tmp_frame_*.jpg
 
 .DS_Store
