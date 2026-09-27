@@ -9,13 +9,16 @@ from __future__ import annotations
 import shutil
 import subprocess
 import tempfile
+import hashlib
 from pathlib import Path
 
 import numpy as np
 
 
 FEATURE_SIZE = 80
-_SAMPLE_SECONDS = (0.0, 1.0, 5.0)
+_SAMPLE_SECONDS = (0.0, 1.0, 5.0, 10.0, 20.0)
+YUNET_SHA256 = "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4"
+SFACE_SHA256 = "0ba9fbfa01b5270c96627c4ef784da859931e02f04419c829e83484087c34e79"
 
 
 class FaceMarkError(ValueError):
@@ -23,25 +26,65 @@ class FaceMarkError(ValueError):
 
 
 def mark_recording(data: bytes) -> dict:
-    """Return a JPEG of the first frame that shows at least two faces.
-
-    The search tries the opening frame, then one second, then five seconds.
-    The last decoded frame is returned when fewer than two faces are found.
-    """
-    fallback = None
+    """Return the clearest early group frame across four orientations."""
+    best = None
     for second in _SAMPLE_SECONDS:
         frame = read_frame_at(data, second)
         if frame is None:
             continue
-        faces = detect_faces(frame)
-        rendered = draw_marks(frame, faces)
-        candidate = {"jpeg": rendered, "faces": faces, "time_s": second}
-        fallback = candidate
-        if len(faces) >= 2:
-            return candidate
-    if fallback is None:
+        orientations = ((degrees, rotate_frame(frame, degrees)) for degrees in (0, 90, 180, 270))
+        rotation, upright, faces = max(
+            ((degrees, image, detect_faces(image)) for degrees, image in orientations),
+            key=lambda item: (len(item[2]), sum(face.get("detection_score", 0) for face in item[2])),
+        )
+        candidate = (len(faces), sum(face.get("detection_score", 0) for face in faces),
+                     upright, faces, second, rotation)
+        if best is None or candidate[:2] > best[:2]:
+            best = candidate
+    if best is None:
         raise FaceMarkError("The first frame could not be read from this video")
-    return fallback
+    _, _, upright, faces, second, rotation = best
+    faces = add_identity_vectors(upright, faces)
+    return {"jpeg": draw_marks(upright, faces), "faces": faces, "time_s": second,
+            "rotation_degrees": rotation}
+
+
+def rotate_frame(image: np.ndarray, degrees: int) -> np.ndarray:
+    import cv2
+
+    modes = {90: cv2.ROTATE_90_CLOCKWISE, 180: cv2.ROTATE_180,
+             270: cv2.ROTATE_90_COUNTERCLOCKWISE}
+    if degrees not in (0, 90, 180, 270):
+        raise ValueError("Video rotation must be a quarter turn")
+    return image if degrees == 0 else cv2.rotate(image, modes[degrees])
+
+
+def sface_model():
+    import cv2
+
+    path = Path(__file__).resolve().parent / "models" / "face_recognition_sface_2021dec.onnx"
+    if hashlib.sha256(path.read_bytes()).hexdigest() != SFACE_SHA256:
+        raise FaceMarkError("The pinned face identity model is missing or has changed")
+    return cv2.FaceRecognizerSF.create(str(path), "")
+
+
+def add_identity_vectors(image: np.ndarray, faces: list[dict]) -> list[dict]:
+    import cv2
+
+    recognizer = sface_model()
+    for face in faces:
+        detection = face.pop("_detection", None)
+        if detection is None:
+            continue
+        try:
+            aligned = recognizer.alignCrop(image, np.asarray(detection, dtype=np.float32))
+            vector = recognizer.feature(aligned).reshape(-1).astype(np.float64)
+        except cv2.error:
+            continue
+        norm = float(np.linalg.norm(vector))
+        if norm > 0 and np.isfinite(norm):
+            face["identity_vector"] = (vector/norm).tolist()
+    return faces
 
 
 def read_frame_at(data: bytes, second: float) -> np.ndarray | None:
@@ -86,18 +129,16 @@ def decode_image(blob: bytes) -> np.ndarray | None:
 def detect_faces(image: np.ndarray) -> list[dict]:
     import cv2
 
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    gray = cv2.equalizeHist(gray)
-    height, width = gray.shape[:2]
-    minimum = max(28, width // 30)
-    boxes: list[tuple[int, int, int, int]] = []
-    for name in ("haarcascade_frontalface_default.xml", "haarcascade_frontalface_alt2.xml", "haarcascade_profileface.xml"):
-        cascade = cv2.CascadeClassifier(str(Path(cv2.data.haarcascades) / name))
-        found = cascade.detectMultiScale(gray, scaleFactor=1.08, minNeighbors=4, minSize=(minimum, minimum))
-        boxes.extend((int(x), int(y), int(w), int(h)) for x, y, w, h in found)
-    kept = _suppress(boxes)
+    path = Path(__file__).resolve().parent / "models" / "face_detection_yunet_2023mar.onnx"
+    if hashlib.sha256(path.read_bytes()).hexdigest() != YUNET_SHA256:
+        raise FaceMarkError("The pinned face detector is missing or has changed")
+    height, width = image.shape[:2]
+    detector = cv2.FaceDetectorYN.create(str(path), "", (width, height),
+                                          score_threshold=.85, nms_threshold=.3)
+    _unused, found = detector.detect(image)
     normalized = []
-    for x, y, w, h in kept:
+    for detection in ([] if found is None else found):
+        x, y, w, h = (float(value) for value in detection[:4])
         box = (x / width, y / height, w / width, h / height)
         normalized.append(
             {
@@ -106,6 +147,8 @@ def detect_faces(image: np.ndarray) -> list[dict]:
                 "width": box[2],
                 "height": box[3],
                 "feature": face_feature(image, box),
+                "detection_score": float(detection[14]),
+                "_detection": detection.astype(float).tolist(),
             }
         )
     return number_faces(normalized)

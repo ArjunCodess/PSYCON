@@ -236,6 +236,10 @@ def visual_observations(rows: list[dict], boxes: list[dict], video: bytes, *, sa
 
     if sampler is not None:
         inspect(sampler, video)
+    elif isinstance(video, (str, Path)):
+        source = Path(video)
+        with WindowFrameSampler(source) as frame_sampler:
+            inspect(frame_sampler, source)
     else:
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "recording.mp4"

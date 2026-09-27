@@ -1,0 +1,5 @@
+pyannote.audio==4.0.4
+speechbrain==1.0.3
+faster-whisper==1.2.1
+praat-parselmouth==0.4.6
+python_speech_features==0.6

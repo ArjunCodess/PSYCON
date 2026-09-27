@@ -183,10 +183,14 @@ def face_visible(frame: np.ndarray, box: dict) -> bool:
     return False
 
 
-def assign_windows(turns: list[dict], boxes: list[dict], data: bytes, *, frame_sampler=None, face_checker=None) -> list[dict]:
+def assign_windows(turns: list[dict], boxes: list[dict], data: bytes | Path, *, frame_sampler=None, face_checker=None) -> list[dict]:
     checker = face_checker or face_visible
     if frame_sampler is not None:
         return _assign_windows(turns, boxes, data, frame_sampler, checker)
+    if isinstance(data, (str, Path)):
+        source = Path(data)
+        with WindowFrameSampler(source) as sampler:
+            return _assign_windows(turns, boxes, source, sampler, checker)
     with tempfile.TemporaryDirectory() as directory:
         source = Path(directory) / "source.mp4"
         source.write_bytes(data)
@@ -545,10 +549,12 @@ def assigned_audio_for_slot(samples: np.ndarray, sample_rate_hz: int, segments: 
     recording_end = len(samples) / sample_rate_hz
     intervals = [(max(0.0, float(row["start_s"])), min(recording_end, float(row["end_s"])))
                  for row in segments if row.get("status") == "assigned" and row.get("slot_number") == slot
+                 and (row.get("evidence") or {}).get("training_eligible", True)
                  and float(row["end_s"]) > 0 and float(row["start_s"]) < recording_end]
     merged = _merge_intervals([(start, end) for start, end in intervals if end > start])
     forbidden = _merge_intervals([(float(row["start_s"]), float(row["end_s"])) for row in segments
-                                 if row.get("status") != "assigned" or row.get("slot_number") != slot])
+                                 if row.get("status") != "assigned" or row.get("slot_number") != slot
+                                 or not (row.get("evidence") or {}).get("training_eligible", True)])
     for left, right in forbidden:
         merged = [(a, b) for start, end in merged for a, b in
                   ([(start, end)] if right <= start or left >= end else
@@ -616,11 +622,15 @@ def build_profiles(samples: np.ndarray, sample_rate_hz: int, segments: list[dict
     embedding_enabled = embedder is not None or _embedding_available()
     cluster_slots: dict[str, set[int]] = {}
     for segment in segments:
-        if segment.get("status") == "assigned" and segment.get("cluster_label") and segment.get("slot_number") is not None:
+        if (segment.get("status") == "assigned" and segment.get("cluster_label") and
+                segment.get("slot_number") is not None and
+                (segment.get("evidence") or {}).get("training_eligible", True)):
             cluster_slots.setdefault(str(segment["cluster_label"]), set()).add(int(segment["slot_number"]))
     for box in boxes:
         slot = int(box["slot_number"])
-        assigned = sorted((row for row in segments if row["slot_number"] == slot and row["status"] == "assigned"),
+        assigned = sorted((row for row in segments if row["slot_number"] == slot and
+                           row["status"] == "assigned" and
+                           (row.get("evidence") or {}).get("training_eligible", True)),
                           key=lambda row: row["start_s"])
         audio, intervals = assigned_audio_for_slot(samples, sample_rate_hz, segments, slot)
         usable = len(audio) / sample_rate_hz
@@ -695,7 +705,8 @@ def training_feature(face: list[float], profile: dict) -> list[float] | None:
         return None
     metrics = profile.get("metrics") or {}
     from .nvidia import MATCHING_VERSION as NVIDIA_MATCHING_VERSION
-    if metrics.get("matching_version") not in {MATCHING_VERSION, NVIDIA_MATCHING_VERSION}:
+    from .psycon import MATCHING_VERSION as PSYCON_MATCHING_VERSION
+    if metrics.get("matching_version") not in {MATCHING_VERSION, NVIDIA_MATCHING_VERSION, PSYCON_MATCHING_VERSION}:
         return None
     try:
         feature = [*map(float, face), *map(float, profile["vector"])]

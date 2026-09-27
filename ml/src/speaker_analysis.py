@@ -66,10 +66,12 @@ class SpeakerEmbedder(Protocol):
 class PyannoteDiarizer:
     """Lazy local Community-1 adapter; model access requires an HF token."""
 
-    def __init__(self, token: str | None = None, device: str | None = None) -> None:
+    def __init__(self, token: str | None = None, device: str | None = None,
+                 revision: str | None = None) -> None:
         token_value = token if token is not None else os.getenv("HF_TOKEN", "")
         self.token = token_value.strip() or None
         self.device = device or os.getenv("PSYCON_DIARIZATION_DEVICE", "cpu")
+        self.revision = revision
         self._pipeline = None
 
     @property
@@ -90,11 +92,13 @@ class PyannoteDiarizer:
 
     def _load_pipeline(self):
         if self._pipeline is None:
+            _ensure_torchaudio_backend_probe()
             import torch
             from pyannote.audio import Pipeline
 
             self._pipeline = Pipeline.from_pretrained(
-                "pyannote/speaker-diarization-community-1", token=self.token
+                "pyannote/speaker-diarization-community-1", token=self.token,
+                **({"revision": self.revision} if self.revision else {})
             )
             if self.device == "cuda":
                 self._pipeline.to(torch.device("cuda"))
@@ -130,6 +134,8 @@ class SpeechBrainEmbedder:
 
     def _load_model(self):
         if self._model is None:
+            _ensure_torchaudio_backend_probe()
+            _ensure_speechbrain_hub_arguments()
             from speechbrain.inference.speaker import EncoderClassifier
 
             _remove_speechbrain_deprecated_redirects()
@@ -139,6 +145,36 @@ class SpeechBrainEmbedder:
             )
             _remove_speechbrain_deprecated_redirects()
         return self._model
+
+
+def _ensure_torchaudio_backend_probe() -> None:
+    """SpeechBrain 1.0.3 probes an API removed by torchaudio 2.9."""
+    import torchaudio
+
+    if not hasattr(torchaudio, "list_audio_backends"):
+        torchaudio.list_audio_backends = lambda: []
+
+
+def _ensure_speechbrain_hub_arguments() -> None:
+    """SpeechBrain 1.0.3 still sends use_auth_token to current hub clients."""
+    import huggingface_hub
+
+    original = huggingface_hub.hf_hub_download
+    if getattr(original, "_psycon_speechbrain_compat", False):
+        return
+
+    def compatible(*args, use_auth_token=None, **kwargs):
+        if use_auth_token is not None and "token" not in kwargs:
+            kwargs["token"] = use_auth_token
+        try:
+            return original(*args, **kwargs)
+        except huggingface_hub.errors.RemoteEntryNotFoundError as exc:
+            if kwargs.get("filename") == "custom.py":
+                raise ValueError("Optional SpeechBrain custom.py is absent") from exc
+            raise
+
+    compatible._psycon_speechbrain_compat = True
+    huggingface_hub.hf_hub_download = compatible
 
 
 def _remove_speechbrain_deprecated_redirects() -> None:

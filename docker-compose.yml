@@ -64,7 +64,13 @@ services:
       context: .
       target: nvidia
     command: ["python", "-m", "backend.worker"]
-    environment: *backend-environment
+    environment:
+      <<: *backend-environment
+      HF_TOKEN: ${HF_TOKEN:-}
+      PSYCON_COMMUNITY1_REVISION: ${PSYCON_COMMUNITY1_REVISION:-3533c8cf8e369892e6b79ff1bf80f7b0286a54ee}
+      PSYCON_DIARIZATION_DEVICE: cuda
+      PSYCON_SPEAKER_DEVICE: cuda
+      PSYCON_WHISPER_DEVICE: cuda
     gpus: all
     volumes:
       - .:/app
