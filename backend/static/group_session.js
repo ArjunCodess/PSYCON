@@ -104,8 +104,10 @@
     card.append(header);
     if ((state.method === "nvidia" && voice?.usable_seconds > 0) ||
         (state.method === "psycon" && person.playback_seconds > 0) ||
-        voice?.status === "ready" || (state.method === "existing" && person.review_seconds > 0)) {
-      addSpeechPlayer(card, person, sessionId, state.method !== "existing" || voice?.status === "ready");
+        voice?.status === "ready" ||
+        ((state.method === "existing" || state.method === "psycon") && person.review_seconds > 0)) {
+      addSpeechPlayer(card, person, sessionId,
+        state.method === "nvidia" || voice?.status === "ready" || person.playback_seconds > 0);
     }
     const metrics = make("div", "voice-metrics");
     addMetric(metrics, tentative ? "Confirmed speech" : "Usable speech", fixed(voice?.usable_seconds), " s");

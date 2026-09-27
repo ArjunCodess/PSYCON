@@ -9,11 +9,41 @@ import pytest
 from backend.group import psycon, talknet
 from backend.group.voice import assigned_audio_for_slot
 from backend.group.memory import MemoryGroupStore
-from backend.group.service import GroupError, GroupObservationService
+from backend.group.service import GroupError, GroupObservationService, _local_video
 from ml.src.speaker_analysis import SpeakerTurn
 from ml.src.speaker_analysis import DiarizationResult
 from ml.src.transcription import TranscriptionResult, TranscriptionStatus
 from tests.backend.test_group_workflow import MemoryStorage
+
+
+def test_large_video_is_streamed_to_temporary_file() -> None:
+    class Storage:
+        def download_to(self, key, path):
+            assert key == "recording"
+            path.write_bytes(b"video")
+
+        def get(self, _key):
+            raise AssertionError("large video must not be loaded into memory")
+
+    with _local_video(Storage(), "recording") as path:
+        assert path.read_bytes() == b"video"
+    assert not path.exists()
+
+
+def test_4k_video_uses_synchronized_visual_scale(monkeypatch) -> None:
+    class Storage:
+        def download_to(self, _key, path):
+            path.write_bytes(b"4k-video")
+
+    commands = []
+    def transcode(command, *, check):
+        assert check
+        commands.append(command)
+        __import__("pathlib").Path(command[-1]).write_bytes(b"1920-video")
+    monkeypatch.setattr("backend.group.service.subprocess.run", transcode)
+    with _local_video(Storage(), "recording", width=3840, height=2160) as path:
+        assert path.read_bytes() == b"1920-video"
+    assert "scale=1920:1080:flags=fast_bilinear,fps=25" in commands[0]
 
 
 def test_anonymous_turns_overlap_quality_and_short_speech() -> None:
@@ -118,6 +148,62 @@ def test_consistent_video_voice_majority_excludes_one_bad_voice_sample() -> None
     assert all(row["slot_number"] == 3 for row in rows[1:])
     assert all(rows[0]["id"] not in row["evidence"].get("source_segments", [])
                for row in rows[1:])
+
+
+def test_second_pass_recovers_repeated_moderate_visual_voice_evidence() -> None:
+    rows = psycon.clean_windows([SpeakerTurn(start, start+2, "anonymous")
+                                for start in (0, 4, 8)], 10)
+    observations = [{"cluster_label": "anonymous", "slot_number": 4,
+                     "source_segment_id": row["id"], "start_s": row["start_s"],
+                     "end_s": row["end_s"], "score": .66, "competing_score": .35,
+                     "track_continuity": .95, "face_identity_verified": True,
+                     "reliable": False} for row in rows[:2]]
+    embeddings = {row["id"]: np.array([1., 0.]) for row in rows}
+    assert psycon.link_faces(rows, observations, embeddings, {4}) == {}
+    assert psycon.recover_supported_faces(rows, observations, embeddings, {4}) == 3
+    assert all(row["slot_number"] == 4 for row in rows)
+    assert all(row["evidence"]["reason"] == "second_pass_visual_voice_consistent"
+               for row in rows)
+    assert all(len(row["evidence"]["source_segments"]) == 2 for row in rows)
+
+
+def test_second_pass_preserves_conflicts_and_requires_separate_turns() -> None:
+    rows = psycon.clean_windows([SpeakerTurn(start, start+2, "anonymous")
+                                for start in (0, 4, 8)], 10)
+    observations = [{"cluster_label": "anonymous", "slot_number": 4,
+                     "source_segment_id": row["id"], "start_s": row["start_s"],
+                     "end_s": row["end_s"], "score": .66, "competing_score": .35,
+                     "track_continuity": .95, "face_identity_verified": True,
+                     "reliable": False} for row in rows[:2]]
+    observations.append({**observations[0], "source_segment_id": rows[2]["id"],
+                         "slot_number": 2})
+    embeddings = {row["id"]: np.array([1., 0.]) for row in rows}
+    rows[2].update(status="assigned", slot_number=2)
+    assert psycon.recover_supported_faces(rows, observations, embeddings, {2, 4}) == 2
+    assert rows[2]["slot_number"] == 2
+    assert rows[2]["status"] == "assigned"
+    assert rows[0]["slot_number"] == 4
+    one_turn = psycon.clean_windows([SpeakerTurn(0, 2, "short")], 2)
+    one_observation = [{**observations[0], "source_segment_id": one_turn[0]["id"],
+                        "cluster_label": "short"}]
+    assert psycon.recover_supported_faces(one_turn, one_observation,
+                                          {one_turn[0]["id"]: [1., 0.]}, {4}) == 0
+
+
+def test_unknown_speech_can_be_offered_for_review_without_training() -> None:
+    rows = psycon.clean_windows([SpeakerTurn(0, 2, "anonymous")], 2)
+    item = {"cluster_label": "anonymous", "slot_number": 4,
+            "source_segment_id": rows[0]["id"], "start_s": rows[0]["start_s"],
+            "end_s": rows[0]["end_s"], "score": .67, "competing_score": .3,
+            "track_continuity": .95, "face_identity_verified": True,
+            "mouth_activity": .6}
+    assert psycon.mark_review_candidates(rows, [item], {4}) == 1
+    assert rows[0]["status"] == "unknown"
+    assert rows[0]["slot_number"] is None
+    assert rows[0]["evidence"]["review_slot"] == 4
+    assert rows[0]["evidence"]["review_source"] == "talknet_visible_face"
+    rows[0]["evidence"].pop("review_slot")
+    assert psycon.mark_review_candidates(rows, [{**item, "face_identity_verified": False}], {4}) == 0
 
 
 def test_merged_acoustic_label_keeps_a_distinct_short_face_playable() -> None:
@@ -253,6 +339,29 @@ def test_active_speaker_sampling_reaches_later_clean_turns() -> None:
     assert len(selected) == 16
     assert len({source_id for _, _, _, source_id in selected}) == 16
     assert any(start > 70 for _, start, _, _ in selected)
+
+
+def test_targeted_active_speaker_windows_and_mouth_motion(monkeypatch) -> None:
+    rows = psycon.clean_windows([SpeakerTurn(0, 2, "anonymous")], 2)
+    row = rows[0]
+    selected = [("anonymous", row["start_s"], row["end_s"], row["id"])]
+    called = []
+    def detector(*_args, **kwargs):
+        called.append(kwargs["selected_windows"])
+        return [{"source_segment_id": row["id"], "cluster_label": "anonymous",
+                 "slot_number": 1, "start_s": row["start_s"], "end_s": row["end_s"],
+                 "score": .9, "competing_score": .1, "track_continuity": 1.,
+                 "face_identity_verified": True}]
+    monkeypatch.setattr(talknet, "observations", detector)
+    result = psycon.active_observations(rows, [{"slot_number": 1}], b"video",
+                                        np.zeros(32000, dtype=np.int16), windows=selected)
+    assert called == [selected] and result[0]["reliable"]
+    faces = np.zeros((14, 112, 112), dtype=np.uint8)
+    faces[1::2, 70:90, 35:75] = 200
+    assert talknet._mouth_activity(faces) > .01
+    global_brightness = np.zeros_like(faces)
+    global_brightness[1::2] = 200
+    assert talknet._mouth_activity(global_brightness) == 0.
 
 
 def test_face_identity_requires_repeated_matches_to_the_marked_person() -> None:
@@ -413,6 +522,11 @@ def test_fake_worker_persists_profiles_and_playback(monkeypatch) -> None:
     with wave.open(io.BytesIO(service.face_voice_audio(actor, session, 1, "psycon"))) as clip:
         assert clip.getnframes() > 0
     assert service.face_voice_details(actor, session, "psycon")["people"][0]["voice"]["usable_seconds"] == 0
+    split[0].update(status="unknown", slot_number=None)
+    split[0]["evidence"]["review_slot"] = 1
+    store.replace_voice_analysis(session, split, profiles, "psycon")
+    with wave.open(io.BytesIO(service.face_voice_audio(actor, session, 1, "psycon"))) as clip:
+        assert clip.getnframes() == round((split[0]["end_s"]-split[0]["start_s"])*16000)
 
 
 def _wav(samples):

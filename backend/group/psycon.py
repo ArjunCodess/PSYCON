@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import copy
 from collections import defaultdict
 from uuid import uuid4
 
@@ -17,7 +18,7 @@ from ml.src.audio import analyze_pcm16
 from .voice import build_profiles, training_feature
 
 
-MATCHING_VERSION = "psycon-community1-face-4"
+MATCHING_VERSION = "psycon-community1-face-5"
 FEATURE_SCHEMA = "psycon-face-voice-2"
 MODEL_REVISION = os.getenv("PSYCON_COMMUNITY1_REVISION", "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee")
 BOUNDARY_GUARD_S = 0.12
@@ -138,8 +139,11 @@ def _consistent_support(items, embeddings, threshold):
     return [item for item, _ in chosen], center, cohesion
 
 
-def link_faces(rows, observations, embeddings, slots, *, threshold=.55):
+def link_faces(rows, observations, embeddings, slots, *, threshold=.55,
+               support_threshold=None):
     """Require independent active-speaker turns and consistent voice identity."""
+    if support_threshold is None:
+        support_threshold = max(threshold, .65)
     by_cluster = defaultdict(list)
     by_row = defaultdict(list)
     for item in observations:
@@ -160,7 +164,7 @@ def link_faces(rows, observations, embeddings, slots, *, threshold=.55):
         if any(len(slots) > 1 for slots in per_row.values()):
             continue
         for slot, support in per_slot.items():
-            agreed = _consistent_support(support, embeddings, max(threshold, .65))
+            agreed = _consistent_support(support, embeddings, support_threshold)
             if agreed is None:
                 continue
             support, center, cohesion = agreed
@@ -301,6 +305,126 @@ def link_faces(rows, observations, embeddings, slots, *, threshold=.55):
     return {cluster: next(iter(slots)) for cluster, slots in unique.items() if len(slots) == 1}
 
 
+def recover_supported_faces(rows, observations, embeddings, slots):
+    """Add independently supported clean turns for faces lacking a usable profile.
+
+    The conservative first pass remains authoritative. This pass uses a wider
+    visual gate, then requires repeated source turns and a separated voice match.
+    """
+    usable = defaultdict(float)
+    for row in rows:
+        if (row.get("status") == "assigned" and row.get("slot_number") in slots and
+                row.get("evidence", {}).get("training_eligible", True)):
+            usable[row["slot_number"]] += row["end_s"] - row["start_s"]
+    missing = {slot for slot in slots if usable[slot] < 3.}
+    if not missing:
+        return 0
+    alternate_observations = copy.deepcopy(observations)
+    for item in alternate_observations:
+        score = float(item.get("score", 0))
+        competing = float(item.get("competing_score", 1))
+        visual = ((score >= .7 and competing <= .4) or
+                  (score >= .6 and score-competing >= .25 and competing <= .65))
+        item["reliable"] = bool(item.get("face_identity_verified") and
+                                float(item.get("track_continuity", 0)) >= .8 and
+                                (visual or item.get("visual_repetition")))
+    alternate_rows = copy.deepcopy(rows)
+    for row in alternate_rows:
+        row.update(status="unknown", slot_number=None, confidence=0.)
+        row["evidence"] = {"version": MATCHING_VERSION,
+                           "reason": "overlapping_speakers" if row.get("overlap_refused_s")
+                           else "speaker_unmapped",
+                           "clusters": row.get("evidence", {}).get("clusters", [])}
+    link_faces(alternate_rows, alternate_observations, embeddings, slots,
+               threshold=.65, support_threshold=.45)
+    source_rows = {row["id"]: row for row in rows}
+    direct = defaultdict(set)
+    for item in alternate_observations:
+        if item.get("reliable"):
+            direct[item.get("source_segment_id")].add(item.get("slot_number"))
+    promoted = 0
+    for original, candidate in zip(rows, alternate_rows):
+        slot = candidate.get("slot_number")
+        evidence = candidate.get("evidence") or {}
+        support = [source_rows[source_id] for source_id in evidence.get("source_segments", [])
+                   if source_id in source_rows]
+        independent = (len({row.get("source_turn_index") for row in support}) >= 2 and
+                       max((row["start_s"] for row in support), default=0) -
+                       min((row["start_s"] for row in support), default=0) >= 2.)
+        if (original.get("status") != "unknown" or candidate.get("status") != "assigned" or
+                slot not in missing or original.get("overlap_refused_s") or
+                evidence.get("reason") != "active_speaker_and_voice_consistent" or
+                evidence.get("training_eligible", True) is False or
+                len(evidence.get("source_segments", [])) < 2 or not independent or
+                float(evidence.get("voice_similarity") or 0) < .65 or
+                (evidence.get("voice_margin") is not None and
+                 float(evidence["voice_margin"]) < .05) or
+                any(other != slot for other in direct.get(original["id"], ()))):
+            continue
+        original.update(status="assigned", slot_number=slot,
+                        confidence=candidate["confidence"])
+        original["evidence"] = {**evidence, "version": MATCHING_VERSION,
+                                "reason": "second_pass_visual_voice_consistent",
+                                "recovery_visual_policy": "moderate_v1",
+                                "recovery_voice_threshold": .65,
+                                "recovery_support_threshold": .45}
+        promoted += 1
+    return promoted
+
+
+def mark_review_candidates(rows, observations, slots, *, max_seconds=8.):
+    """Offer visible speech for human review without assigning its identity."""
+    assigned = defaultdict(float)
+    for row in rows:
+        if (row.get("status") == "assigned" and row.get("slot_number") in slots and
+                row.get("evidence", {}).get("training_eligible", True)):
+            assigned[row["slot_number"]] += row["end_s"] - row["start_s"]
+    slots = {slot for slot in slots if assigned[slot] < 3.}
+    by_row = defaultdict(list)
+    for item in observations:
+        if item.get("slot_number") in slots:
+            by_row[item.get("source_segment_id")].append(item)
+    candidates = defaultdict(list)
+    for row in rows:
+        if (row.get("status") != "unknown" or row.get("overlap_refused_s") or
+                row.get("cluster_label") is None):
+            continue
+        options = sorted(by_row[row["id"]], key=lambda item: float(item.get("score", 0)),
+                         reverse=True)
+        if not options:
+            continue
+        best = options[0]
+        score = float(best.get("score", 0))
+        competing = float(best.get("competing_score", 1))
+        if (score < .55 or score-competing < .15 or competing > .8 or
+                float(best.get("track_continuity", 0)) < .8 or
+                not best.get("face_identity_verified") or
+                any(other.get("slot_number") != best["slot_number"] and
+                    float(other.get("score", 0)) >= score-.1 for other in options[1:])):
+            continue
+        candidates[best["slot_number"]].append((score-competing, row, best))
+    used = set()
+    marked = 0
+    for slot in sorted(candidates):
+        total = 0.
+        for margin, row, item in sorted(candidates[slot], reverse=True,
+                                        key=lambda candidate: (candidate[0],
+                                                               -candidate[1]["start_s"])):
+            duration = row["end_s"] - row["start_s"]
+            if row["id"] in used or total+duration > max_seconds+.01:
+                continue
+            row["evidence"].update(review_slot=slot, review_status="tentative",
+                                   review_motion=item.get("mouth_activity"),
+                                   review_source="talknet_visible_face",
+                                   review_score=item["score"],
+                                   review_competing_score=item.get("competing_score"),
+                                   review_observation=item)
+            total += duration
+            used.add(row["id"])
+            marked += 1
+    return marked
+
+
 def playback_intervals(rows, slot_number):
     """Return source PCM spans, including mixed overlap for a securely linked cluster.
 
@@ -424,13 +548,13 @@ def diarize(samples, *, diarizer=None):
     return diarizer.diarize(samples, 16000)
 
 
-def active_observations(rows, boxes, video, samples, *, detector=None):
+def active_observations(rows, boxes, video, samples, *, detector=None, windows=None):
     """Score tracked marked faces with the pinned local TalkNet checkpoint."""
     if detector is not None:
         return detector(rows, boxes, video, samples)
     from .talknet import observations as detect
 
-    observations = detect(rows, boxes, video, samples)
+    observations = detect(rows, boxes, video, samples, selected_windows=windows)
     eligible = {row["id"]: row for row in rows if row["cluster_label"] is not None}
     slots = {int(box["slot_number"]) for box in boxes}
     checked = []

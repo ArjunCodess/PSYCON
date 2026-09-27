@@ -223,6 +223,16 @@ def _score(model, classifier, device, audio, faces):
     return float(probabilities.mean().detach().cpu())
 
 
+def _mouth_activity(faces):
+    """Measure lower-face motion above the same track's upper-face motion."""
+    if len(faces) < 3:
+        return 0.
+    changes = np.abs(np.diff(np.asarray(faces, dtype=np.float32)/255., axis=0))
+    mouth = np.median(np.mean(changes[:, 64:101, 28:84], axis=(1, 2)))
+    upper = np.median(np.mean(changes[:, 12:49, 28:84], axis=(1, 2)))
+    return float(max(0., mouth-upper))
+
+
 def _diverse_windows(rows, limit_per_speaker):
     first = _visual_windows(rows, limit_per_speaker=min(8, limit_per_speaker))
     if limit_per_speaker <= 8:
@@ -251,12 +261,14 @@ def _diverse_windows(rows, limit_per_speaker):
     return sorted(selected, key=lambda item: item[1])
 
 
-def observations(rows, boxes, video, samples, *, model_bundle=None, max_windows_per_speaker=32):
+def observations(rows, boxes, video, samples, *, model_bundle=None, max_windows_per_speaker=32,
+                 selected_windows=None):
     import cv2
 
     model, classifier, device = model_bundle or load_model()
     recognizer = sface_model()
-    selected = _diverse_windows(rows, max_windows_per_speaker)
+    selected = (list(selected_windows) if selected_windows is not None else
+                _diverse_windows(rows, max_windows_per_speaker))
     by_id = {row["id"]: row for row in rows if row.get("id")}
     scheduled = {(segment_id, round(start, 3)) for _, start, _, segment_id in selected}
     secondary = set()
@@ -289,15 +301,23 @@ def observations(rows, boxes, video, samples, *, model_bundle=None, max_windows_
                     faces, identity_score, identity_margin, identity_verified = crops[slot]
                     value = _score(model, classifier, device, audio, faces)
                     if value is not None and math.isfinite(value):
-                        scores.append((slot, value, identity_score, identity_margin, identity_verified))
+                        scores.append((slot, value, identity_score, identity_margin,
+                                       identity_verified, _mouth_activity(faces)))
                 if not scores:
                     continue
                 scores.sort(key=lambda item: item[1], reverse=True)
-                slot, score, identity_score, identity_margin, identity_verified = scores[0]
+                slot, score, identity_score, identity_margin, identity_verified, mouth = scores[0]
                 competitor = scores[1][1] if len(scores) > 1 else 0.
                 results.append({"source_segment_id": segment_id, "cluster_label": cluster,
                                 "slot_number": slot, "start_s": start, "end_s": end,
                                 "score": score, "competing_score": competitor,
+                                "mouth_activity": mouth,
+                                "competing_mouth_activity": (scores[1][5] if len(scores) > 1 else 0.),
+                                "face_scores": [{"slot_number": candidate[0],
+                                                 "score": candidate[1],
+                                                 "face_identity_verified": candidate[4],
+                                                 "mouth_activity": candidate[5]}
+                                                for candidate in scores],
                                 "track_continuity": 1.,
                                 "face_identity_score": identity_score,
                                 "face_identity_margin": identity_margin,

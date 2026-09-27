@@ -6,10 +6,14 @@ import hashlib
 import io
 import os
 import re
+import subprocess
 import wave
 from base64 import b64encode
+from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any, Callable
 from uuid import uuid4
 
@@ -40,6 +44,40 @@ _SESSION_CODE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$")
 _ACCOUNT_CODE = re.compile(r"^[A-Z0-9][A-Z0-9-]{1,31}$")
 _RESEARCH_CODE = re.compile(r"^[A-Z0-9][A-Z0-9-]{2,31}$")
 _ROLES = {"operator", "psychologist", "reviewer"}
+
+
+@contextmanager
+def _local_video(storage, key, *, width=None, height=None, pcm_duration_s=None):
+    """Stream video to disk and use the calibrated visual scale for 4K input."""
+    with TemporaryDirectory(prefix="psycon-group-video-") as directory:
+        path = Path(directory) / "video.mp4"
+        download = getattr(storage, "download_to", None)
+        if callable(download):
+            download(key, path)
+        else:
+            path.write_bytes(storage.get(key))
+        if (width or 0) > 1920 and (height or 0) > 1080:
+            proxy = Path(directory) / "analysis-1920w-25fps.mp4"
+            subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y",
+                            "-i", str(path), "-map", "0:v:0", "-an",
+                            "-vf", "scale=1920:1080:flags=fast_bilinear,fps=25",
+                            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "24",
+                            "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+                            str(proxy)], check=True)
+            if pcm_duration_s is not None:
+                import cv2
+                capture = cv2.VideoCapture(str(proxy))
+                if not capture.isOpened():
+                    raise RuntimeError("analysis_video_decode_failed")
+                fps = capture.get(cv2.CAP_PROP_FPS)
+                duration = capture.get(cv2.CAP_PROP_FRAME_COUNT) / fps if fps else 0.
+                capture.release()
+                if abs(duration - pcm_duration_s) > .2:
+                    raise RuntimeError("analysis_video_timing_changed")
+            path = proxy
+        yield path
+
+
 _CAMERA_ORIENTATION = "overhead-near-edge"
 LOCAL_ACCOUNT_ID = "00000000-0000-4000-8000-000000000001"
 _FILE_DATE = re.compile(r"(20\d{2}-\d{2}-\d{2})")
@@ -321,7 +359,9 @@ class GroupObservationService:
             if method == "psycon":
                 audio, _, _ = psycon.playback_audio_for_slot(samples, segments, slot_number)
                 if not len(audio):
-                    raise GroupError("voice_unavailable", "No speech has been attributed to this participant", 409)
+                    audio = review_audio_for_slot(samples, 16000, segments, slot_number)
+                if not len(audio):
+                    raise GroupError("voice_unavailable", "No speech or review excerpt was found for this participant", 409)
             elif not len(audio):
                 raise GroupError("voice_mismatch", "The saved voice profile no longer matches its speech windows", 409)
             elif method == "existing":
@@ -1366,8 +1406,10 @@ class GroupObservationService:
             else:
                 capacity_warning = None
             rows = nvidia.clean_windows(turns, duration_s=len(samples) / 16000)
-            video = self.storage.get(recording["object_key"])
-            observations = nvidia.visual_observations(rows, boxes, video)
+            with _local_video(self.storage, recording["object_key"],
+                              width=recording.get("width"), height=recording.get("height"),
+                              pcm_duration_s=len(samples)/16000) as video:
+                observations = nvidia.visual_observations(rows, boxes, video)
             mapping = nvidia.map_speakers(rows, observations, {int(box["slot_number"]) for box in boxes})
             profiles = build_profiles(samples, 16000, rows, boxes, [], matching_version=nvidia.MATCHING_VERSION)
             for row in rows + profiles:
@@ -1417,8 +1459,10 @@ class GroupObservationService:
             result = psycon.diarize(samples)
             quality_windows = psycon.audio_quality_windows(samples)
             rows = psycon.clean_windows(result.regular_turns, len(samples)/16000, quality_windows)
-            video = self.storage.get(recording["object_key"])
-            observations = psycon.active_observations(rows, boxes, video, samples)
+            with _local_video(self.storage, recording["object_key"],
+                              width=recording.get("width"), height=recording.get("height"),
+                              pcm_duration_s=len(samples)/16000) as video:
+                observations = psycon.active_observations(rows, boxes, video, samples)
             embedder = psycon.SpeechBrainEmbedder(device="cuda")
             embeddings = {}
             for row in rows:
@@ -1431,6 +1475,10 @@ class GroupObservationService:
             mapping = psycon.link_faces(rows, observations, embeddings,
                                         {int(box["slot_number"]) for box in boxes},
                                         threshold=max(.55, embedder.verification_threshold))
+            recovered = psycon.recover_supported_faces(
+                rows, observations, embeddings, {int(box["slot_number"]) for box in boxes})
+            review_candidates = psycon.mark_review_candidates(
+                rows, observations, {int(box["slot_number"]) for box in boxes})
             psycon.mark_playback_overlap(rows)
             profiles = psycon.make_profiles(samples, rows, boxes, result.exclusive_turns,
                                             embedder=embedder)
@@ -1438,7 +1486,9 @@ class GroupObservationService:
                 row["group_session_id"] = session_id
             self.store.replace_voice_analysis(session_id, rows, profiles, "psycon")
             state("complete", ready_voices=sum(profile["status"] == "ready" for profile in profiles),
-                  mapping=mapping, regular_turns=[turn.to_dict() for turn in result.regular_turns],
+                  mapping=mapping, recovered_turns=recovered,
+                  review_candidates=review_candidates,
+                  regular_turns=[turn.to_dict() for turn in result.regular_turns],
                   exclusive_turns=[turn.to_dict() for turn in result.exclusive_turns],
                   audio_quality_windows=quality_windows,
                   unknown_seconds=round(sum(row["end_s"]-row["start_s"] for row in rows

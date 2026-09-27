@@ -169,12 +169,17 @@ try:
         mapping = psycon.link_faces(rows, observations, embeddings,
                                     {int(box['slot_number']) for box in boxes},
                                     threshold=max(.55, embedder.verification_threshold))
+        recovered = psycon.recover_supported_faces(
+            rows, observations, embeddings, {int(box['slot_number']) for box in boxes})
+        review_candidates = psycon.mark_review_candidates(
+            rows, observations, {int(box['slot_number']) for box in boxes})
         psycon.mark_playback_overlap(rows)
         profiles = psycon.make_profiles(samples, rows, boxes, diary.exclusive_turns,
                                         embedder=embedder)
         result = summarize(rows, profiles, observations=observations,
                            turns=[turn.to_dict() for turn in diary.regular_turns],
-                           extra={'mapping': mapping,
+                           extra={'mapping': mapping, 'recovered_turns': recovered,
+                                  'review_candidates': review_candidates,
                                   'exclusive_turns': len(diary.exclusive_turns),
                                   'quality_rejected_s': round(sum(item['end_s']-item['start_s']
                                                                   for item in quality
