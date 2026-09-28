@@ -104,6 +104,35 @@ def test_psycon_embedding_failure_leaves_incomplete_null_profile() -> None:
     assert wrong_shape["embedding"] is None
 
 
+def test_rejection_audit_keeps_candidates_out_of_training() -> None:
+    profiles = [
+        {"slot_number": 1, "status": "incomplete", "usable_seconds": 0.,
+         "embedding": None, "vector": None, "metrics": {"quality_gate": {"reason": "insufficient_isolated_speech"}}},
+        {"slot_number": 2, "status": "incomplete", "usable_seconds": 2.2,
+         "embedding": None, "vector": None, "metrics": {"quality_gate": {"reason": "insufficient_isolated_speech"}}},
+        {"slot_number": 3, "status": "incomplete", "usable_seconds": 4.,
+         "embedding": None, "vector": None, "metrics": {"quality_gate": {"reason": "speaker_embedding_unavailable"}}},
+        {"slot_number": 4, "status": "incomplete", "usable_seconds": 0.,
+         "embedding": None, "vector": None, "metrics": {"quality_gate": {"reason": "insufficient_isolated_speech"}}},
+    ]
+    rows = [{"id": "anonymous-1", "start_s": 5., "end_s": 6.5,
+             "status": "unknown", "cluster_label": "anonymous", "evidence": {
+                 "review_slot": 1, "review_source": "talknet_visible_face",
+                 "review_score": .81, "review_competing_score": .2,
+                 "review_observation": {"source_segment_id": "anonymous-1"}}}]
+    audits = psycon.audit_incomplete_profiles(rows, profiles)
+    assert {item["slot_number"]: item["failure_mode"] for item in audits} == {
+        1: "no_anchored_speech_with_visual_candidate",
+        2: "insufficient_anchored_speech", 3: "embedding_rejected",
+        4: "no_anchored_speech_without_visual_candidate"}
+    assert audits[0]["slot_number"] == 1
+    assert audits[0]["candidate_segments"][0]["source_segment_id"] == "anonymous-1"
+    assert audits[0]["physical_cause"] == "undetermined"
+    assert audits[0]["signals"]["ts_vad"]["status"] == "not_run"
+    assert all(profile["embedding"] is None and profile["vector"] is None for profile in profiles)
+    assert all(psycon.training_vector([0.]*80, profile) is None for profile in profiles)
+
+
 def test_playback_includes_original_mixed_overlap_without_training_on_it() -> None:
     turns = [SpeakerTurn(0, 2, "A"), SpeakerTurn(1, 3, "B"),
              SpeakerTurn(4, 6, "A"), SpeakerTurn(7, 9, "B")]

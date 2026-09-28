@@ -602,6 +602,75 @@ def make_profiles(samples, rows, boxes, exclusive_turns, *, embedder=None, trans
     return profiles
 
 
+AUDIT_VERSION = "psycon-rejection-audit-1"
+
+
+def audit_incomplete_profiles(rows, profiles):
+    """Describe rejected slots and rank real evidence for review only.
+
+    An anonymous interval is never counted as a participant's isolated speech.
+    The ranking orders review work; it cannot change a profile or training gate.
+    """
+    audits = []
+    for profile in profiles:
+        if profile.get("status") == "ready":
+            continue
+        slot = int(profile["slot_number"])
+        clean = float(profile.get("usable_seconds") or 0)
+        candidates = []
+        for row in rows:
+            evidence = row.get("evidence") or {}
+            if row.get("status") != "unknown" or evidence.get("review_slot") != slot:
+                continue
+            candidates.append({
+                "source_segment_id": row["id"],
+                "start_s": float(row["start_s"]), "end_s": float(row["end_s"]),
+                "cluster_label": row.get("cluster_label"),
+                "source": evidence.get("review_source"),
+                "score": evidence.get("review_score"),
+                "competing_score": evidence.get("review_competing_score"),
+                "observation": evidence.get("review_observation"),
+                "status": "tentative_review_only",
+            })
+        gate = (profile.get("metrics") or {}).get("quality_gate") or {}
+        if gate.get("reason") == "speaker_embedding_unavailable":
+            mode = "embedding_rejected"
+        elif clean > 0:
+            mode = "insufficient_anchored_speech"
+        elif candidates:
+            mode = "no_anchored_speech_with_visual_candidate"
+        else:
+            mode = "no_anchored_speech_without_visual_candidate"
+        duration = sum(item["end_s"]-item["start_s"] for item in candidates)
+        margins = [float(item["score"])-float(item["competing_score"])
+                   for item in candidates if item["score"] is not None and
+                   item["competing_score"] is not None]
+        audits.append({
+            "version": AUDIT_VERSION, "slot_number": slot, "failure_mode": mode,
+            "physical_cause": "undetermined", "quality_gate": gate,
+            "anchored_clean_seconds": round(clean, 3),
+            "tentative_review_seconds": round(duration, 3),
+            "candidate_segments": candidates,
+            "signals": {
+                "talknet": {"status": "observed" if candidates else "no_review_candidate",
+                            "candidate_count": len(candidates)},
+                "ts_vad": {"status": "not_run"},
+                "source_separation": {"status": "not_run"},
+                "cross_session_voice": {"status": "not_run"},
+            },
+            "review_priority": {"candidate_count": len(candidates),
+                                "review_seconds": round(duration, 3),
+                                "best_score_margin": round(max(margins), 3) if margins else None},
+        })
+    audits.sort(key=lambda item: (-item["review_priority"]["candidate_count"],
+                                  -item["review_priority"]["review_seconds"],
+                                  -(item["review_priority"]["best_score_margin"] or 0),
+                                  item["slot_number"]))
+    for rank, audit in enumerate(audits, 1):
+        audit["review_rank"] = rank
+    return audits
+
+
 def diarize(samples, *, diarizer=None):
     if diarizer is None and not MODEL_REVISION:
         raise RuntimeError("PSYCON_COMMUNITY1_REVISION is required for pinned Community-1")

@@ -280,6 +280,8 @@ class GroupObservationService:
                     key: profile.get(key) for key in
                     ("status", "engine", "embedding_engine", "usable_seconds", "vector", "embedding", "metrics")
                 },
+                "candidate_audit": ((profile.get("metrics") or {}).get("candidate_audit")
+                                    if method == "psycon" and profile else None),
                 "combined_feature_ready": bool(method == "psycon" and sample and profile and psycon.training_vector(sample["feature"], profile) is not None),
                 "playback_seconds": sum(end-start for start, end in playback_intervals),
                 "mixed_overlap_seconds": mixed_seconds,
@@ -550,10 +552,17 @@ class GroupObservationService:
         exclusive = [psycon.SpeakerTurn(**turn) for turn in state.get("exclusive_turns", [])]
         profiles = psycon.make_profiles(samples, rows, boxes, exclusive,
                                         transcriber=psycon.FasterWhisperTranscriber(device="cuda"))
+        audits = psycon.audit_incomplete_profiles(rows, profiles)
+        for profile in profiles:
+            audit = next((item for item in audits if item["slot_number"] == profile["slot_number"]), None)
+            if audit:
+                profile["metrics"]["candidate_audit"] = audit
         for row in rows + profiles:
             row["group_session_id"] = session_id
         self.store.replace_voice_analysis(session_id, rows, profiles, "psycon")
         state.update(ready_voices=sum(row["status"] == "ready" for row in profiles),
+                     audit_version=psycon.AUDIT_VERSION,
+                     incomplete_profiles=len(audits),
                      orphaned_seconds=orphaned_seconds,
                      unknown_seconds=sum(row["end_s"]-row["start_s"] for row in rows if row["status"] == "unknown" and not row["overlap_refused_s"]))
         processing["psycon_matching"] = state
@@ -1485,10 +1494,16 @@ class GroupObservationService:
             psycon.mark_playback_overlap(rows)
             profiles = psycon.make_profiles(samples, rows, boxes, result.exclusive_turns,
                                             embedder=embedder)
+            audits = psycon.audit_incomplete_profiles(rows, profiles)
+            for profile in profiles:
+                audit = next((item for item in audits if item["slot_number"] == profile["slot_number"]), None)
+                if audit:
+                    profile["metrics"]["candidate_audit"] = audit
             for row in rows + profiles:
                 row["group_session_id"] = session_id
             self.store.replace_voice_analysis(session_id, rows, profiles, "psycon")
             state("complete", ready_voices=sum(profile["status"] == "ready" for profile in profiles),
+                  audit_version=psycon.AUDIT_VERSION, incomplete_profiles=len(audits),
                   mapping=mapping, recovered_turns=recovered,
                   review_candidates=review_candidates,
                   orphaned_seconds=orphaned_seconds,
