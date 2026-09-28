@@ -73,7 +73,7 @@
     player.src = `/api/v1/group-sessions/${sessionId}/face-voices/${person.slot_number}/audio?method=${state.method}`;
     const label = person.label || `participant ${person.slot_number}`;
     player.setAttribute("aria-label", assigned ?
-      `Speech assigned to ${label}${state.method === "psycon" && person.mixed_overlap_seconds > 0 ? "; overlap contains other voices" : ""}` :
+      `${state.method === "psycon" ? "Model-attributed" : "Assigned"} speech for ${label}${state.method === "psycon" && person.mixed_overlap_seconds > 0 ? "; overlap contains other voices" : ""}` :
       `Tentative speech excerpt for ${label}`);
     const stop = () => { player.pause(); if (state.speechStop === stop) state.speechStop = null; };
     player.addEventListener("play", () => {
@@ -94,8 +94,10 @@
     header.append(title);
     const voice = person.voice;
     const tentative = voice?.metrics?.tentative;
-    const status = voice?.status === "ready" ? "Voice ready" :
+    const status = voice?.status === "ready" ?
+      (state.method === "psycon" ? "Model-supported voice" : "Voice ready") :
       tentative ? "Tentative voice measures" :
+      voice?.status === "incomplete" ? "Incomplete voice profile" :
       voice?.status === "insufficient_speech" ? "Insufficient speech" :
       processing.status === "failed" ? "Voice analysis failed" :
       processing.status === "not_analyzed" ? "Reprocessing required" :
@@ -110,7 +112,7 @@
         state.method === "nvidia" || voice?.status === "ready" || person.playback_seconds > 0);
     }
     const metrics = make("div", "voice-metrics");
-    addMetric(metrics, tentative ? "Confirmed speech" : "Usable speech", fixed(voice?.usable_seconds), " s");
+    addMetric(metrics, tentative ? "Clean assigned speech" : "Usable speech", fixed(voice?.usable_seconds), " s");
     if (state.method === "psycon" && person.playback_seconds > 0) {
       addMetric(metrics, "Playback", fixed(person.playback_seconds), " s");
       if (person.mixed_overlap_seconds > 0) addMetric(metrics, "Mixed overlap included", fixed(person.mixed_overlap_seconds), " s");
@@ -167,7 +169,7 @@
     const tentative = people.filter((person) => person.voice?.metrics?.tentative).length;
     byId("voice-status").textContent = ({
       pending: "Voice analysis queued", running: "Voice analysis running",
-      complete: `${ready} confirmed · ${tentative} tentative / ${people.length} voices`,
+      complete: `${ready} ${state.method === "psycon" ? "model-supported" : "ready"} · ${tentative} tentative / ${people.length} voices`,
       failed: "Voice analysis failed", unavailable: "Voice analysis unavailable",
       not_analyzed: "Voice analysis not run",
     })[processing.status] || "Voice analysis pending";

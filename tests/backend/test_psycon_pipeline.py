@@ -58,6 +58,52 @@ def test_anonymous_turns_overlap_quality_and_short_speech() -> None:
     assert all(row["cluster_label"] != "speaker_02" for row in rows if not row["overlap_refused_s"])
 
 
+def test_unattributed_and_overlap_audio_stay_out_of_acoustic_profiles() -> None:
+    rows = psycon.clean_windows([SpeakerTurn(0, 4, "A"),
+                                SpeakerTurn(2, 3, "B")], 4)
+    clean = next(row for row in rows if row["cluster_label"] == "A")
+    clean["status"] = "unknown"
+    orphaned = psycon.mark_speech_disposition(rows, [])
+    assert orphaned > 0
+    assert clean["evidence"]["speech_disposition"] == "unattributed_audio"
+    assert clean["evidence"]["eligible_for_transcription"] is True
+    assert clean["evidence"]["eligible_for_acoustic_profile"] is False
+    mixed = next(row for row in rows if row["overlap_refused_s"])
+    assert mixed["evidence"]["speech_disposition"] == "overlap_audio"
+    assert mixed["evidence"]["eligible_for_acoustic_profile"] is False
+
+
+def test_psycon_embedding_failure_leaves_incomplete_null_profile() -> None:
+    samples = (1000*np.sin(2*np.pi*180*np.arange(5*16000)/16000)).astype(np.int16)
+    rows = psycon.clean_windows([SpeakerTurn(0, 5, "A")], 5)
+    rows[0].update(status="assigned", slot_number=1)
+    class FailedEmbedder:
+        engine_name = "failed-speaker-model"
+        def embed(self, *_):
+            raise RuntimeError("embedding failed")
+    class NoSpeechTranscriber:
+        def transcribe(self, *_):
+            return TranscriptionResult(TranscriptionStatus.NO_SPEECH, "", None, 0., 0., (),
+                                       "fake-whisper")
+    profile = psycon.make_profiles(samples, rows, [{"slot_number": 1}], [],
+                                   embedder=FailedEmbedder(),
+                                   transcriber=NoSpeechTranscriber())[0]
+    assert profile["status"] == "incomplete"
+    assert profile["embedding"] is None
+    assert profile["vector"] is None
+    assert profile["metrics"]["quality_gate"]["reason"] == "speaker_embedding_unavailable"
+    assert psycon.training_vector([0.]*80, profile) is None
+    class WrongShapeEmbedder:
+        engine_name = "wrong-shape"
+        def embed(self, *_):
+            return np.array([1., 0.])
+    wrong_shape = psycon.make_profiles(samples, rows, [{"slot_number": 1}], [],
+                                       embedder=WrongShapeEmbedder(),
+                                       transcriber=NoSpeechTranscriber())[0]
+    assert wrong_shape["status"] == "incomplete"
+    assert wrong_shape["embedding"] is None
+
+
 def test_playback_includes_original_mixed_overlap_without_training_on_it() -> None:
     turns = [SpeakerTurn(0, 2, "A"), SpeakerTurn(1, 3, "B"),
              SpeakerTurn(4, 6, "A"), SpeakerTurn(7, 9, "B")]
@@ -458,7 +504,7 @@ def test_fake_worker_persists_profiles_and_playback(monkeypatch) -> None:
         engine_name = "fake-speechbrain"
         verification_threshold = .55
         def __init__(self, **_): pass
-        def embed(self, *_): return np.array([1., 0.])
+        def embed(self, *_): return np.ones(psycon.EMBEDDING_SIZE)
     class Transcriber:
         engine_name = "fake-whisper"
         def __init__(self, **_): pass

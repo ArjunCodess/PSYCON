@@ -18,8 +18,9 @@ from ml.src.audio import analyze_pcm16
 from .voice import build_profiles, training_feature
 
 
-MATCHING_VERSION = "psycon-community1-face-5"
+MATCHING_VERSION = "psycon-community1-face-6"
 FEATURE_SCHEMA = "psycon-face-voice-2"
+EMBEDDING_SIZE = 192
 MODEL_REVISION = os.getenv("PSYCON_COMMUNITY1_REVISION", "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee")
 BOUNDARY_GUARD_S = 0.12
 MIN_WINDOW_S = 0.3
@@ -94,6 +95,17 @@ def _similar(left, right, threshold):
     denominator = np.linalg.norm(a) * np.linalg.norm(b)
     return bool(np.isfinite(denominator) and denominator > 0 and
                 float(np.dot(a, b) / denominator) >= threshold)
+
+
+def _valid_profile_embedding(value):
+    try:
+        vector = np.asarray(value, dtype=float)
+    except (TypeError, ValueError):
+        return False
+    if vector.shape != (EMBEDDING_SIZE,) or not np.all(np.isfinite(vector)):
+        return False
+    norm = float(np.linalg.norm(vector))
+    return bool(np.isfinite(norm) and norm > 0)
 
 
 def _consistent_support(items, embeddings, threshold):
@@ -425,6 +437,37 @@ def mark_review_candidates(rows, observations, slots, *, max_seconds=8.):
     return marked
 
 
+def mark_speech_disposition(rows, observations):
+    """Keep unresolved audio available without making it a voice feature."""
+    by_row = defaultdict(list)
+    for item in observations:
+        by_row[item.get("source_segment_id")].append(item)
+    orphaned = 0.
+    for row in rows:
+        evidence = row.setdefault("evidence", {})
+        evidence.pop("orphan_reason", None)
+        if row.get("overlap_refused_s"):
+            disposition = "overlap_audio"
+        elif row.get("status") != "assigned":
+            disposition = "unattributed_audio"
+            orphaned += row["end_s"] - row["start_s"]
+            visible = by_row[row["id"]] or evidence.get("visual_observations", [])
+            if not visible:
+                evidence["orphan_reason"] = "no_active_speaker_observation"
+            elif not any(item.get("face_identity_verified") for item in visible):
+                evidence["orphan_reason"] = "face_not_verified"
+            else:
+                evidence["orphan_reason"] = "identity_or_voice_unresolved"
+        elif evidence.get("training_eligible", True) is False:
+            disposition = "playback_only"
+        else:
+            disposition = "acoustic_profile_candidate"
+        evidence["speech_disposition"] = disposition
+        evidence["eligible_for_acoustic_profile"] = disposition == "acoustic_profile_candidate"
+        evidence["eligible_for_transcription"] = True
+    return round(orphaned, 2)
+
+
 def playback_intervals(rows, slot_number):
     """Return source PCM spans, including mixed overlap for a securely linked cluster.
 
@@ -507,6 +550,24 @@ def make_profiles(samples, rows, boxes, exclusive_turns, *, embedder=None, trans
         profile["metrics"]["matching_version"] = MATCHING_VERSION
         profile["metrics"]["feature_schema"] = FEATURE_SCHEMA
         profile["metrics"]["sustained_vowel"] = not_supplied_sustained_vowel()
+        clean_seconds = float(profile["usable_seconds"])
+        if profile["status"] != "ready":
+            profile["metrics"]["quality_gate"] = {
+                "status": "incomplete", "reason": "insufficient_isolated_speech",
+                "clean_seconds": clean_seconds, "required_seconds": 3.0}
+            profile["vector"] = None
+            profile["embedding"] = None
+        elif not _valid_profile_embedding(profile.get("embedding")):
+            profile["status"] = "incomplete"
+            profile["vector"] = None
+            profile["embedding"] = None
+            profile["metrics"]["quality_gate"] = {
+                "status": "incomplete", "reason": "speaker_embedding_unavailable",
+                "clean_seconds": clean_seconds, "required_seconds": 3.0}
+        else:
+            profile["metrics"]["quality_gate"] = {
+                "status": "model_supported", "reason": "isolated_speech_and_voice_embedding",
+                "clean_seconds": clean_seconds, "required_seconds": 3.0}
         slot = profile["slot_number"]
         audio, intervals = assigned_audio_for_slot(samples, 16000, rows, slot)
         if not len(audio):
@@ -597,6 +658,8 @@ def active_observations(rows, boxes, video, samples, *, detector=None, windows=N
 
 
 def training_vector(face, profile):
-    if (profile.get("metrics") or {}).get("feature_schema") != FEATURE_SCHEMA:
+    if ((profile.get("metrics") or {}).get("feature_schema") != FEATURE_SCHEMA or
+            not _valid_profile_embedding(profile.get("embedding")) or
+            (profile.get("metrics") or {}).get("quality_gate", {}).get("status") != "model_supported"):
         return None
     return training_feature(face, profile)

@@ -44,6 +44,8 @@ for item in items:
             samples = np.frombuffer(source.readframes(source.getnframes()), dtype='<i2').copy()
         count = psycon.mark_review_candidates(recovered['rows'], original['observations'],
                                               set(range(1, item['detected_faces']+1)))
+        recovered['summary']['orphaned_seconds'] = psycon.mark_speech_disposition(
+            recovered['rows'], original['observations'])
         for profile in recovered['profiles']:
             if profile['status'] != 'ready':
                 tentative = _tentative_measures(samples, 16000, recovered['rows'],
@@ -71,6 +73,7 @@ for item in items:
     mapping = psycon.link_faces(rows, observations, embeddings, slots)
     recovered = psycon.recover_supported_faces(rows, observations, embeddings, slots)
     review_candidates = psycon.mark_review_candidates(rows, observations, slots)
+    orphaned_seconds = psycon.mark_speech_disposition(rows, observations)
     psycon.mark_playback_overlap(rows)
     turns = [SpeakerTurn(float(turn['start_s']), float(turn['end_s']),
                          str(turn['speaker_id']))
@@ -80,6 +83,7 @@ for item in items:
                'matching_version': psycon.MATCHING_VERSION,
                'replay_source': 'pinned community1 talknet speechbrain model outputs',
                'recovered_turns': recovered, 'review_candidates': review_candidates,
+               'orphaned_seconds': orphaned_seconds,
                'mapping': mapping,
                'visible_faces': item['detected_faces'],
                'ready_profiles': sum(p['status'] == 'ready' for p in profiles),

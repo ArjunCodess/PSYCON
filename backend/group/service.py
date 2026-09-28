@@ -542,6 +542,7 @@ class GroupObservationService:
                 row.update(status="assigned", slot_number=slot, confidence=1.)
                 row["evidence"].update(reason="reviewer_identity_propagated",
                                        source_segments=[item["id"] for item in confirmed])
+        orphaned_seconds = psycon.mark_speech_disposition(rows, [])
         psycon.mark_playback_overlap(rows)
         source = self.storage.get(recording["audio_object_key"])
         with wave.open(io.BytesIO(source), "rb") as handle:
@@ -553,6 +554,7 @@ class GroupObservationService:
             row["group_session_id"] = session_id
         self.store.replace_voice_analysis(session_id, rows, profiles, "psycon")
         state.update(ready_voices=sum(row["status"] == "ready" for row in profiles),
+                     orphaned_seconds=orphaned_seconds,
                      unknown_seconds=sum(row["end_s"]-row["start_s"] for row in rows if row["status"] == "unknown" and not row["overlap_refused_s"]))
         processing["psycon_matching"] = state
         self.store.update_recording(session_id, processing=processing)
@@ -1479,6 +1481,7 @@ class GroupObservationService:
                 rows, observations, embeddings, {int(box["slot_number"]) for box in boxes})
             review_candidates = psycon.mark_review_candidates(
                 rows, observations, {int(box["slot_number"]) for box in boxes})
+            orphaned_seconds = psycon.mark_speech_disposition(rows, observations)
             psycon.mark_playback_overlap(rows)
             profiles = psycon.make_profiles(samples, rows, boxes, result.exclusive_turns,
                                             embedder=embedder)
@@ -1488,6 +1491,7 @@ class GroupObservationService:
             state("complete", ready_voices=sum(profile["status"] == "ready" for profile in profiles),
                   mapping=mapping, recovered_turns=recovered,
                   review_candidates=review_candidates,
+                  orphaned_seconds=orphaned_seconds,
                   regular_turns=[turn.to_dict() for turn in result.regular_turns],
                   exclusive_turns=[turn.to_dict() for turn in result.exclusive_turns],
                   audio_quality_windows=quality_windows,

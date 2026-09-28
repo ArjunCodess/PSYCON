@@ -396,8 +396,10 @@ def test_training_requires_ready_voice_for_the_same_session_and_slot() -> None:
              "metrics": {}},
         ], "nvidia")
         store.replace_voice_analysis(session, [], [
-            {"group_session_id": session, "slot_number": 1, "status": "ready", "usable_seconds": 3.5, "vector": [0.1] * 32,
+            {"group_session_id": session, "slot_number": 1, "status": "ready", "usable_seconds": 3.5,
+             "vector": [0.1] * 32, "embedding": [0.1] * 192,
              "metrics": {"matching_version": psycon.MATCHING_VERSION, "feature_schema": psycon.FEATURE_SCHEMA,
+                         "quality_gate": {"status": "model_supported"},
                          **{name: 1.0 for name in SCALAR_NAMES}}},
             {"group_session_id": session, "slot_number": 2, "status": "insufficient_speech", "usable_seconds": 1.0,
              "vector": None, "metrics": {}},
@@ -409,8 +411,10 @@ def test_training_requires_ready_voice_for_the_same_session_and_slot() -> None:
     for index in range(5):
         session = f"s{index}"
         store.replace_voice_analysis(session, [], [
-            {"group_session_id": session, "slot_number": slot, "status": "ready", "usable_seconds": 3.5, "vector": [float(slot)] * 32,
+            {"group_session_id": session, "slot_number": slot, "status": "ready", "usable_seconds": 3.5,
+             "vector": [float(slot)] * 32, "embedding": [float(slot)] * 192,
              "metrics": {"matching_version": psycon.MATCHING_VERSION, "feature_schema": psycon.FEATURE_SCHEMA,
+                         "quality_gate": {"status": "model_supported"},
                          **{name: float(slot) for name in SCALAR_NAMES}}} for slot in (1, 2)
         ], "psycon")
     fitted = service.train_faces(actor)
