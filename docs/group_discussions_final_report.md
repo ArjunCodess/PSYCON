@@ -1,6 +1,17 @@
 # Final report: voice profiles from the group discussions
 
+[Read the illustrated PDF](../output/pdf/group_discussions_final_report.pdf) or [edit the LaTeX source](group_discussions_final_report.tex).
+
+![Marked faces across the 11 recordings](report_assets/marked-contact-sheet.jpg)
+
 We processed all 11 recordings in `group_discussions/`. Their marked frames show 85 numbered people in total: eight recordings show eight faces, and three show seven. We tested the original method, the NVIDIA method, and two passes of PSYCON on the same video and audio. A profile is **model-supported** when the code can link speech to a numbered face and collect at least three usable seconds with a valid voice embedding. That label does not mean a person checked every speaker assignment in the original video.
+
+## How we did it
+
+1. We made shared 16 kHz audio from each video and numbered the visible faces.
+2. Community-1 found anonymous speaker turns and times when people spoke together.
+3. TalkNet checked the visible speaker. SpeechBrain checked whether the voice stayed consistent across separate turns. The guarded second pass recovered more links when these checks agreed.
+4. We kept only clean, single-speaker audio for the voice profile. Playback clips came from the original audio, and word transcripts and other available measurements stayed with the profile.
 
 | Method | Profiles produced out of 85 |
 | --- | ---: |
@@ -10,6 +21,8 @@ We processed all 11 recordings in `group_discussions/`. Their marked frames show
 | Guarded PSYCON recovery | **57** |
 
 The guarded recovery found 12 more profiles than the first PSYCON pass. It used repeated face and voice evidence from separate turns. We tested lower thresholds, including 0.42, but that alone did not improve the result safely and produced conflicts in the available checks. The original and NVIDIA results remain separate for comparison. Training uses only current, ready PSYCON profiles; incomplete profiles have null voice vectors.
+
+![Profiles by recording, including guarded recovery](report_assets/psycon-recovery-comparison.png)
 
 | Recording | Numbered faces | Original | NVIDIA | First PSYCON | Recovered PSYCON |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -24,6 +37,8 @@ The guarded recovery found 12 more profiles than the first PSYCON pass. It used 
 | WhatsApp Video 2026-09-27 at 1.16.36 PM.mp4 | 7 | 3 | 0 | 3 | 6 |
 | WhatsApp Video 2026-09-27 at 10.19.02 AM.mp4 | 8 | 2 | 1 | 5 | 5 |
 | WhatsApp Video 2026-09-27 at 10.19.44 AM.mp4 | 8 | 5 | 3 | 8 | 8 |
+
+![Original three-method comparison before PSYCON recovery](report_assets/method-comparison.png)
 
 **What we recovered.** The code generated 76 PSYCON playback or review audio clips directly from the shared source audio. Of these, 16 are tentative review clips; they let a person inspect a possible speaker without treating that voice as confirmed. The original audio can appear in playback even when people speak over one another. Overlapping speech is excluded from acoustic profiles, because a mixed recording cannot provide a clean measurement of one person's voice.
 
