@@ -1,0 +1,9 @@
+# PSYCON strict quality gate
+
+The PSYCON matching revision `psycon-community1-face-6` keeps every detected speech interval in the saved timeline, but only assigned, isolated, quality-accepted PCM can supply acoustic features. Detected overlap, uncertain boundaries, and failed audio-quality windows cannot be promoted by playback, transcription, or a tentative face observation.
+
+A numbered profile becomes `ready` only after at least three usable seconds and a valid SpeechBrain speaker embedding. Its `metrics.quality_gate.status` is `model_supported`: the matching evidence is recorded, but this is not a human-validated identity. If there is too little clean speech, the existing `insufficient_speech` status remains and the quality gate says `incomplete`. If embedding extraction fails, the status is `incomplete`. Both incomplete cases have null acoustic and speaker vectors, so PSYCON training cannot read them.
+
+Every unresolved clean interval is marked `unattributed_audio`; detected overlap is marked `overlap_audio`. Both remain tied to the original PCM and eligible for transcript work, while `eligible_for_acoustic_profile` is false. An unknown interval with no active-speaker observation is recorded as such; the system does not call it an occluded face without a verified body track. Reviewer playback remains tentative and does not enter training.
+
+The 57 profiles in the current 11-recording replay are model-supported candidates. The ten recordings without sampled original-video review still have no human speaker-by-word labels. SepFormer transcription and body/pose tracking are not part of this revision: neither has been validated on these recordings, and a separated waveform must never be counted as clean acoustic-profile speech. The source [recovery report](psycon_recovery_report.md) retains the per-recording comparison and review artifacts.
