@@ -29,7 +29,7 @@ def build(root: Path = Path("instance/group_batch")) -> list[dict]:
         quality_path = folder / "psycon-quality.json"
         quality = json.loads(quality_path.read_text()) if quality_path.exists() else []
         rejected_quality = sum(float(window["end_s"])-float(window["start_s"])
-                               for window in quality if window["status"] == "rejected")
+                               for window in quality if window["status"] not in {"accepted", "usable", "complete"})
         recording_rows.append({
             "file": recording["file"], "marked": recording["detected_faces"],
             "ready": detail["summary"]["ready_profiles"], "incomplete": len(audits),
@@ -70,12 +70,12 @@ def build(root: Path = Path("instance/group_batch")) -> list[dict]:
         f"The current quality gate retains {ready} model-supported profiles and {len(matrix)} incomplete profiles across {marked} marked slots in {len(recording_rows)} recordings. The incomplete vectors remain null. This audit ranks evidence for inspection only; it does not change identity assignments or training eligibility.", "",
         f"Of the {len(matrix)} incomplete slots, {zero_clean} have zero assigned clean seconds, {visual_candidates} have tentative TalkNet review candidates, and {no_candidates} have none. Anonymous speech cannot establish whether any particular participant spoke for fewer than three isolated seconds or was occluded. The physical cause is therefore `undetermined` without independent review.", "",
         "The taxonomy also records `insufficient_anchored_speech` when a slot has some assigned clean speech below three seconds, and `embedding_rejected` when assigned clean speech passes that duration but its embedding fails validation. Neither mode occurred in this batch. These labels describe evidence at the gate, not a diagnosis of the microphone or camera.", "",
-        "| Recording | Marked | Ready | Incomplete | Unknown speech s | Overlap s | Rejected quality window s |",
+        "| Recording | Marked | Ready | Incomplete | Unknown speech s | Overlap s | Nonusable audio window s |",
         "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for row in recording_rows:
         lines.append(f"| {row['file']} | {row['marked']} | {row['ready']} | {row['incomplete']} | {row['unknown_s']:.2f} | {row['overlap_s']:.2f} | {row['rejected_quality_s']:.2f} |")
-    lines.extend(["", f"Recording-level totals: {unknown:.2f} s unknown, {overlap:.2f} s detected overlap, and {rejected:.2f} s rejected audio-quality windows. These measures can overlap in time and must not be added as disjoint losses.", "",
+    lines.extend(["", f"Recording-level totals: {unknown:.2f} s unknown, {overlap:.2f} s detected overlap, and {rejected:.2f} s nonusable audio windows. Nonusable windows include insufficient audio and may include silence. These measures can overlap in time and must not be added as disjoint losses.", "",
         "Tentative TalkNet scores and their competing scores appear with source intervals in [`psycon-audit-matrix.json`](../instance/group_batch/psycon-audit-matrix.json). A candidate is a place to inspect the original video, not a confirmed speaker. TS-VAD, separation, and cross-session similarity were not run and are recorded as such. The ranked queue is sorted by candidate count, review seconds, and strongest score margin; those values do not certify identity.", "",
         f"The capture implications are recording-level inferences: detected overlap suggests that closer or separate microphones could provide more isolated speech, while missing visual candidates suggest improved camera coverage may help anchor it. The current recordings do not prove which change would resolve any individual null slot. {sum(row['marked'] == 7 for row in recording_rows)} recordings have only seven marked faces, so an eighth speaker cannot acquire a numbered face profile from those markings alone.", ""])
     Path("docs/psycon_rejection_audit.md").write_text("\n".join(lines))
