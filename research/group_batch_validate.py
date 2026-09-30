@@ -2,12 +2,17 @@
 from __future__ import annotations
 
 import json
+import hashlib
+import math
 import wave
 from pathlib import Path
 
+import numpy as np
+
 
 ROOT = Path('instance/group_batch')
-METHODS = ('existing', 'nvidia', 'psycon', 'psycon-recovered')
+METHODS = ('existing', 'nvidia', 'psycon', 'psycon-recovered',
+           'nemotron-offline', 'nemotron-streaming-guarded')
 inventory = json.loads((ROOT / 'inventory.json').read_text())
 errors = []
 complete = 0
@@ -50,6 +55,22 @@ for item in inventory:
             errors.append(f'{stem}/{method}: detail missing')
             continue
         detail = json.loads(detail_path.read_text())
+        if method.startswith('nemotron-'):
+            check(summary.get('pcm_sha256') == hashlib.sha256(pcm.read_bytes()).hexdigest(),
+                  f'{stem}/{method}: shared PCM changed since inference')
+        if method == 'nemotron-offline':
+            probability_path = folder / 'nemotron-offline-probabilities.npz'
+            check(probability_path.exists(), f'{stem}/{method}: raw probabilities missing')
+            if probability_path.exists():
+                with np.load(probability_path) as saved:
+                    probabilities = saved['probabilities']
+                check(probabilities.ndim == 2 and probabilities.shape[1] == 8,
+                      f'{stem}/{method}: raw channel shape')
+                check(np.isfinite(probabilities).all() and
+                      np.all((probabilities >= 0) & (probabilities <= 1)),
+                      f'{stem}/{method}: invalid activity probabilities')
+                check(abs(len(probabilities)*.01-duration) <= .021,
+                      f'{stem}/{method}: raw activity clock differs from PCM')
         check(len(detail['profiles']) == item['detected_faces'],
               f'{stem}/{method}: profile count differs from marked faces')
         check(sum(profile['status'] == 'ready' for profile in detail['profiles']) ==
@@ -60,6 +81,17 @@ for item in inventory:
             if profile['status'] == 'ready':
                 check(profile['usable_seconds'] >= 3,
                       f'{stem}/{method}: ready profile under speech gate')
+            if method.startswith('nemotron-'):
+                metrics = profile.get('metrics') or {}
+                check(metrics.get('benchmark_only') is True,
+                      f'{stem}/{method}: benchmark profile missing source guard')
+                check(metrics.get('feature_schema') == 'nemotron-benchmark-face-voice-1',
+                      f'{stem}/{method}: benchmark schema mixed with PSYCON')
+                if profile['status'] == 'ready':
+                    embedding = profile.get('embedding') or []
+                    check(len(embedding) == 192 and all(math.isfinite(value) for value in embedding)
+                          and sum(value*value for value in embedding) > 0,
+                          f'{stem}/{method}: ready profile missing valid voice shape')
         for row in detail['rows']:
             check(0 <= row['start_s'] < row['end_s'] <= duration + .2,
                   f'{stem}/{method}: row outside PCM')
@@ -67,7 +99,7 @@ for item in inventory:
             if slot is not None:
                 check(1 <= slot <= item['detected_faces'],
                       f'{stem}/{method}: row slot out of range')
-            if method in ('psycon', 'psycon-recovered') and row.get('overlap_refused_s'):
+            if method in ('psycon', 'psycon-recovered', 'nemotron-offline', 'nemotron-streaming-guarded') and row.get('overlap_refused_s'):
                 check(row['status'] != 'assigned',
                       f'{stem}/{method}: overlap admitted to clean rows')
     manifest_path = folder / 'playback/manifest.json'

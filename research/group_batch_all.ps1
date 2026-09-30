@@ -26,3 +26,4 @@ foreach ($item in $inventory) {
         Write-Output "EXIT $($item.file) $method $LASTEXITCODE"
     }
 }
+& (Join-Path $PSScriptRoot 'nemotron_group_all.ps1')

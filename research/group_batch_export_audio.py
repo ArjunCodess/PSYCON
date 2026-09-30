@@ -46,7 +46,8 @@ for item in items:
     output = folder / 'playback'
     output.mkdir(exist_ok=True)
     manifest = []
-    for method in ('existing', 'nvidia', 'psycon', 'psycon-recovered'):
+    for method in ('existing', 'nvidia', 'psycon', 'psycon-recovered',
+                   'nemotron-offline', 'nemotron-streaming-guarded'):
         detail_path = folder / f'{method}-detail.json'
         if not detail_path.exists():
             continue
@@ -59,7 +60,7 @@ for item in items:
         for profile in detail['profiles']:
             slot = int(profile['slot_number'])
             review_only = False
-            if method in ('psycon', 'psycon-recovered'):
+            if method in ('psycon', 'psycon-recovered', 'nemotron-offline', 'nemotron-streaming-guarded'):
                 audio, intervals, mixed = psycon.playback_audio_for_slot(samples, rows, slot)
                 if not len(audio):
                     audio = review_audio_for_slot(samples, 16000, rows, slot)
