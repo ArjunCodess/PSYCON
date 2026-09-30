@@ -14,6 +14,49 @@ MATCHING_VERSION = "nemotron-face-voice-2"
 MAX_SPEAKERS = 8
 BOUNDARY_GUARD_S = 0.15
 MIN_CLEAN_S = 0.3
+OFFLINE_ENGINE = "nemotron-3-diarization/transformers-offline-v1"
+OFFLINE_CONFIG = {"speaker_cache_length": 264, "fifo_length": 40,
+                  "chunk_length": 340, "chunk_right_context": 40,
+                  "speaker_cache_update_period": 300}
+
+
+def offline_logits(samples: np.ndarray, sample_rate: int, *, processor=None, model=None):
+    """Use NVIDIA's offline preset with one cache across the whole recording.
+
+    The pinned Transformers forward splits the recording internally into
+    27.2-second chunks, with 3.2 seconds of lookahead. It retains the arrival-
+    order speaker cache between those chunks, as the NeMo reference does.
+    """
+    if sample_rate != 16000 or samples.ndim != 1:
+        raise ValueError("nemotron_requires_16khz_mono_pcm")
+    if not len(samples):
+        raise ValueError("nemotron_empty_pcm")
+    import torch
+    if processor is None or model is None:
+        from transformers import AutoModelForAudioFrameClassification, AutoProcessor
+        if not torch.cuda.is_available():
+            raise RuntimeError("nemotron_cuda_unavailable")
+        processor = AutoProcessor.from_pretrained(MODEL_ID, revision=MODEL_REVISION)
+        model = AutoModelForAudioFrameClassification.from_pretrained(
+            MODEL_ID, revision=MODEL_REVISION).to("cuda").eval()
+    for key, value in OFFLINE_CONFIG.items():
+        if key == "speaker_cache_length":
+            model.config.streaming_config.speaker_cache_length = value
+        else:
+            setattr(model.config, key, value)
+    audio = np.asarray(samples, dtype=np.float32) / 32768.0
+    inputs = processor(audio, sampling_rate=16000).to(model.device, dtype=model.dtype)
+    with torch.inference_mode():
+        # Passing neither speaker_cache nor lookahead selects the offline loop.
+        probabilities = torch.sigmoid(model(**inputs).logits).detach().cpu().numpy()
+    if (probabilities.ndim != 3 or probabilities.shape[0] != 1 or
+            probabilities.shape[2] != MAX_SPEAKERS or not np.isfinite(probabilities).all()):
+        raise RuntimeError("nemotron_unexpected_output_shape")
+    expected_frames = int(np.ceil(len(samples)/160))
+    if abs(probabilities.shape[1]-expected_frames) > 2:
+        raise RuntimeError("nemotron_output_timing_mismatch")
+    # Preserve the model's 10 ms clock. Never stretch frames to the file duration.
+    return probabilities[0, :expected_frames]
 
 
 def streaming_logits(samples: np.ndarray, sample_rate: int, *, processor=None, model=None):

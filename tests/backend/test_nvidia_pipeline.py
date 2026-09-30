@@ -15,6 +15,37 @@ from backend.group.voice import assigned_audio_for_slot
 from tests.backend.test_group_workflow import MemoryStorage
 
 
+def test_offline_preset_uses_whole_recording_and_fixed_frame_clock():
+    class Inputs(dict):
+        def to(self, *_args, **_kwargs):
+            return self
+    class Processor:
+        def __call__(self, audio, **kwargs):
+            assert kwargs == {"sampling_rate": 16000}
+            assert len(audio) == 32000
+            return Inputs(audio=audio)
+    class Model:
+        device = "cpu"
+        dtype = torch.float32
+        config = SimpleNamespace(streaming_config=SimpleNamespace())
+        def __call__(self, *, audio):
+            assert self.config.chunk_length == 340
+            assert self.config.chunk_right_context == 40
+            assert self.config.fifo_length == 40
+            assert self.config.speaker_cache_update_period == 300
+            assert self.config.streaming_config.speaker_cache_length == 264
+            return SimpleNamespace(logits=torch.zeros((1, 201, 8)))
+    result = nvidia.offline_logits(np.zeros(32000, dtype=np.int16), 16000,
+                                   processor=Processor(), model=Model())
+    assert result.shape == (200, 8)
+    class BadTiming(Model):
+        def __call__(self, *, audio):
+            return SimpleNamespace(logits=torch.zeros((1, 100, 8)))
+    with pytest.raises(RuntimeError, match="timing_mismatch"):
+        nvidia.offline_logits(np.zeros(32000, dtype=np.int16), 16000,
+                             processor=Processor(), model=BadTiming())
+
+
 def test_streaming_cache_continues_across_chunks() -> None:
     class Inputs(dict):
         def to(self, *_args, **_kwargs):
