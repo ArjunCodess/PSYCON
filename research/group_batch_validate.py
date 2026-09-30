@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import csv
 import hashlib
 import math
 import wave
@@ -18,6 +19,7 @@ errors = []
 complete = 0
 failed = []
 clips = 0
+expected_profile_rows = 0
 
 
 def check(condition, message):
@@ -55,6 +57,7 @@ for item in inventory:
             errors.append(f'{stem}/{method}: detail missing')
             continue
         detail = json.loads(detail_path.read_text())
+        expected_profile_rows += item['detected_faces']
         if method.startswith('nemotron-'):
             check(summary.get('pcm_sha256') == hashlib.sha256(pcm.read_bytes()).hexdigest(),
                   f'{stem}/{method}: shared PCM changed since inference')
@@ -127,6 +130,20 @@ check((ROOT / 'marked-contact-sheet.jpg').exists(), 'contact sheet missing')
 check((ROOT / 'method-comparison.png').exists(), 'comparison chart missing')
 for filename in ('comparison.csv', 'profiles.csv', 'segments.csv'):
     check((ROOT / filename).exists(), f'{filename} missing')
+comparison_path = ROOT / 'comparison.csv'
+if comparison_path.exists():
+    with comparison_path.open(newline='') as source:
+        comparison = list(csv.DictReader(source))
+    expected_pairs = {(item['file'], method) for item in inventory for method in METHODS}
+    check(len(comparison) == len(expected_pairs) and
+          {(row['recording'], row['method']) for row in comparison} == expected_pairs,
+          'comparison.csv must retain every recording and method')
+profiles_path = ROOT / 'profiles.csv'
+if profiles_path.exists():
+    with profiles_path.open(newline='') as source:
+        profile_rows = list(csv.DictReader(source))
+    check(len(profile_rows) == expected_profile_rows,
+          'profiles.csv count differs from completed method outputs')
 result = {'recordings': len(inventory), 'expected_method_runs': len(inventory)*len(METHODS),
           'complete_method_runs': complete, 'failed_method_runs': failed,
           'generated_clips': clips, 'errors': errors}
