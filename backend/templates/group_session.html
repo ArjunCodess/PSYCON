@@ -18,7 +18,7 @@
         <span class="brand-mark" aria-hidden="true"></span>
         <span>PSYCON / SESSION CONSOLE</span>
       </a>
-      <span class="local-label">LOCAL RESEARCH WORKSPACE</span>
+      <span class="local-label">{{ 'RESEARCH WORKSPACE' if require_group_login else 'LOCAL RESEARCH WORKSPACE' }}</span>
     </header>
 
     <details class="unknown-voice" id="group-access" {% if require_group_login %}open{% endif %}>
@@ -39,6 +39,7 @@
       <form id="intake-form" class="stack-form">
         <label class="field-label" for="intake-video">Discussion video</label>
         <input id="intake-video" type="file" accept="video/mp4,video/quicktime,video/webm,video/x-matroska" required>
+        <p class="field-helper">Upload limit: {{ group_upload_limit_mb }} MB. Analysis needs the connected GPU worker.</p>
         <button class="analyze-button" type="submit"><span>Submit recording</span><span aria-hidden="true">→</span></button>
       </form>
     </section>

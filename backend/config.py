@@ -39,7 +39,10 @@ class Settings:
             key: os.getenv(f"PSYCON_{key.upper()}", default)
             for key, default in defaults.items()
         }
-        settings = cls(**values)
+        upload_limit = int(os.getenv("PSYCON_MAX_GROUP_VIDEO_BYTES", str(cls.max_group_video_bytes)))
+        if not 65_576 <= upload_limit <= cls.max_group_video_bytes:
+            raise ValueError("PSYCON_MAX_GROUP_VIDEO_BYTES must be between 65576 and 2147483648")
+        settings = cls(**values, max_group_video_bytes=upload_limit)
         if not testing:
             weak = {
                 defaults["secret_key"],

@@ -73,7 +73,10 @@ def group_role(*roles: str):
 
 @pages.get("/group")
 def group_console():
-    return render_template("group_session.html", require_group_login=_production())
+    settings = current_app.extensions.get("psycon_settings")
+    upload_limit = settings.max_group_video_bytes if settings else 2_147_483_648
+    return render_template("group_session.html", require_group_login=_production(),
+                           group_upload_limit_mb=upload_limit // (1024 * 1024))
 
 
 @group_api.post("/group-auth")
