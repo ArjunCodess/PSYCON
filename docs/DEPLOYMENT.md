@@ -3,16 +3,21 @@
 ## Current hosting
 
 Checked on 1 October 2026 using the open Render and Cloudflare dashboards.
-The existing site is https://psycon.onrender.com. It runs `main` on a free
-CPU instance in Singapore. Its dashboard reached Ready after a cold start.
-The Cloudflare R2 bucket `psycon-research` is private. Keep it private.
+The existing site is https://psycon.onrender.com. Render successfully deployed
+commit `dad6cbc` from `week-5-group-observation` on 1 October 2026.
+The configured source branch remains `main`; a specific-commit deployment was
+used, and automatic deployment was disabled by Render. The PR has not been merged.
+The free CPU instance is in Singapore. The private R2 bucket remains private.
 
-This branch has not been deployed. The free web instance cannot run the CUDA
-analysis worker. Large recordings also need more memory: the current upload
-path reads the whole video into memory and permits files up to 2 GB. Choose a
-web instance with enough memory for the largest recording and concurrent
-uploads before enabling group uploads in production. A ready health endpoint
-does not prove that analysis jobs can finish.
+The live health and readiness endpoints returned 200, with PostgreSQL and
+object storage ready. Anonymous group requests returned 401, and the hosted
+console displayed named-account sign-in and the 32 MB upload limit.
+`PSYCON_RUN_WORKER=false` keeps inference off the small web instance.
+`PSYCON_MAX_GROUP_VIDEO_BYTES=33554432` limits memory use while uploads still
+read the whole file. Larger recordings need a larger web instance or a streaming
+upload implementation. These checks verify web availability, not completed
+hosted analysis. The local GPU worker has not been connected to production;
+that connection is awaiting specific approval for database and recording access.
 
 During the release smoke check, the local Docker runtime stopped all its
 containers while video inference and API checks were running together.
@@ -98,6 +103,10 @@ The previously pinned MinIO container stopped being publicly pullable, so
 checks its SHA-256 before installing it. This older storage build is for local
 development; use private R2 for hosted storage.
 
-No cloud settings, credentials, bucket visibility, or deployed branch were
-changed during the release check. Merge and deploy the reviewed PR only after
-the web memory allocation and GPU worker host have been selected.
+The two nonsecret web settings above were saved in Render, then the tested
+commit was deployed. Credentials and bucket visibility were unchanged.
+The GPU access decision and capacity for larger recordings remain open.
+
+![Successful Render deployment](report_assets/render-deployed.jpg)
+
+![Hosted group console](report_assets/hosted-group.jpg)

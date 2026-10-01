@@ -33,10 +33,13 @@ measured identity accuracy, and these results do not validate psychological pred
 
 ## Deployment
 
-The current Render site still runs `main`; this PR has not been deployed or merged.
-Private R2 storage is configured. Full group deployment needs an NVIDIA worker
-and enough web memory for uploads, which currently read the whole recording.
-The free Render CPU instance cannot provide that full analysis service.
+Render successfully deployed tested commit `dad6cbc` from this branch using a
+specific-commit deployment. The configured branch remains `main`; this PR is
+not merged, and automatic deployment is disabled. Health and readiness returned
+200; anonymous group access returned 401. Private R2 storage is ready.
+The free web instance has a 32 MB upload cap and runs without an analysis worker.
+Connecting this PC's GPU worker to production is awaiting specific access
+approval; larger recordings still need more web capacity or streaming uploads.
 A concurrent local video smoke run was interrupted when Docker stopped all
 containers. It was recovered as an explicit failure, not counted as a completed
 benchmark. The saved 66 comparison runs remain the benchmark evidence.

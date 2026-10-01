@@ -142,9 +142,47 @@
     "interrupted_psycon_failure_visible": true
   },
   "deployment": {
-    "cloud_changed": false,
+    "cloud_changed": true,
     "gpu_host_missing": true,
-    "large_upload_memory_constraint": true
+    "large_upload_memory_constraint": true,
+    "gpu_production_connected": false,
+    "web_commit": "dad6cbc400921c1dcb1d26c77c121d5f5c4f70ba",
+    "web_url": "https://psycon.onrender.com",
+    "render_deploy": "dep-dav8oit9fdbs73d714bg",
+    "status": "live",
+    "configured_branch": "main",
+    "auto_deploy_enabled": false,
+    "environment_changes": {
+      "PSYCON_RUN_WORKER": "false",
+      "PSYCON_MAX_GROUP_VIDEO_BYTES": "33554432"
+    },
+    "live_checks": {
+      "/api/v1/health": {
+        "status": 200,
+        "body": {
+          "service": "psycon-backend",
+          "status": "ok"
+        }
+      },
+      "/api/v1/ready": {
+        "status": 200,
+        "body": {
+          "database": true,
+          "object_storage": true,
+          "status": "ready"
+        }
+      },
+      "/api/v1/group-sessions": {
+        "status": 401,
+        "body": {
+          "error": {
+            "code": "unauthorized",
+            "message": "A named account token is required"
+          },
+          "status": "error"
+        }
+      }
+    }
   },
   "enabled_checks": {
     "host_suite": {
