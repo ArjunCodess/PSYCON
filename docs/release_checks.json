@@ -1,0 +1,149 @@
+{
+  "source": "local_release_checks",
+  "date": "2026-10-01",
+  "python": {
+    "tests": 239,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 6
+  },
+  "api": {
+    "source": "simulated_stack",
+    "recorded_at_utc": "2026-10-01T14:34:49.772025Z",
+    "passed": true,
+    "claim_limit": "This validates the simulated API path and does not pass a physical integration, runtime, electrical, or safety gate.",
+    "export_checks": {
+      "archive_hash_matches": true,
+      "manifest_files_match": true,
+      "manifest_session_matches": true
+    },
+    "scenarios": [
+      {
+        "checks": {
+          "all_chunks_accepted": true,
+          "features_created": true,
+          "inference_recorded": true,
+          "processing_completed": true,
+          "synchronization_recorded": true
+        },
+        "passed": true,
+        "scenario": "normal",
+        "session_id": "7ca78763-2c36-4143-a3ac-19f56faca6ab"
+      },
+      {
+        "checks": {
+          "duplicate_is_idempotent": true,
+          "features_created": true,
+          "inference_recorded": true,
+          "processing_completed": true,
+          "synchronization_recorded": true
+        },
+        "passed": true,
+        "scenario": "duplicate",
+        "session_id": "b0311acd-9532-409a-954e-a0a711c4e4c3"
+      },
+      {
+        "checks": {
+          "corrupt_chunk_rejected": true,
+          "features_created": true,
+          "inference_recorded": true,
+          "processing_completed": true,
+          "synchronization_recorded": true
+        },
+        "passed": true,
+        "scenario": "corrupt",
+        "session_id": "2054c564-204e-4b64-b86f-3ab03ab05de8"
+      },
+      {
+        "checks": {
+          "features_created": true,
+          "inference_recorded": true,
+          "missing_stream_visible": true,
+          "processing_completed": true,
+          "synchronization_recorded": true
+        },
+        "passed": true,
+        "scenario": "missing-audio",
+        "session_id": "7d2b4244-49b0-4510-9ee2-1eafa5018b47"
+      },
+      {
+        "checks": {
+          "features_created": true,
+          "inference_recorded": true,
+          "overrun_reported": true,
+          "processing_completed": true,
+          "synchronization_recorded": true
+        },
+        "passed": true,
+        "scenario": "overrun",
+        "session_id": "b1b3f972-3699-483d-9074-b8a657f087a7"
+      },
+      {
+        "checks": {
+          "features_created": true,
+          "inference_recorded": true,
+          "processing_completed": true,
+          "sensor_failure_isolated": true,
+          "synchronization_recorded": true
+        },
+        "passed": true,
+        "scenario": "sensor-failure",
+        "session_id": "13359237-789e-4e56-9712-6b5672b6b832"
+      },
+      {
+        "checks": {
+          "features_created": true,
+          "inference_recorded": true,
+          "processing_completed": true,
+          "reconnect_reported": true,
+          "sequence_gap_visible": true,
+          "synchronization_recorded": true
+        },
+        "passed": true,
+        "scenario": "communication-loss",
+        "session_id": "3ad2d0bd-60ce-4845-a7c3-595a68d027d8"
+      },
+      {
+        "checks": {
+          "features_created": true,
+          "inference_recorded": true,
+          "processing_completed": true,
+          "synchronization_recorded": true,
+          "watchdog_recovery_reported": true
+        },
+        "passed": true,
+        "scenario": "watchdog",
+        "session_id": "99eefb8f-19d3-4f5d-8c84-dbbf3be66a6c"
+      },
+      {
+        "checks": {
+          "features_created": true,
+          "inference_recorded": true,
+          "post_close_write_rejected": true,
+          "processing_completed": true,
+          "session_closed": true,
+          "shutdown_reported": true,
+          "synchronization_recorded": true
+        },
+        "passed": true,
+        "scenario": "shutdown",
+        "session_id": "914e161e-5c78-4563-9a7a-a377459d3538"
+      }
+    ]
+  },
+  "protocol": {
+    "tests_passed": 20,
+    "typecheck_passed": true
+  },
+  "browser": {
+    "marked_faces_loaded": true,
+    "three_method_tabs_loaded": true,
+    "nvidia_playback_duration_s": 116.95,
+    "interrupted_psycon_failure_visible": true
+  },
+  "deployment": {
+    "cloud_changed": false,
+    "gpu_host_missing": true,
+    "large_upload_memory_constraint": true
+  }
+}
