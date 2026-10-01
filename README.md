@@ -6,6 +6,16 @@ PSYCON is a research and screening prototype, not a medical device. It must not 
 
 ## Current completion
 
+**Group video update, 1 October 2026:** All 11 recordings have comparison
+results. Guarded PSYCON produced 57 ready profiles across 85 marked slots;
+28 remain incomplete. Guarded Nemotron streaming and offline each produced
+51, so PSYCON remains the training source and Nemotron stays in the benchmarks.
+These counts describe accepted model assignments, not measured identity accuracy.
+See the [short final report](docs/group_discussions_final_report.md),
+[PDF with figures](output/pdf/group_discussions_final_report.pdf), and
+[deployment setup and hosting limits](docs/DEPLOYMENT.md).
+The completion estimate below is the earlier September snapshot.
+
 **Overall project completion: approximately 58% as of 8 September 2026.** This weighted estimate measures progress toward the PRD's competition-ready integrated prototype. It credits the Compose-verified Week 4 server, the prepared Week 5 research pipeline, and the Week 6 validation tooling, but records no Week 5 dataset result or Week 6 physical pass.
 
 | Workstream | Weight | Completion | Contribution | Evidence and remaining gap |
