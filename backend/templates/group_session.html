@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css', v='week4-complete') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='group_session.css', v='group-console-12') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='group_session.css', v='group-console-13') }}">
 </head>
 <body>
   <main class="page-shell">
@@ -20,6 +20,18 @@
       </a>
       <span class="local-label">LOCAL RESEARCH WORKSPACE</span>
     </header>
+
+    <details class="unknown-voice" id="group-access" {% if require_group_login %}open{% endif %}>
+      <summary>Account access</summary>
+      <p class="field-helper">Use your named account token on the hosted console. The local console also works without sign-in.</p>
+      <form id="group-login-form" class="stack-form">
+        <label for="group-account-token">Account token</label>
+        <input id="group-account-token" type="password" autocomplete="off" required>
+        <button type="submit">Connect account</button>
+      </form>
+      <button type="button" id="group-logout">Sign out</button>
+      <p id="group-access-message" role="status"></p>
+    </details>
 
     <section id="screen-upload" class="intake-screen" aria-labelledby="upload-title">
       <p class="section-index">01 / Recording</p>
@@ -93,6 +105,6 @@
 
     <div id="notice" class="success-message" role="status" hidden></div>
   </main>
-  <script src="{{ url_for('static', filename='group_session.js', v='group-console-17') }}" defer></script>
+  <script src="{{ url_for('static', filename='group_session.js', v='group-console-18') }}" defer></script>
 </body>
 </html>

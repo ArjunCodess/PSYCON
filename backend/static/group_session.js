@@ -325,6 +325,33 @@
     refreshVoice();
   }
 
+  byId("group-login-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = event.currentTarget.querySelector("button");
+    button.disabled = true;
+    try {
+      const data = await api("/api/v1/group-auth", {
+        method: "POST", body: { token: byId("group-account-token").value.trim() },
+      });
+      byId("group-account-token").value = "";
+      byId("group-access-message").textContent = `Connected as ${data.account.label}, ${data.account.role}.`;
+      if (state.selected) refreshVoice();
+      else if (new URLSearchParams(location.search).has("session")) location.reload();
+    } catch (error) {
+      byId("group-access-message").textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+  byId("group-logout").addEventListener("click", async () => {
+    try {
+      await api("/api/v1/group-auth", { method: "DELETE" });
+      location.reload();
+    } catch (error) {
+      byId("group-access-message").textContent = error.message;
+    }
+  });
+
   byId("intake-form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const body = new FormData();

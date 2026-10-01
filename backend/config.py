@@ -45,6 +45,8 @@ class Settings:
                 defaults["secret_key"],
                 defaults["bootstrap_operator_token"],
                 defaults["s3_secret_key"],
+                "psycon-local-flask-secret",
+                "psycon-local-object-secret",
             }
             if any(value in weak for value in (
                 settings.secret_key,

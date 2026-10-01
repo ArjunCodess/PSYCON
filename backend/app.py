@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import atexit
+import os
 
 from flask import Flask
 from flask import jsonify
@@ -32,6 +33,9 @@ def create_app(
     app.config.update(
         TESTING=testing,
         MAX_CONTENT_LENGTH=max(settings.max_chunk_bytes, settings.max_group_video_bytes),
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Strict",
+        SESSION_COOKIE_SECURE=os.getenv("PSYCON_ENV", "development") == "production",
     )
     app.secret_key = settings.secret_key
 

@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from functools import wraps
 from io import BytesIO
+import hmac
+import os
+from urllib.parse import urlsplit
 
-from flask import Blueprint, Response, current_app, g, jsonify, render_template, request, send_file
+from flask import Blueprint, Response, current_app, g, jsonify, render_template, request, send_file, session
 
-from .auth import require_role
+from .auth import Principal, hash_token, require_role
 from .group.errors import GroupError
 from .routes import api, error, pages
 
@@ -23,16 +26,41 @@ def _failure(exc: GroupError):
     return error(exc.code, str(exc), exc.status)
 
 
+def _production():
+    return os.getenv("PSYCON_ENV", "development") == "production"
+
+
+def _same_origin():
+    try:
+        origin = urlsplit(request.headers.get("Origin", ""))
+    except ValueError:
+        return False
+    return origin.netloc == request.host and origin.scheme == ("https" if _production() else request.scheme)
+
+
+def _browser_principal():
+    account_id = session.get("group_account_id")
+    if not account_id:
+        return None
+    account = _service().store.account_by_id(account_id)
+    if (not account or account.get("revoked_at") or
+            not hmac.compare_digest(account["token_hash"], session.get("group_token_hash", ""))):
+        return None
+    return Principal(account["id"], account["role"], None, account["label"])
+
+
 def group_role(*roles: str):
     def decorator(view):
         @wraps(view)
         def wrapped(*args, **kwargs):
             header = request.headers.get("Authorization", "")
             token = header.removeprefix("Bearer ").strip() if header.startswith("Bearer ") else ""
-            if not token:
-                g.principal = _service().local_principal()
-                return view(*args, **kwargs)
-            principal = _service().authenticate(token)
+            principal = _service().authenticate(token) if token else _browser_principal()
+            if not token and request.method not in {"GET", "HEAD", "OPTIONS"}:
+                if ((principal is not None or request.headers.get("Origin")) and not _same_origin()):
+                    return error("forbidden", "Use the group console from the same origin", 403)
+            if principal is None and not token and not _production():
+                principal = _service().local_principal()
             if principal is None:
                 return error("unauthorized", "A named account token is required", 401)
             if principal.role not in roles:
@@ -45,7 +73,27 @@ def group_role(*roles: str):
 
 @pages.get("/group")
 def group_console():
-    return render_template("group_session.html")
+    return render_template("group_session.html", require_group_login=_production())
+
+
+@group_api.post("/group-auth")
+def group_sign_in():
+    if request.headers.get("Origin") and not _same_origin():
+        return error("forbidden", "Use the group console from the same origin", 403)
+    token = str((request.get_json(silent=True) or {}).get("token") or "")
+    principal = _service().authenticate(token) if token else None
+    if principal is None:
+        return error("unauthorized", "A valid named account token is required", 401)
+    session.clear()
+    session.update(group_account_id=principal.id, group_token_hash=hash_token(token))
+    return jsonify({"account": {"id": principal.id, "label": principal.label, "role": principal.role}})
+
+
+@group_api.delete("/group-auth")
+@group_role("operator", "psychologist", "reviewer")
+def group_sign_out():
+    session.clear()
+    return jsonify({"status": "signed_out"})
 
 
 @api.post("/group-accounts")

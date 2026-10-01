@@ -141,6 +141,44 @@ def auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
+def test_hosted_group_requires_named_account(stack, monkeypatch):
+    monkeypatch.setenv("PSYCON_ENV", "production")
+    client = stack["client"]
+    assert client.get("/api/v1/group-sessions").status_code == 401
+    assert client.get("/api/v1/group-sessions", headers=auth("invalid")).status_code == 401
+    assert client.get("/api/v1/group-sessions", headers=auth(stack["operator_token"])).status_code == 200
+
+
+def test_hosted_browser_login_logout_and_origin_gate(stack, monkeypatch):
+    monkeypatch.setenv("PSYCON_ENV", "production")
+    client = stack["client"]
+    token = stack["operator_token"]
+    assert client.post("/api/v1/group-auth", json={"token": token}, headers={"Origin": "https://other.example"}).status_code == 403
+    assert client.post("/api/v1/group-auth", json={"token": token}, headers={"Origin": "https://localhost"}).status_code == 200
+    with client.session_transaction() as cookie:
+        assert token not in str(dict(cookie))
+    assert client.get("/api/v1/group-accounts/me").json["account"]["id"] == stack["operator"]["id"]
+    assert client.delete("/api/v1/group-auth").status_code == 403
+    assert client.delete("/api/v1/group-auth", headers={"Origin": "https://other.example"}).status_code == 403
+    assert client.delete("/api/v1/group-auth", headers={"Origin": "https://localhost"}).status_code == 200
+    assert client.get("/api/v1/group-sessions").status_code == 401
+
+
+def test_hosted_browser_rechecks_revocation_and_role(stack, monkeypatch):
+    monkeypatch.setenv("PSYCON_ENV", "production")
+    client = stack["client"]
+    assert client.post("/api/v1/group-auth", json={"token": stack["reviewer_token"]}).status_code == 200
+    assert client.post("/api/v1/group-sessions/from-video", headers={"Origin": "https://localhost"}).status_code == 403
+    stack["service"].store.accounts[stack["reviewer"]["id"]]["revoked_at"] = "2026-10-01"
+    assert client.get("/api/v1/group-accounts/me").status_code == 401
+
+
+def test_local_console_rejects_cross_origin_writes(stack):
+    client = stack["client"]
+    assert client.post("/api/v1/group-sessions/from-video", headers={"Origin": "https://other.example"}).status_code == 403
+    assert client.post("/api/v1/group-auth", json={"token": stack["operator_token"]}, headers={"Origin": "http://["}).status_code == 403
+
+
 def session_payload(**overrides) -> dict:
     payload = {
         "session_code": "CLS-2026-09-23-A",
