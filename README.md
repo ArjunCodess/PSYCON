@@ -97,7 +97,7 @@ Both PlatformIO targets compile. Compilation proves source/toolchain compatibili
 
 The checked-in processed table contains **13,698 windows from 15 subjects**: 8,760 calm and 4,938 high-stress. The best recorded accuracy is 0.932 for EDA XGBoost; the exported multimodal-wrist logistic run records 0.915 accuracy, 0.895 F1, 0.995 recall, and 0.130 false-positive rate on one grouped holdout. These are WESAD development results, not PSYCON hardware or clinical validation.
 
-There is no approved recorded-speech dataset, synchronized device dataset, real physiology/audio/fusion result, or external validation. Raw WESAD pickles are absent, so preprocessing cannot be reproduced from a clean checkout without separately obtaining WESAD.
+There is no approved synchronized wearable dataset, real physiology/audio/fusion result, or external validation. One original WESAD subject, S2, was downloaded for the raw-data integration checks on 1 October 2026. Raw files remain outside Git, so a clean checkout still needs the official WESAD download to reproduce preprocessing.
 
 ### Week 5 research workflow
 

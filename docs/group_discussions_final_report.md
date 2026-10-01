@@ -60,6 +60,6 @@ These are model-supported assignments. We checked sampled original-video frames 
 
 ![Numbered faces from all 11 videos](report_assets/marked-contact-sheet.jpg)
 
-All 66 recording-method runs finished. Automated tests passed with six skips. Artifact validation passed with zero errors across 377 playback and review clips. It checked source intervals, profile gates, and audio timing. The PDF pages were checked after compilation.
+All 66 recording-method runs finished. All 243 automated tests passed across the host and Docker runtimes, including real Community-1/SpeechBrain inference, ffmpeg extraction, raw WESAD S2 loading, and live processing/export. Artifact validation passed with zero errors across 377 playback and review clips. It checked source intervals, profile gates, and audio timing. The PDF pages were checked after compilation.
 
 Sources and detail: [teammate code](https://github.com/CodeSakshamY/PSYCON-Diarization_Model/blob/d7d018dba76ca59da144b357ed223757596dc0c0/neemotron_bench/core.py), [official Nemotron model card](https://huggingface.co/nvidia/Nemotron-3-Diarization), [benchmark measurements](nemotron_benchmark_report.md), and [rejection audit](psycon_rejection_audit.md).

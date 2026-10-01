@@ -24,7 +24,7 @@ measured identity accuracy, and these results do not validate psychological pred
 
 ## Verification
 
-- Python: 233 passed, six skipped. Skips cover the opt-in live integration test, missing host ffmpeg, and optional dataset/model checks.
+- Python: all 243 tests covered and passed across the host and Docker runtimes. The three remaining host skips passed separately: real-model inference and ffmpeg in the GPU container, plus live processing/export against Compose. The three raw-WESAD checks passed with original S2 data.
 - Live Compose integration: passed separately, including processing and a verified export.
 - All nine simulated API scenarios and archive checks: passed with a device-only worker.
 - Protocol: 20 tests passed; TypeScript type checking passed. Both browser scripts passed syntax checks.

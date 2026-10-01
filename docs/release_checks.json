@@ -145,5 +145,41 @@
     "cloud_changed": false,
     "gpu_host_missing": true,
     "large_upload_memory_constraint": true
+  },
+  "enabled_checks": {
+    "host_suite": {
+      "tests": 243,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3
+    },
+    "real_models_and_ffmpeg": {
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "live_integration": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "all_unique_tests_covered": 243
+  },
+  "wesad_smoke_source": {
+    "source": "https://uni-siegen.sciebo.de/s/HGdUkoNlW1Ub0Gx/download",
+    "archive_sha256": "5e15d2606adf16d819ba535c1786d92e94bae5ff5392f7ae01fb63f9938fd71c",
+    "archive_bytes": 2249444501,
+    "member": "WESAD/S2/S2.pkl",
+    "member_crc32": 508583696,
+    "member_bytes": 975117737,
+    "license": "scientific, non-commercial use with owner attribution",
+    "citation": "Schmidt et al., Introducing WESAD, ICMI 2018"
+  },
+  "docker_cleanup": {
+    "build_cache_reclaimed_bytes": 16300000000,
+    "kept_service_images": 5,
+    "preserved_volumes": 3
   }
 }
