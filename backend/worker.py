@@ -8,7 +8,7 @@ import time
 from .app import create_app
 
 
-def run_worker(*, once: bool = False, poll_seconds: float = 1.0) -> None:
+def run_worker(*, once: bool = False, poll_seconds: float = 1.0, device_only: bool = False) -> None:
     app = create_app()
     repository = app.extensions["psycon_repository"]
     processor = app.extensions["psycon_processor"]
@@ -17,7 +17,7 @@ def run_worker(*, once: bool = False, poll_seconds: float = 1.0) -> None:
         repository.heartbeat(worker_id)
         job = repository.claim_job(worker_id)
         if job is None:
-            group_job = app.extensions["psycon_group"].claim_job(worker_id)
+            group_job = None if device_only else app.extensions["psycon_group"].claim_job(worker_id)
             if group_job is None:
                 if once:
                     return
@@ -47,8 +47,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run the PSYCON PostgreSQL-backed processing worker")
     parser.add_argument("--once", action="store_true")
     parser.add_argument("--poll-seconds", type=float, default=1.0)
+    parser.add_argument("--device-only", action="store_true", help="Process wearable jobs without claiming GPU group jobs")
     args = parser.parse_args()
-    run_worker(once=args.once, poll_seconds=args.poll_seconds)
+    run_worker(once=args.once, poll_seconds=args.poll_seconds, device_only=args.device_only)
 
 
 if __name__ == "__main__":
