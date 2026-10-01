@@ -35,6 +35,10 @@ Create encrypted backups in an approved separate location. After each dataset fr
 
 Test restoration into an isolated approved location on the review schedule. A backup does not count as verified until the restore produces the expected file hashes and the operator records cleanup of the restored copy.
 
+## Group recordings
+
+A group session stores one video for several people. Names and signatures stay on `consent_records` and are excluded from exports. Withdrawal drops that participant's labels and derived rows from later dataset versions. The recording itself also contains peers, so the operator follows the session's retention or redaction rule instead of treating the file as belonging to one person. Raw video, audio, transcripts, attached PDFs, and signatures stay out of Git and routine logs.
+
 ## Withdrawal and deletion
 
 1. Authenticate the request using the approved identity-key process without adding identity data to the research store.

@@ -2,6 +2,26 @@
 
 **Status:** protocol prepared; participant recruitment and collection are blocked until the applicable ethics or school review approves this protocol and its consent materials.
 
+PSYCON has two study arms. The group-observation arm learns psychologist marksheet ratings from one shared discussion recording. The earlier device arm compares wrist physiology and speech features on a binary, non-clinical label. Neither arm diagnoses, screens for, or recommends treatment for a medical or psychological condition.
+
+## Group observation arm
+
+**Protocol version:** `group-observation-1.0.0`  
+**Consent version:** `group-consent-2.0`  
+**Marksheet version:** `4.0` (items A–T scored 0–4 or N/O)
+
+An operator records one video of a discussion with two to ten participant slots. The centre device is a shared microphone, not an individual physiological sensor. Seat numbers run from the right side of the displayed frame toward the left and are session labels, not identities inferred from appearance. Voice clusters stay anonymous until a person maps them. `Speaker 1` is never silently treated as `Participant 1`.
+
+Names and signatures stay on the restricted consent record. Annotation and training use anonymous codes. A score above zero needs a timestamped evidence interval and a short account of the preceding event and the observed response. Items Q–T also need a same-participant baseline and an identifiable trigger. Zero requires a fair opportunity. N/O requires a reason and is never stored as zero.
+
+A second psychologist may rate a subset without seeing the first ratings. Disagreements are kept, and an adjudicated answer is a separate record. Withdrawal removes that participant's labels and derived rows from future dataset versions. The shared recording also contains peers, so retention or redaction follows the approved session protocol.
+
+Connected group sessions and repeat participants stay inside one train, validation, or test split. An item with too few independent sessions, or too few nonzero scores, is reported descriptively and marked unavailable. A working upload and marksheet workflow is not a validated model result.
+
+## Device comparison arm
+
+The questions below belong to the earlier wrist-and-speech comparison. They are not the supervision target for marksheet version 4.0.
+
 PSYCON studies whether synchronized wrist physiology and speech-derived features improve a non-clinical experimental classification task. The study does not diagnose, screen for, or recommend treatment for any medical or psychological condition.
 
 ## Frozen research questions

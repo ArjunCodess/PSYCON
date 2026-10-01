@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import atexit
+import os
 
 from flask import Flask
 from flask import jsonify
@@ -9,9 +10,12 @@ from werkzeug.exceptions import RequestEntityTooLarge
 from .auth import bootstrap_operator
 from .config import Settings
 from .db import Database
+from .group.postgres import PostgresGroupStore
+from .group.service import GroupObservationService
 from .inference import InferenceEngine
 from .repository import Repository
 from .routes import api, pages
+from . import group_routes
 from .services import ExportService, IngestionService, Processor
 from .storage import ObjectStorage
 
@@ -26,7 +30,13 @@ def create_app(
 ) -> Flask:
     app = Flask(__name__, template_folder="templates", static_folder="static")
     settings = settings or Settings.from_env(testing=testing)
-    app.config.update(TESTING=testing, MAX_CONTENT_LENGTH=settings.max_chunk_bytes)
+    app.config.update(
+        TESTING=testing,
+        MAX_CONTENT_LENGTH=max(settings.max_chunk_bytes, settings.max_group_video_bytes),
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Strict",
+        SESSION_COOKIE_SECURE=os.getenv("PSYCON_ENV", "development") == "production",
+    )
     app.secret_key = settings.secret_key
 
     database = database or Database(settings.database_url)
@@ -47,9 +57,11 @@ def create_app(
         psycon_ingestion=IngestionService(repository, storage),
         psycon_processor=Processor(repository, storage, inference),
         psycon_exporter=ExportService(repository, storage),
+        psycon_group=GroupObservationService(PostgresGroupStore(database), storage),
     )
     app.register_blueprint(pages)
     app.register_blueprint(api)
+    app.register_blueprint(group_routes.group_api)
 
     @app.errorhandler(RequestEntityTooLarge)
     def request_too_large(_error):

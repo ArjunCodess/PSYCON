@@ -19,6 +19,7 @@ class Settings:
     max_chunk_bytes: int = 65_576
     sync_max_delay_us: int = 2_000_000
     sync_max_uncertainty_us: int = 250_000
+    max_group_video_bytes: int = 2_147_483_648
 
     @classmethod
     def from_env(cls, *, testing: bool = False) -> "Settings":
@@ -38,12 +39,17 @@ class Settings:
             key: os.getenv(f"PSYCON_{key.upper()}", default)
             for key, default in defaults.items()
         }
-        settings = cls(**values)
+        upload_limit = int(os.getenv("PSYCON_MAX_GROUP_VIDEO_BYTES", str(cls.max_group_video_bytes)))
+        if not 65_576 <= upload_limit <= cls.max_group_video_bytes:
+            raise ValueError("PSYCON_MAX_GROUP_VIDEO_BYTES must be between 65576 and 2147483648")
+        settings = cls(**values, max_group_video_bytes=upload_limit)
         if not testing:
             weak = {
                 defaults["secret_key"],
                 defaults["bootstrap_operator_token"],
                 defaults["s3_secret_key"],
+                "psycon-local-flask-secret",
+                "psycon-local-object-secret",
             }
             if any(value in weak for value in (
                 settings.secret_key,

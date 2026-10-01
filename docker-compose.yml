@@ -20,7 +20,7 @@ services:
       POSTGRES_USER: psycon
       POSTGRES_PASSWORD: psycon
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - psycon_postgres:/var/lib/postgresql/data
     healthcheck:
@@ -30,27 +30,31 @@ services:
       retries: 20
 
   minio:
-    image: minio/minio:latest
+    image: psycon-minio-local:RELEASE.2025-09-07T16-13-09Z
+    platform: linux/amd64
+    build: ./deploy/minio
     command: server /data --console-address :9001
     environment:
       MINIO_ROOT_USER: psycon
       MINIO_ROOT_PASSWORD: psycon-local-object-secret
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     volumes:
       - psycon_objects:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/minio/health/ready', timeout=3)"]
       interval: 5s
-      timeout: 3s
+      timeout: 4s
       retries: 20
 
   api:
-    build: .
+    build:
+      context: .
+      target: base
     environment: *backend-environment
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,9 +67,21 @@ services:
       retries: 10
 
   worker:
-    build: .
+    build:
+      context: .
+      target: nvidia
     command: ["python", "-m", "backend.worker"]
-    environment: *backend-environment
+    environment:
+      <<: *backend-environment
+      HF_TOKEN: ${HF_TOKEN:-}
+      PSYCON_COMMUNITY1_REVISION: ${PSYCON_COMMUNITY1_REVISION:-3533c8cf8e369892e6b79ff1bf80f7b0286a54ee}
+      PSYCON_DIARIZATION_DEVICE: cuda
+      PSYCON_SPEAKER_DEVICE: cuda
+      PSYCON_WHISPER_DEVICE: cuda
+    gpus: all
+    volumes:
+      - .:/app
+      - psycon_models:/opt/psycon/hf-cache
     depends_on:
       api:
         condition: service_healthy
@@ -73,3 +89,4 @@ services:
 volumes:
   psycon_postgres:
   psycon_objects:
+  psycon_models:

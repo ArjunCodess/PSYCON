@@ -1,23 +1,29 @@
 # Data required before Week 5 evaluation
 
-PSYCON currently has no real Week 5 training dataset. Completed psychologist marksheets can provide reference observations, but training a model that predicts from the wearable and audio modules also requires the matching timestamped device recordings. Results will be generated only after these sources are joined and validated.
+PSYCON has two separate Week 5 paths. The group-observation path is the one that matches the current marksheet. The earlier binary stress comparison in `research/evaluation.py` remains available for the wrist-and-speech study, and it cannot train 0–4 or N/O ratings as written.
 
-## What the marksheet provides
+## Group observation path
 
-For each participant and session, provide the following fields in CSV or XLSX form:
+Marksheet version **4.0** scores items A–T as **0, 1, 2, 3, 4, or N/O**. A zero means the behaviour was not observed despite a fair opportunity. N/O means there was no fair opportunity, the recording cannot support a rating, or the speaker identity is uncertain. Do not convert N/O to zero, and do not turn a score into a diagnosis.
 
-- Anonymous participant code and session ID
-- Observation start time or duration, psychologist or rater code, session number, and language
-- Room, seating layout, discussion topic, background-noise score, recording-quality score, and structured session-event codes
-- Scores from `A` through `T`, each recorded as `1` through `5` or blank for `N/O`
-- Evidence timestamps where available, especially when a score depends on a specific speaking turn or event
-- Completion status and any protocol-approved exclusion reason
+Each training row comes from one submitted marksheet for one participant slot in one group recording. It keeps:
 
-Do not convert `N/O` to zero or one. It means the rater lacked enough evidence, so the analysis must treat it as missing. Keep names, phone numbers, email addresses, dates of birth, signatures, and unrestricted free-text notes out of the analytical dataset.
+- `group_session_id`, anonymous `participant_id`, and `rater_id`
+- marksheet version, item letter, and the score or N/O
+- evidence start and end, the context note, and baseline and trigger intervals for items Q–T
+- recording quality and the source recording SHA-256
 
-If more than one psychologist rates the same session, keep every rating as a separate row with an anonymous rater code. This allows agreement analysis before choosing a consensus or aggregate label. Do not average ratings until the scoring policy is frozen.
+The whole group session stays in one data split. If the same anonymous research code appears in another session, those sessions stay in that split too. Model predictions are stored separately and never replace the psychologist's rating. A paper PDF may be attached to a slot for review, but its text is not a training label.
 
-The existing marksheet covers 20 observable behavioral domains. It explicitly avoids mental-health diagnosis, so its scores can support behavioral prediction or association analysis but cannot become a depression, anxiety, PTSD, or other diagnostic label.
+Consent version `group-consent-2.0` has to cover the video, the extracted audio, transcription, model training, access, retention, and withdrawal before a session can enter a training export. Names and signatures stay on the restricted consent record.
+
+There is no empirical group-observation result until approved sessions and completed ratings pass that export and a held-out evaluation says which items had enough evidence.
+
+## Earlier device-study path
+
+The binary comparison still expects matched wrist and speech features for one participant per device session. Its label is not the marksheet. Completed marksheets alone do not train that comparison. A shared table microphone does not attribute physiology to one person; a later wrist study needs its own wearer mapping and protocol.
+
+If more than one psychologist rates the same device session, keep every rating as a separate row with an anonymous rater code. Do not average ratings until the scoring policy is frozen. Marksheet scores can support behavioural prediction. They cannot become a depression, anxiety, PTSD, or other diagnostic label.
 
 ## What the device session must provide
 
@@ -33,9 +39,7 @@ The clock alignment must be good enough to connect a marksheet evidence timestam
 
 ## What marksheets alone can support
 
-With only completed marksheets, the project can calculate score distributions, missingness, domain correlations, internal consistency where appropriate, rater agreement when repeated ratings exist, and differences across recorded session conditions. It cannot train or validate a model that takes PSYCON sensor or audio features as input.
-
-If the goal is only to digitize or summarize psychologist observations, the marksheets may be sufficient. If the goal is to demonstrate that PSYCON predicts those observations, the matching device recordings are required.
+With only completed marksheets, the project can calculate score distributions, missingness, domain correlations, rater agreement, and differences across recorded session conditions. The group-observation model also needs the shared recording, seat map, and reviewed speaker map. Marksheets alone do not train the earlier wrist-and-speech comparison.
 
 ## Preferred delivery layout
 

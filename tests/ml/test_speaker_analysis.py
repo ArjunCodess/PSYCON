@@ -341,14 +341,16 @@ def test_opt_in_real_diarization_and_embedding() -> None:
 
     recording_path = os.getenv("PSYCON_REAL_SPEAKER_AUDIO") or os.environ["PSYCON_REAL_SPEAKER_WAV"]
     decoded = decode_audio(Path(recording_path).read_bytes())
-    diarization = PyannoteDiarizer().diarize(decoded.samples, decoded.sample_rate_hz)
+    diarization = PyannoteDiarizer(
+        revision=os.getenv("PSYCON_COMMUNITY1_REVISION", "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee"),
+    ).diarize(decoded.samples, decoded.sample_rate_hz)
     assert diarization.exclusive_turns
-    first = diarization.exclusive_turns[0]
+    first = max(diarization.exclusive_turns, key=lambda turn: turn.end_s - turn.start_s)
     speech = decoded.samples[
         round(first.start_s * decoded.sample_rate_hz) : round(first.end_s * decoded.sample_rate_hz)
     ]
     if len(speech) / decoded.sample_rate_hz < 3:
-        pytest.skip("the first diarized speaker turn is shorter than three seconds")
+        pytest.fail("The real-model fixture must contain a diarized turn of at least three seconds")
     embedding = SpeechBrainEmbedder().embed(speech, decoded.sample_rate_hz)
     assert embedding.ndim == 1
     assert np.linalg.norm(embedding) == pytest.approx(1.0, abs=1e-5)

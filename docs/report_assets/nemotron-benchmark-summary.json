@@ -1,0 +1,5830 @@
+{
+  "teammate_repository": "https://github.com/CodeSakshamY/PSYCON-Diarization_Model",
+  "teammate_commit": "d7d018dba76ca59da144b357ed223757596dc0c0",
+  "model_revision": "f667ed73aee57d40cc39428eb768b4fd87a0a29e",
+  "basis": "same shared PCM and marked faces; same guarded matcher for the last three methods",
+  "marked_slots": 85,
+  "totals": {
+    "existing": 40,
+    "nvidia": 13,
+    "psycon": 45,
+    "psycon-recovered": 57,
+    "nemotron-streaming-guarded": 51,
+    "nemotron-offline": 51
+  },
+  "complete_runs": {
+    "existing": 11,
+    "nvidia": 11,
+    "psycon": 11,
+    "psycon-recovered": 11,
+    "nemotron-streaming-guarded": 11,
+    "nemotron-offline": 11
+  },
+  "records": [
+    {
+      "file": "IMG_3962.MOV",
+      "marked_faces": 8,
+      "methods": {
+        "existing": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 5,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 80.52,
+          "usable_s": 80.51,
+          "unknown_s": 456.66,
+          "overlap_s": 0.0,
+          "elapsed_s": 206.86,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 1.06,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 13.12,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 26.25,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 21.03,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 12.76,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 6.29,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            }
+          ]
+        },
+        "nvidia": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 1,
+          "active_channels": 8,
+          "channels_over_one_second": null,
+          "assigned_s": 14.52,
+          "usable_s": 14.52,
+          "unknown_s": 596.81,
+          "overlap_s": 12.8,
+          "elapsed_s": 261.74,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 14.52,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            }
+          ]
+        },
+        "psycon": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 5,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 363.34,
+          "usable_s": 363.34,
+          "unknown_s": 113.01,
+          "overlap_s": 11.27,
+          "elapsed_s": 481.25,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 12.49,
+              "transcription": "complete"
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 61.92,
+              "transcription": "complete"
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 106.29,
+              "transcription": "complete"
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 28.88,
+              "transcription": "complete"
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 153.76,
+              "transcription": "complete"
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            }
+          ]
+        },
+        "psycon-recovered": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 6,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 390.54,
+          "usable_s": 390.54,
+          "unknown_s": 85.82,
+          "overlap_s": 11.27,
+          "elapsed_s": null,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 27.2,
+              "transcription": "complete"
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 12.49,
+              "transcription": "complete"
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 61.92,
+              "transcription": "complete"
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 106.29,
+              "transcription": "complete"
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 28.88,
+              "transcription": "complete"
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 153.76,
+              "transcription": "complete"
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            }
+          ]
+        },
+        "nemotron-streaming-guarded": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 5,
+          "active_channels": 8,
+          "channels_over_one_second": 8,
+          "assigned_s": 553.93,
+          "usable_s": 553.93,
+          "unknown_s": 50.13,
+          "overlap_s": 12.8,
+          "elapsed_s": 302.63,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 157.31
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 67.93
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 108.24
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 33.17
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 187.28
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            }
+          ],
+          "new_ready_slots_vs_psycon": [],
+          "lost_ready_slots_vs_psycon": [
+            2
+          ],
+          "detector_comparison_rows": 20,
+          "detector_disagreement_rows": 0,
+          "detector_disagreement_intervals": []
+        },
+        "nemotron-offline": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 5,
+          "active_channels": 7,
+          "channels_over_one_second": 6,
+          "assigned_s": 564.81,
+          "usable_s": 564.81,
+          "unknown_s": 47.43,
+          "overlap_s": 10.11,
+          "elapsed_s": 300.09,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 146.55
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 62.13
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 130.4
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 33.34
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 192.39
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            }
+          ],
+          "new_ready_slots_vs_psycon": [],
+          "lost_ready_slots_vs_psycon": [
+            2
+          ],
+          "detector_comparison_rows": 22,
+          "detector_disagreement_rows": 0,
+          "detector_disagreement_intervals": []
+        }
+      },
+      "offline_activity_thresholds": [
+        {
+          "threshold": 0.3,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 6,
+          "speech_union_s": 672.47,
+          "overlap_s": 25.56,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 204.59,
+              "isolated_s": 194.65
+            },
+            {
+              "channel": 1,
+              "speech_s": 205.13,
+              "isolated_s": 187.85
+            },
+            {
+              "channel": 2,
+              "speech_s": 148.19,
+              "isolated_s": 135.87
+            },
+            {
+              "channel": 3,
+              "speech_s": 44.66,
+              "isolated_s": 40.24
+            },
+            {
+              "channel": 4,
+              "speech_s": 73.63,
+              "isolated_s": 69.1
+            },
+            {
+              "channel": 5,
+              "speech_s": 0.48,
+              "isolated_s": 0.24
+            },
+            {
+              "channel": 6,
+              "speech_s": 22.48,
+              "isolated_s": 18.96
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        },
+        {
+          "threshold": 0.5,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 6,
+          "speech_union_s": 660.49,
+          "overlap_s": 10.11,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 197.3,
+              "isolated_s": 194.69
+            },
+            {
+              "channel": 1,
+              "speech_s": 198.97,
+              "isolated_s": 192.36
+            },
+            {
+              "channel": 2,
+              "speech_s": 143.6,
+              "isolated_s": 137.96
+            },
+            {
+              "channel": 3,
+              "speech_s": 40.23,
+              "isolated_s": 38.59
+            },
+            {
+              "channel": 4,
+              "speech_s": 71.89,
+              "isolated_s": 68.47
+            },
+            {
+              "channel": 5,
+              "speech_s": 0.14,
+              "isolated_s": 0.14
+            },
+            {
+              "channel": 6,
+              "speech_s": 18.49,
+              "isolated_s": 18.17
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        },
+        {
+          "threshold": 0.7,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 6,
+          "speech_union_s": 636.68,
+          "overlap_s": 7.61,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 195.94,
+              "isolated_s": 193.56
+            },
+            {
+              "channel": 1,
+              "speech_s": 184.93,
+              "isolated_s": 180.21
+            },
+            {
+              "channel": 2,
+              "speech_s": 137.01,
+              "isolated_s": 133.03
+            },
+            {
+              "channel": 3,
+              "speech_s": 37.47,
+              "isolated_s": 36.07
+            },
+            {
+              "channel": 4,
+              "speech_s": 70.99,
+              "isolated_s": 68.25
+            },
+            {
+              "channel": 5,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            },
+            {
+              "channel": 6,
+              "speech_s": 17.95,
+              "isolated_s": 17.95
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "IMG_3983.MOV",
+      "marked_faces": 8,
+      "methods": {
+        "existing": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 1,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 13.87,
+          "usable_s": 13.87,
+          "unknown_s": 703.64,
+          "overlap_s": 0.0,
+          "elapsed_s": 209.0,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 12.37,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 1.5,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            }
+          ]
+        },
+        "nvidia": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 0,
+          "active_channels": 8,
+          "channels_over_one_second": null,
+          "assigned_s": 0,
+          "usable_s": 0.0,
+          "unknown_s": 680.79,
+          "overlap_s": 68.31,
+          "elapsed_s": 220.5,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            }
+          ]
+        },
+        "psycon": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 4,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 538.41,
+          "usable_s": 538.41,
+          "unknown_s": 106.08,
+          "overlap_s": 67.38,
+          "elapsed_s": 402.57,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 37.76,
+              "transcription": "complete"
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 66.71,
+              "transcription": "complete"
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 67.51,
+              "transcription": "complete"
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 366.43,
+              "transcription": "complete"
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            }
+          ]
+        },
+        "psycon-recovered": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 5,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 550.45,
+          "usable_s": 550.45,
+          "unknown_s": 94.04,
+          "overlap_s": 67.38,
+          "elapsed_s": null,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 37.76,
+              "transcription": "complete"
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 66.71,
+              "transcription": "complete"
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 67.51,
+              "transcription": "complete"
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 366.43,
+              "transcription": "complete"
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 8,
+              "status": "ready",
+              "usable_s": 12.04,
+              "transcription": "complete"
+            }
+          ]
+        },
+        "nemotron-streaming-guarded": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 4,
+          "active_channels": 8,
+          "channels_over_one_second": 8,
+          "assigned_s": 541.48,
+          "usable_s": 541.48,
+          "unknown_s": 133.08,
+          "overlap_s": 68.31,
+          "elapsed_s": 434.88,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 27.17
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 91.27
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 63.14
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 359.9
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            }
+          ],
+          "new_ready_slots_vs_psycon": [],
+          "lost_ready_slots_vs_psycon": [
+            8
+          ],
+          "detector_comparison_rows": 19,
+          "detector_disagreement_rows": 0,
+          "detector_disagreement_intervals": []
+        },
+        "nemotron-offline": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 3,
+          "active_channels": 7,
+          "channels_over_one_second": 7,
+          "assigned_s": 546.21,
+          "usable_s": 546.21,
+          "unknown_s": 146.84,
+          "overlap_s": 63.6,
+          "elapsed_s": 368.21,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 105.68
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 68.05
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 372.48
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            }
+          ],
+          "new_ready_slots_vs_psycon": [],
+          "lost_ready_slots_vs_psycon": [
+            1,
+            8
+          ],
+          "detector_comparison_rows": 18,
+          "detector_disagreement_rows": 0,
+          "detector_disagreement_intervals": []
+        }
+      },
+      "offline_activity_thresholds": [
+        {
+          "threshold": 0.3,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 7,
+          "speech_union_s": 849.71,
+          "overlap_s": 84.22,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 15.09,
+              "isolated_s": 15.09
+            },
+            {
+              "channel": 1,
+              "speech_s": 427.8,
+              "isolated_s": 391.53
+            },
+            {
+              "channel": 2,
+              "speech_s": 113.5,
+              "isolated_s": 72.26
+            },
+            {
+              "channel": 3,
+              "speech_s": 174.22,
+              "isolated_s": 126.7
+            },
+            {
+              "channel": 4,
+              "speech_s": 60.52,
+              "isolated_s": 51.15
+            },
+            {
+              "channel": 5,
+              "speech_s": 85.33,
+              "isolated_s": 72.44
+            },
+            {
+              "channel": 6,
+              "speech_s": 69.26,
+              "isolated_s": 36.32
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        },
+        {
+          "threshold": 0.5,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 7,
+          "speech_union_s": 831.34,
+          "overlap_s": 63.6,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 13.67,
+              "isolated_s": 13.67
+            },
+            {
+              "channel": 1,
+              "speech_s": 418.35,
+              "isolated_s": 397.06
+            },
+            {
+              "channel": 2,
+              "speech_s": 98.96,
+              "isolated_s": 71.36
+            },
+            {
+              "channel": 3,
+              "speech_s": 167.57,
+              "isolated_s": 129.15
+            },
+            {
+              "channel": 4,
+              "speech_s": 57.74,
+              "isolated_s": 50.62
+            },
+            {
+              "channel": 5,
+              "speech_s": 82.66,
+              "isolated_s": 72.46
+            },
+            {
+              "channel": 6,
+              "speech_s": 59.51,
+              "isolated_s": 33.42
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        },
+        {
+          "threshold": 0.7,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 7,
+          "speech_union_s": 784.93,
+          "overlap_s": 40.6,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 5.6,
+              "isolated_s": 5.6
+            },
+            {
+              "channel": 1,
+              "speech_s": 409.13,
+              "isolated_s": 395.93
+            },
+            {
+              "channel": 2,
+              "speech_s": 79.14,
+              "isolated_s": 63.06
+            },
+            {
+              "channel": 3,
+              "speech_s": 159.03,
+              "isolated_s": 134.36
+            },
+            {
+              "channel": 4,
+              "speech_s": 42.56,
+              "isolated_s": 37.6
+            },
+            {
+              "channel": 5,
+              "speech_s": 79.8,
+              "isolated_s": 72.88
+            },
+            {
+              "channel": 6,
+              "speech_s": 50.58,
+              "isolated_s": 34.9
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "IMG_3984.MOV",
+      "marked_faces": 7,
+      "methods": {
+        "existing": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 4,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 36.37,
+          "usable_s": 36.37,
+          "unknown_s": 910.64,
+          "overlap_s": 0.0,
+          "elapsed_s": 282.21,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 3.33,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 3.73,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 9.49,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 19.82,
+              "transcription": null
+            }
+          ]
+        },
+        "nvidia": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 1,
+          "active_channels": 6,
+          "channels_over_one_second": null,
+          "assigned_s": 22.46,
+          "usable_s": 22.46,
+          "unknown_s": 1049.4,
+          "overlap_s": 49.02,
+          "elapsed_s": 271.04,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 22.46,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            }
+          ]
+        },
+        "psycon": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 4,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 715.99,
+          "usable_s": 705.19,
+          "unknown_s": 252.82,
+          "overlap_s": 47.62,
+          "elapsed_s": 477.89,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 30.89,
+              "transcription": "complete"
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 301.22,
+              "transcription": "complete"
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 366.25,
+              "transcription": "complete"
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 6.83,
+              "transcription": "no_speech"
+            }
+          ]
+        },
+        "psycon-recovered": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 5,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 728.99,
+          "usable_s": 718.19,
+          "unknown_s": 239.82,
+          "overlap_s": 47.62,
+          "elapsed_s": null,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 30.89,
+              "transcription": "complete"
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 13.0,
+              "transcription": "complete"
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 301.22,
+              "transcription": "complete"
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 366.25,
+              "transcription": "complete"
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 6.83,
+              "transcription": "no_speech"
+            }
+          ]
+        },
+        "nemotron-streaming-guarded": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 6,
+          "active_channels": 6,
+          "channels_over_one_second": 6,
+          "assigned_s": 970.06,
+          "usable_s": 968.86,
+          "unknown_s": 105.1,
+          "overlap_s": 49.02,
+          "elapsed_s": 365.7,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 20.6
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 15.52
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 333.53
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 51.02
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 375.45
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 172.74
+            }
+          ],
+          "new_ready_slots_vs_psycon": [
+            4
+          ],
+          "lost_ready_slots_vs_psycon": [],
+          "detector_comparison_rows": 33,
+          "detector_disagreement_rows": 0,
+          "detector_disagreement_intervals": []
+        },
+        "nemotron-offline": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 4,
+          "active_channels": 6,
+          "channels_over_one_second": 6,
+          "assigned_s": 953.34,
+          "usable_s": 950.24,
+          "unknown_s": 118.1,
+          "overlap_s": 51.56,
+          "elapsed_s": 322.27,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 332.25
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 50.44
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 393.94
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 173.61
+            }
+          ],
+          "new_ready_slots_vs_psycon": [
+            4
+          ],
+          "lost_ready_slots_vs_psycon": [
+            1,
+            2
+          ],
+          "detector_comparison_rows": 29,
+          "detector_disagreement_rows": 1,
+          "detector_disagreement_intervals": [
+            {
+              "source_segment_id": "f71e243e-5a90-458d-bf88-ac4e0719daf5",
+              "start_s": 616.14,
+              "end_s": 625.48,
+              "assigned_slot": 5,
+              "reference_observations": [
+                {
+                  "slot_number": 1,
+                  "start_s": 616.89846875,
+                  "end_s": 618.89846875,
+                  "score": 0.7754707336425781
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "offline_activity_thresholds": [
+        {
+          "threshold": 0.3,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 6,
+          "speech_union_s": 1180.68,
+          "overlap_s": 69.84,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 93.98,
+              "isolated_s": 81.86
+            },
+            {
+              "channel": 1,
+              "speech_s": 390.06,
+              "isolated_s": 358.9
+            },
+            {
+              "channel": 2,
+              "speech_s": 447.89,
+              "isolated_s": 403.48
+            },
+            {
+              "channel": 3,
+              "speech_s": 232.38,
+              "isolated_s": 200.22
+            },
+            {
+              "channel": 4,
+              "speech_s": 62.46,
+              "isolated_s": 53.45
+            },
+            {
+              "channel": 5,
+              "speech_s": 36.05,
+              "isolated_s": 12.93
+            },
+            {
+              "channel": 6,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        },
+        {
+          "threshold": 0.5,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 6,
+          "speech_union_s": 1154.9,
+          "overlap_s": 51.56,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 92.82,
+              "isolated_s": 83.03
+            },
+            {
+              "channel": 1,
+              "speech_s": 367.57,
+              "isolated_s": 344.81
+            },
+            {
+              "channel": 2,
+              "speech_s": 440.85,
+              "isolated_s": 406.57
+            },
+            {
+              "channel": 3,
+              "speech_s": 222.71,
+              "isolated_s": 202.06
+            },
+            {
+              "channel": 4,
+              "speech_s": 61.82,
+              "isolated_s": 53.69
+            },
+            {
+              "channel": 5,
+              "speech_s": 27.16,
+              "isolated_s": 13.18
+            },
+            {
+              "channel": 6,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        },
+        {
+          "threshold": 0.7,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 6,
+          "speech_union_s": 1132.8,
+          "overlap_s": 39.1,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 91.18,
+              "isolated_s": 84.42
+            },
+            {
+              "channel": 1,
+              "speech_s": 359.46,
+              "isolated_s": 343.57
+            },
+            {
+              "channel": 2,
+              "speech_s": 434.16,
+              "isolated_s": 407.43
+            },
+            {
+              "channel": 3,
+              "speech_s": 204.5,
+              "isolated_s": 189.66
+            },
+            {
+              "channel": 4,
+              "speech_s": 61.19,
+              "isolated_s": 54.02
+            },
+            {
+              "channel": 5,
+              "speech_s": 23.23,
+              "isolated_s": 14.6
+            },
+            {
+              "channel": 6,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "IMG_3995.MOV",
+      "marked_faces": 8,
+      "methods": {
+        "existing": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 4,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 25.99,
+          "usable_s": 25.98,
+          "unknown_s": 572.26,
+          "overlap_s": 0.0,
+          "elapsed_s": 347.34,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 6.77,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 2.17,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 3.13,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 1.51,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 2.7,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 1.65,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 3.64,
+              "transcription": null
+            },
+            {
+              "slot": 8,
+              "status": "ready",
+              "usable_s": 4.41,
+              "transcription": null
+            }
+          ]
+        },
+        "nvidia": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 0,
+          "active_channels": 8,
+          "channels_over_one_second": null,
+          "assigned_s": 0,
+          "usable_s": 0.0,
+          "unknown_s": 523.56,
+          "overlap_s": 69.8,
+          "elapsed_s": 189.29,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            }
+          ]
+        },
+        "psycon": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 2,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 291.75,
+          "usable_s": 291.76,
+          "unknown_s": 183.49,
+          "overlap_s": 82.94,
+          "elapsed_s": 354.25,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 50.68,
+              "transcription": "complete"
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 241.08,
+              "transcription": "complete"
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            }
+          ]
+        },
+        "psycon-recovered": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 4,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 349.39,
+          "usable_s": 349.39,
+          "unknown_s": 125.86,
+          "overlap_s": 82.94,
+          "elapsed_s": null,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 47.5,
+              "transcription": "complete"
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 10.13,
+              "transcription": "complete"
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 50.68,
+              "transcription": "complete"
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 241.08,
+              "transcription": "complete"
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            }
+          ]
+        },
+        "nemotron-streaming-guarded": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 4,
+          "active_channels": 8,
+          "channels_over_one_second": 8,
+          "assigned_s": 401.69,
+          "usable_s": 401.69,
+          "unknown_s": 79.32,
+          "overlap_s": 69.8,
+          "elapsed_s": 388.42,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 64.25
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 21.33
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 57.25
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 258.86
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            }
+          ],
+          "new_ready_slots_vs_psycon": [],
+          "lost_ready_slots_vs_psycon": [],
+          "detector_comparison_rows": 38,
+          "detector_disagreement_rows": 0,
+          "detector_disagreement_intervals": []
+        },
+        "nemotron-offline": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 5,
+          "active_channels": 8,
+          "channels_over_one_second": 8,
+          "assigned_s": 422.14,
+          "usable_s": 422.14,
+          "unknown_s": 86.55,
+          "overlap_s": 78.48,
+          "elapsed_s": 371.62,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 9.2
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 52.85
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 26.2
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 61.37
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 272.52
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            }
+          ],
+          "new_ready_slots_vs_psycon": [
+            2
+          ],
+          "lost_ready_slots_vs_psycon": [],
+          "detector_comparison_rows": 35,
+          "detector_disagreement_rows": 0,
+          "detector_disagreement_intervals": []
+        }
+      },
+      "offline_activity_thresholds": [
+        {
+          "threshold": 0.3,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 8,
+          "speech_union_s": 713.48,
+          "overlap_s": 99.89,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 15.13,
+              "isolated_s": 14.15
+            },
+            {
+              "channel": 1,
+              "speech_s": 387.58,
+              "isolated_s": 321.48
+            },
+            {
+              "channel": 2,
+              "speech_s": 144.69,
+              "isolated_s": 86.34
+            },
+            {
+              "channel": 3,
+              "speech_s": 53.51,
+              "isolated_s": 36.34
+            },
+            {
+              "channel": 4,
+              "speech_s": 102.91,
+              "isolated_s": 69.62
+            },
+            {
+              "channel": 5,
+              "speech_s": 41.88,
+              "isolated_s": 34.78
+            },
+            {
+              "channel": 6,
+              "speech_s": 33.92,
+              "isolated_s": 29.18
+            },
+            {
+              "channel": 7,
+              "speech_s": 42.94,
+              "isolated_s": 21.7
+            }
+          ]
+        },
+        {
+          "threshold": 0.5,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 8,
+          "speech_union_s": 694.09,
+          "overlap_s": 78.48,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 11.42,
+              "isolated_s": 11.42
+            },
+            {
+              "channel": 1,
+              "speech_s": 374.02,
+              "isolated_s": 320.22
+            },
+            {
+              "channel": 2,
+              "speech_s": 134.35,
+              "isolated_s": 88.56
+            },
+            {
+              "channel": 3,
+              "speech_s": 51.24,
+              "isolated_s": 36.58
+            },
+            {
+              "channel": 4,
+              "speech_s": 99.39,
+              "isolated_s": 70.93
+            },
+            {
+              "channel": 5,
+              "speech_s": 39.37,
+              "isolated_s": 36.85
+            },
+            {
+              "channel": 6,
+              "speech_s": 28.79,
+              "isolated_s": 27.54
+            },
+            {
+              "channel": 7,
+              "speech_s": 37.99,
+              "isolated_s": 23.51
+            }
+          ]
+        },
+        {
+          "threshold": 0.7,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 8,
+          "speech_union_s": 652.68,
+          "overlap_s": 58.9,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 10.24,
+              "isolated_s": 10.24
+            },
+            {
+              "channel": 1,
+              "speech_s": 351.79,
+              "isolated_s": 312.61
+            },
+            {
+              "channel": 2,
+              "speech_s": 120.13,
+              "isolated_s": 86.39
+            },
+            {
+              "channel": 3,
+              "speech_s": 47.56,
+              "isolated_s": 35.98
+            },
+            {
+              "channel": 4,
+              "speech_s": 94.69,
+              "isolated_s": 71.85
+            },
+            {
+              "channel": 5,
+              "speech_s": 33.42,
+              "isolated_s": 32.05
+            },
+            {
+              "channel": 6,
+              "speech_s": 27.42,
+              "isolated_s": 26.94
+            },
+            {
+              "channel": 7,
+              "speech_s": 27.51,
+              "isolated_s": 17.72
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "IMG_3997.MOV",
+      "marked_faces": 7,
+      "methods": {
+        "existing": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 3,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 35.04,
+          "usable_s": 35.04,
+          "unknown_s": 553.95,
+          "overlap_s": 0.0,
+          "elapsed_s": 189.02,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 3.39,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 26.04,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 1.65,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 3.96,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            }
+          ]
+        },
+        "nvidia": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 3,
+          "active_channels": 7,
+          "channels_over_one_second": null,
+          "assigned_s": 31.11,
+          "usable_s": 31.11,
+          "unknown_s": 661.73,
+          "overlap_s": 15.23,
+          "elapsed_s": 207.16,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 4.34,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 7.62,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 19.15,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            }
+          ]
+        },
+        "psycon": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 5,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 403.13,
+          "usable_s": 401.73,
+          "unknown_s": 135.17,
+          "overlap_s": 19.56,
+          "elapsed_s": 383.66,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 140.17,
+              "transcription": "complete"
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 32.31,
+              "transcription": "complete"
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 22.45,
+              "transcription": "complete"
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 61.66,
+              "transcription": "complete"
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 145.14,
+              "transcription": "complete"
+            }
+          ]
+        },
+        "psycon-recovered": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 6,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 440.13,
+          "usable_s": 438.73,
+          "unknown_s": 98.17,
+          "overlap_s": 19.56,
+          "elapsed_s": null,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 140.17,
+              "transcription": "complete"
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 32.31,
+              "transcription": "complete"
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 22.45,
+              "transcription": "complete"
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 61.66,
+              "transcription": "complete"
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 37.0,
+              "transcription": "complete"
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 145.14,
+              "transcription": "complete"
+            }
+          ]
+        },
+        "nemotron-streaming-guarded": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 6,
+          "active_channels": 7,
+          "channels_over_one_second": 7,
+          "assigned_s": 494.26,
+          "usable_s": 489.32,
+          "unknown_s": 120.92,
+          "overlap_s": 15.23,
+          "elapsed_s": 355.54,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 144.36
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 29.13
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 26.64
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 69.19
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 41.04
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 178.96
+            }
+          ],
+          "new_ready_slots_vs_psycon": [],
+          "lost_ready_slots_vs_psycon": [],
+          "detector_comparison_rows": 20,
+          "detector_disagreement_rows": 1,
+          "detector_disagreement_intervals": [
+            {
+              "source_segment_id": "1a3fc275-78de-47b2-a5dc-6c151bea18a9",
+              "start_s": 646.09,
+              "end_s": 662.72,
+              "assigned_slot": 3,
+              "reference_observations": [
+                {
+                  "slot_number": 2,
+                  "start_s": 661.2797187500001,
+                  "end_s": 663.2797187500001,
+                  "score": 0.721032977104187
+                }
+              ]
+            }
+          ]
+        },
+        "nemotron-offline": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 6,
+          "active_channels": 7,
+          "channels_over_one_second": 7,
+          "assigned_s": 517.72,
+          "usable_s": 515.07,
+          "unknown_s": 99.33,
+          "overlap_s": 16.18,
+          "elapsed_s": 337.95,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 170.0
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 31.27
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 28.45
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 71.02
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 30.29
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 184.04
+            }
+          ],
+          "new_ready_slots_vs_psycon": [],
+          "lost_ready_slots_vs_psycon": [],
+          "detector_comparison_rows": 23,
+          "detector_disagreement_rows": 1,
+          "detector_disagreement_intervals": [
+            {
+              "source_segment_id": "bbdbbb19-1c71-446e-95d2-19843deffae6",
+              "start_s": 646.04,
+              "end_s": 662.69,
+              "assigned_slot": 3,
+              "reference_observations": [
+                {
+                  "slot_number": 2,
+                  "start_s": 661.2797187500001,
+                  "end_s": 663.2797187500001,
+                  "score": 0.721032977104187
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "offline_activity_thresholds": [
+        {
+          "threshold": 0.3,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 7,
+          "speech_union_s": 768.538,
+          "overlap_s": 24.91,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 244.19,
+              "isolated_s": 230.87
+            },
+            {
+              "channel": 1,
+              "speech_s": 55.8,
+              "isolated_s": 55.63
+            },
+            {
+              "channel": 2,
+              "speech_s": 268.64,
+              "isolated_s": 252.54
+            },
+            {
+              "channel": 3,
+              "speech_s": 62.19,
+              "isolated_s": 55.69
+            },
+            {
+              "channel": 4,
+              "speech_s": 92.79,
+              "isolated_s": 84.57
+            },
+            {
+              "channel": 5,
+              "speech_s": 31.55,
+              "isolated_s": 30.31
+            },
+            {
+              "channel": 6,
+              "speech_s": 39.838,
+              "isolated_s": 34.018
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        },
+        {
+          "threshold": 0.5,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 7,
+          "speech_union_s": 753.848,
+          "overlap_s": 16.18,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 240.89,
+              "isolated_s": 229.47
+            },
+            {
+              "channel": 1,
+              "speech_s": 54.8,
+              "isolated_s": 54.8
+            },
+            {
+              "channel": 2,
+              "speech_s": 260.66,
+              "isolated_s": 246.37
+            },
+            {
+              "channel": 3,
+              "speech_s": 59.55,
+              "isolated_s": 59.54
+            },
+            {
+              "channel": 4,
+              "speech_s": 85.52,
+              "isolated_s": 84.2
+            },
+            {
+              "channel": 5,
+              "speech_s": 30.41,
+              "isolated_s": 29.36
+            },
+            {
+              "channel": 6,
+              "speech_s": 38.828,
+              "isolated_s": 33.928
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        },
+        {
+          "threshold": 0.7,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 7,
+          "speech_union_s": 714.4,
+          "overlap_s": 12.97,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 226.3,
+              "isolated_s": 216.93
+            },
+            {
+              "channel": 1,
+              "speech_s": 53.86,
+              "isolated_s": 53.86
+            },
+            {
+              "channel": 2,
+              "speech_s": 252.29,
+              "isolated_s": 240.59
+            },
+            {
+              "channel": 3,
+              "speech_s": 47.29,
+              "isolated_s": 47.29
+            },
+            {
+              "channel": 4,
+              "speech_s": 81.69,
+              "isolated_s": 81.39
+            },
+            {
+              "channel": 5,
+              "speech_s": 29.2,
+              "isolated_s": 28.22
+            },
+            {
+              "channel": 6,
+              "speech_s": 37.02,
+              "isolated_s": 33.15
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "IMG_4002.MOV",
+      "marked_faces": 8,
+      "methods": {
+        "existing": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 5,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 53.19,
+          "usable_s": 53.19,
+          "unknown_s": 326.01,
+          "overlap_s": 0.0,
+          "elapsed_s": 310.59,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 6.21,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 6.5,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 1.59,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 31.75,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 3.31,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 3.08,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.75,
+              "transcription": null
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            }
+          ]
+        },
+        "nvidia": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 1,
+          "active_channels": 5,
+          "channels_over_one_second": null,
+          "assigned_s": 55.55,
+          "usable_s": 54.42,
+          "unknown_s": 352.97,
+          "overlap_s": 15.63,
+          "elapsed_s": 155.0,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 54.42,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            }
+          ]
+        },
+        "psycon": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 2,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 124.0,
+          "usable_s": 109.21,
+          "unknown_s": 115.39,
+          "overlap_s": 23.83,
+          "elapsed_s": 277.98,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 36.94,
+              "transcription": "complete"
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 72.27,
+              "transcription": "complete"
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            }
+          ]
+        },
+        "psycon-recovered": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 3,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 151.98,
+          "usable_s": 137.19,
+          "unknown_s": 87.41,
+          "overlap_s": 23.83,
+          "elapsed_s": null,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 27.98,
+              "transcription": "complete"
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 36.94,
+              "transcription": "complete"
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 72.27,
+              "transcription": "complete"
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            }
+          ]
+        },
+        "nemotron-streaming-guarded": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 3,
+          "active_channels": 5,
+          "channels_over_one_second": 5,
+          "assigned_s": 195.26,
+          "usable_s": 190.83,
+          "unknown_s": 135.41,
+          "overlap_s": 15.63,
+          "elapsed_s": 277.56,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 40.44
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 33.03
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 117.36
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            }
+          ],
+          "new_ready_slots_vs_psycon": [],
+          "lost_ready_slots_vs_psycon": [],
+          "detector_comparison_rows": 23,
+          "detector_disagreement_rows": 2,
+          "detector_disagreement_intervals": [
+            {
+              "source_segment_id": "a2bfbdc0-ad90-477a-83d9-7583c59560d6",
+              "start_s": 20.28,
+              "end_s": 25.82,
+              "assigned_slot": 6,
+              "reference_observations": [
+                {
+                  "slot_number": 8,
+                  "start_s": 24.906593750000003,
+                  "end_s": 25.76346875,
+                  "score": 0.8407254219055176
+                }
+              ]
+            },
+            {
+              "source_segment_id": "7a97a7ac-d81f-45a5-8468-3e2435840401",
+              "start_s": 156.0,
+              "end_s": 168.35999999999999,
+              "assigned_slot": 2,
+              "reference_observations": [
+                {
+                  "slot_number": 5,
+                  "start_s": 167.70284375000003,
+                  "end_s": 169.70284375000003,
+                  "score": 0.8321589231491089
+                }
+              ]
+            }
+          ]
+        },
+        "nemotron-offline": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 4,
+          "active_channels": 5,
+          "channels_over_one_second": 5,
+          "assigned_s": 210.31,
+          "usable_s": 204.55,
+          "unknown_s": 127.44,
+          "overlap_s": 19.69,
+          "elapsed_s": 290.48,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 48.3
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 31.15
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 7.44
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 117.66
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            }
+          ],
+          "new_ready_slots_vs_psycon": [
+            3
+          ],
+          "lost_ready_slots_vs_psycon": [],
+          "detector_comparison_rows": 24,
+          "detector_disagreement_rows": 1,
+          "detector_disagreement_intervals": [
+            {
+              "source_segment_id": "6116e8b7-1543-4ae6-ba62-b650e411f213",
+              "start_s": 18.39,
+              "end_s": 25.83,
+              "assigned_slot": 6,
+              "reference_observations": [
+                {
+                  "slot_number": 8,
+                  "start_s": 24.906593750000003,
+                  "end_s": 25.76346875,
+                  "score": 0.8407254219055176
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "offline_activity_thresholds": [
+        {
+          "threshold": 0.3,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 5,
+          "speech_union_s": 504.925,
+          "overlap_s": 50.2,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 111.095,
+              "isolated_s": 106.525
+            },
+            {
+              "channel": 1,
+              "speech_s": 96.42,
+              "isolated_s": 61.51
+            },
+            {
+              "channel": 2,
+              "speech_s": 177.11,
+              "isolated_s": 155.0
+            },
+            {
+              "channel": 3,
+              "speech_s": 113.5,
+              "isolated_s": 96.02
+            },
+            {
+              "channel": 4,
+              "speech_s": 59.0,
+              "isolated_s": 35.67
+            },
+            {
+              "channel": 5,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            },
+            {
+              "channel": 6,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        },
+        {
+          "threshold": 0.5,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 5,
+          "speech_union_s": 482.64,
+          "overlap_s": 19.69,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 109.25,
+              "isolated_s": 105.36
+            },
+            {
+              "channel": 1,
+              "speech_s": 78.44,
+              "isolated_s": 68.19
+            },
+            {
+              "channel": 2,
+              "speech_s": 171.05,
+              "isolated_s": 155.97
+            },
+            {
+              "channel": 3,
+              "speech_s": 101.86,
+              "isolated_s": 94.87
+            },
+            {
+              "channel": 4,
+              "speech_s": 41.73,
+              "isolated_s": 38.56
+            },
+            {
+              "channel": 5,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            },
+            {
+              "channel": 6,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        },
+        {
+          "threshold": 0.7,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 5,
+          "speech_union_s": 404.93,
+          "overlap_s": 8.66,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 106.76,
+              "isolated_s": 103.92
+            },
+            {
+              "channel": 1,
+              "speech_s": 47.67,
+              "isolated_s": 44.64
+            },
+            {
+              "channel": 2,
+              "speech_s": 162.04,
+              "isolated_s": 154.73
+            },
+            {
+              "channel": 3,
+              "speech_s": 90.39,
+              "isolated_s": 87.26
+            },
+            {
+              "channel": 4,
+              "speech_s": 6.73,
+              "isolated_s": 5.72
+            },
+            {
+              "channel": 5,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            },
+            {
+              "channel": 6,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "WhatsApp Video 2026-09-27 at 1.15.33 PM.mp4",
+      "marked_faces": 8,
+      "methods": {
+        "existing": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 5,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 61.12,
+          "usable_s": 61.1,
+          "unknown_s": 687.92,
+          "overlap_s": 0.0,
+          "elapsed_s": 99.59,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 29.35,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 10.82,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 8.8,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 8.74,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 3.39,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            }
+          ]
+        },
+        "nvidia": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 1,
+          "active_channels": 8,
+          "channels_over_one_second": null,
+          "assigned_s": 37.39,
+          "usable_s": 37.39,
+          "unknown_s": 653.56,
+          "overlap_s": 50.24,
+          "elapsed_s": 122.35,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 8,
+              "status": "ready",
+              "usable_s": 37.39,
+              "transcription": null
+            }
+          ]
+        },
+        "psycon": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 4,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 413.09,
+          "usable_s": 413.1,
+          "unknown_s": 232.3,
+          "overlap_s": 50.02,
+          "elapsed_s": 198.22,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 153.33,
+              "transcription": "complete"
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 119.01,
+              "transcription": "complete"
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 27.7,
+              "transcription": "complete"
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 113.06,
+              "transcription": "complete"
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            }
+          ]
+        },
+        "psycon-recovered": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 5,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 432.4,
+          "usable_s": 432.41,
+          "unknown_s": 212.98,
+          "overlap_s": 50.02,
+          "elapsed_s": null,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 153.33,
+              "transcription": "complete"
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 119.01,
+              "transcription": "complete"
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 27.7,
+              "transcription": "complete"
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 113.06,
+              "transcription": "complete"
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 8,
+              "status": "ready",
+              "usable_s": 19.31,
+              "transcription": "complete"
+            }
+          ]
+        },
+        "nemotron-streaming-guarded": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 5,
+          "active_channels": 8,
+          "channels_over_one_second": 8,
+          "assigned_s": 373.6,
+          "usable_s": 371.68,
+          "unknown_s": 303.34,
+          "overlap_s": 50.24,
+          "elapsed_s": 176.94,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 148.08
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 74.71
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 30.38
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 109.03
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 8,
+              "status": "ready",
+              "usable_s": 9.48
+            }
+          ],
+          "new_ready_slots_vs_psycon": [],
+          "lost_ready_slots_vs_psycon": [],
+          "detector_comparison_rows": 27,
+          "detector_disagreement_rows": 0,
+          "detector_disagreement_intervals": []
+        },
+        "nemotron-offline": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 5,
+          "active_channels": 8,
+          "channels_over_one_second": 8,
+          "assigned_s": 476.5,
+          "usable_s": 476.5,
+          "unknown_s": 237.76,
+          "overlap_s": 59.07,
+          "elapsed_s": 178.85,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 178.47
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 123.19
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 38.14
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 114.07
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 8,
+              "status": "ready",
+              "usable_s": 22.63
+            }
+          ],
+          "new_ready_slots_vs_psycon": [],
+          "lost_ready_slots_vs_psycon": [],
+          "detector_comparison_rows": 32,
+          "detector_disagreement_rows": 0,
+          "detector_disagreement_intervals": []
+        }
+      },
+      "offline_activity_thresholds": [
+        {
+          "threshold": 0.3,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 8,
+          "speech_union_s": 881.56,
+          "overlap_s": 70.09,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 109.22,
+              "isolated_s": 101.24
+            },
+            {
+              "channel": 1,
+              "speech_s": 11.7,
+              "isolated_s": 10.44
+            },
+            {
+              "channel": 2,
+              "speech_s": 240.62,
+              "isolated_s": 202.98
+            },
+            {
+              "channel": 3,
+              "speech_s": 110.96,
+              "isolated_s": 93.48
+            },
+            {
+              "channel": 4,
+              "speech_s": 184.16,
+              "isolated_s": 144.52
+            },
+            {
+              "channel": 5,
+              "speech_s": 69.31,
+              "isolated_s": 53.41
+            },
+            {
+              "channel": 6,
+              "speech_s": 175.4,
+              "isolated_s": 149.4
+            },
+            {
+              "channel": 7,
+              "speech_s": 58.93,
+              "isolated_s": 56.0
+            }
+          ]
+        },
+        {
+          "threshold": 0.5,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 8,
+          "speech_union_s": 862.71,
+          "overlap_s": 59.07,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 106.53,
+              "isolated_s": 99.28
+            },
+            {
+              "channel": 1,
+              "speech_s": 10.21,
+              "isolated_s": 10.21
+            },
+            {
+              "channel": 2,
+              "speech_s": 234.3,
+              "isolated_s": 201.78
+            },
+            {
+              "channel": 3,
+              "speech_s": 105.23,
+              "isolated_s": 93.21
+            },
+            {
+              "channel": 4,
+              "speech_s": 177.73,
+              "isolated_s": 145.99
+            },
+            {
+              "channel": 5,
+              "speech_s": 67.7,
+              "isolated_s": 53.05
+            },
+            {
+              "channel": 6,
+              "speech_s": 167.67,
+              "isolated_s": 147.05
+            },
+            {
+              "channel": 7,
+              "speech_s": 55.32,
+              "isolated_s": 53.07
+            }
+          ]
+        },
+        {
+          "threshold": 0.7,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 8,
+          "speech_union_s": 834.52,
+          "overlap_s": 48.38,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 104.8,
+              "isolated_s": 99.15
+            },
+            {
+              "channel": 1,
+              "speech_s": 9.41,
+              "isolated_s": 9.41
+            },
+            {
+              "channel": 2,
+              "speech_s": 225.91,
+              "isolated_s": 198.47
+            },
+            {
+              "channel": 3,
+              "speech_s": 97.2,
+              "isolated_s": 88.73
+            },
+            {
+              "channel": 4,
+              "speech_s": 169.4,
+              "isolated_s": 143.05
+            },
+            {
+              "channel": 5,
+              "speech_s": 63.96,
+              "isolated_s": 52.02
+            },
+            {
+              "channel": 6,
+              "speech_s": 160.68,
+              "isolated_s": 144.65
+            },
+            {
+              "channel": 7,
+              "speech_s": 52.33,
+              "isolated_s": 50.66
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "WhatsApp Video 2026-09-27 at 1.15.59 PM.mp4",
+      "marked_faces": 8,
+      "methods": {
+        "existing": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 3,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 14.51,
+          "usable_s": 14.5,
+          "unknown_s": 443.35,
+          "overlap_s": 0.0,
+          "elapsed_s": 67.18,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 3.44,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 1.88,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 3.18,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 4.54,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 1.46,
+              "transcription": null
+            }
+          ]
+        },
+        "nvidia": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 2,
+          "active_channels": 8,
+          "channels_over_one_second": null,
+          "assigned_s": 19.0,
+          "usable_s": 19.0,
+          "unknown_s": 477.37,
+          "overlap_s": 7.85,
+          "elapsed_s": 86.66,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 8.26,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 8,
+              "status": "ready",
+              "usable_s": 10.74,
+              "transcription": null
+            }
+          ]
+        },
+        "psycon": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 3,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 176.42,
+          "usable_s": 176.43,
+          "unknown_s": 195.39,
+          "overlap_s": 14.29,
+          "elapsed_s": 174.07,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 28.53,
+              "transcription": "complete"
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 78.74,
+              "transcription": "complete"
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 8,
+              "status": "ready",
+              "usable_s": 69.16,
+              "transcription": "complete"
+            }
+          ]
+        },
+        "psycon-recovered": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 4,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 197.25,
+          "usable_s": 197.26,
+          "unknown_s": 174.56,
+          "overlap_s": 14.29,
+          "elapsed_s": null,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 28.53,
+              "transcription": "complete"
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 78.74,
+              "transcription": "complete"
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 20.83,
+              "transcription": "complete"
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 8,
+              "status": "ready",
+              "usable_s": 69.16,
+              "transcription": "complete"
+            }
+          ]
+        },
+        "nemotron-streaming-guarded": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 4,
+          "active_channels": 8,
+          "channels_over_one_second": 8,
+          "assigned_s": 183.19,
+          "usable_s": 183.19,
+          "unknown_s": 194.66,
+          "overlap_s": 7.85,
+          "elapsed_s": 95.36,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 17.55
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 83.89
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 4.17
+            },
+            {
+              "slot": 8,
+              "status": "ready",
+              "usable_s": 77.58
+            }
+          ],
+          "new_ready_slots_vs_psycon": [
+            1,
+            7
+          ],
+          "lost_ready_slots_vs_psycon": [
+            4,
+            6
+          ],
+          "detector_comparison_rows": 14,
+          "detector_disagreement_rows": 0,
+          "detector_disagreement_intervals": []
+        },
+        "nemotron-offline": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 5,
+          "active_channels": 8,
+          "channels_over_one_second": 8,
+          "assigned_s": 226.59,
+          "usable_s": 226.59,
+          "unknown_s": 157.94,
+          "overlap_s": 9.17,
+          "elapsed_s": 98.46,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 28.14
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 84.05
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 20.66
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 19.1
+            },
+            {
+              "slot": 8,
+              "status": "ready",
+              "usable_s": 74.64
+            }
+          ],
+          "new_ready_slots_vs_psycon": [
+            7
+          ],
+          "lost_ready_slots_vs_psycon": [],
+          "detector_comparison_rows": 14,
+          "detector_disagreement_rows": 0,
+          "detector_disagreement_intervals": []
+        }
+      },
+      "offline_activity_thresholds": [
+        {
+          "threshold": 0.3,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 8,
+          "speech_union_s": 583.602,
+          "overlap_s": 40.84,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 16.46,
+              "isolated_s": 16.46
+            },
+            {
+              "channel": 1,
+              "speech_s": 176.722,
+              "isolated_s": 145.202
+            },
+            {
+              "channel": 2,
+              "speech_s": 58.47,
+              "isolated_s": 43.98
+            },
+            {
+              "channel": 3,
+              "speech_s": 68.82,
+              "isolated_s": 66.23
+            },
+            {
+              "channel": 4,
+              "speech_s": 72.75,
+              "isolated_s": 57.47
+            },
+            {
+              "channel": 5,
+              "speech_s": 93.91,
+              "isolated_s": 93.09
+            },
+            {
+              "channel": 6,
+              "speech_s": 25.0,
+              "isolated_s": 22.9
+            },
+            {
+              "channel": 7,
+              "speech_s": 112.98,
+              "isolated_s": 97.43
+            }
+          ]
+        },
+        {
+          "threshold": 0.5,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 8,
+          "speech_union_s": 553.35,
+          "overlap_s": 9.17,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 16.04,
+              "isolated_s": 16.04
+            },
+            {
+              "channel": 1,
+              "speech_s": 143.28,
+              "isolated_s": 136.83
+            },
+            {
+              "channel": 2,
+              "speech_s": 49.68,
+              "isolated_s": 48.02
+            },
+            {
+              "channel": 3,
+              "speech_s": 66.13,
+              "isolated_s": 66.13
+            },
+            {
+              "channel": 4,
+              "speech_s": 68.61,
+              "isolated_s": 60.49
+            },
+            {
+              "channel": 5,
+              "speech_s": 93.01,
+              "isolated_s": 92.44
+            },
+            {
+              "channel": 6,
+              "speech_s": 23.64,
+              "isolated_s": 22.86
+            },
+            {
+              "channel": 7,
+              "speech_s": 102.13,
+              "isolated_s": 101.37
+            }
+          ]
+        },
+        {
+          "threshold": 0.7,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 8,
+          "speech_union_s": 503.19,
+          "overlap_s": 4.95,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 15.68,
+              "isolated_s": 15.68
+            },
+            {
+              "channel": 1,
+              "speech_s": 135.75,
+              "isolated_s": 131.02
+            },
+            {
+              "channel": 2,
+              "speech_s": 38.41,
+              "isolated_s": 38.41
+            },
+            {
+              "channel": 3,
+              "speech_s": 64.58,
+              "isolated_s": 64.58
+            },
+            {
+              "channel": 4,
+              "speech_s": 54.97,
+              "isolated_s": 50.47
+            },
+            {
+              "channel": 5,
+              "speech_s": 92.19,
+              "isolated_s": 91.81
+            },
+            {
+              "channel": 6,
+              "speech_s": 22.22,
+              "isolated_s": 22.11
+            },
+            {
+              "channel": 7,
+              "speech_s": 84.34,
+              "isolated_s": 84.16
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "WhatsApp Video 2026-09-27 at 1.16.36 PM.mp4",
+      "marked_faces": 7,
+      "methods": {
+        "existing": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 3,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 34.09,
+          "usable_s": 34.07,
+          "unknown_s": 481.49,
+          "overlap_s": 0.0,
+          "elapsed_s": 76.17,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 6.96,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 1.03,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 16.54,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 7.14,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 2.4,
+              "transcription": null
+            }
+          ]
+        },
+        "nvidia": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 0,
+          "active_channels": 7,
+          "channels_over_one_second": null,
+          "assigned_s": 0,
+          "usable_s": 0.0,
+          "unknown_s": 496.02,
+          "overlap_s": 48.02,
+          "elapsed_s": 92.8,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            }
+          ]
+        },
+        "psycon": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 3,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 234.06,
+          "usable_s": 229.35,
+          "unknown_s": 179.13,
+          "overlap_s": 35.34,
+          "elapsed_s": 138.52,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 60.95,
+              "transcription": "complete"
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 30.45,
+              "transcription": "complete"
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 137.95,
+              "transcription": "complete"
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            }
+          ]
+        },
+        "psycon-recovered": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 6,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 294.5,
+          "usable_s": 289.79,
+          "unknown_s": 118.69,
+          "overlap_s": 35.34,
+          "elapsed_s": null,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 25.1,
+              "transcription": "complete"
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 60.95,
+              "transcription": "complete"
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 30.45,
+              "transcription": "complete"
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 137.95,
+              "transcription": "complete"
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 7.68,
+              "transcription": "complete"
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 27.66,
+              "transcription": "complete"
+            }
+          ]
+        },
+        "nemotron-streaming-guarded": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 6,
+          "active_channels": 7,
+          "channels_over_one_second": 7,
+          "assigned_s": 269.99,
+          "usable_s": 269.99,
+          "unknown_s": 139.58,
+          "overlap_s": 48.02,
+          "elapsed_s": 129.72,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 35.38
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 63.62
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 15.73
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 139.55
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 6.64
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 9.07
+            }
+          ],
+          "new_ready_slots_vs_psycon": [],
+          "lost_ready_slots_vs_psycon": [],
+          "detector_comparison_rows": 35,
+          "detector_disagreement_rows": 0,
+          "detector_disagreement_intervals": []
+        },
+        "nemotron-offline": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 5,
+          "active_channels": 7,
+          "channels_over_one_second": 7,
+          "assigned_s": 250.67,
+          "usable_s": 250.67,
+          "unknown_s": 189.62,
+          "overlap_s": 49.65,
+          "elapsed_s": 121.69,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 61.85
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 28.22
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 144.81
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 6.63
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 9.16
+            }
+          ],
+          "new_ready_slots_vs_psycon": [],
+          "lost_ready_slots_vs_psycon": [
+            1
+          ],
+          "detector_comparison_rows": 31,
+          "detector_disagreement_rows": 0,
+          "detector_disagreement_intervals": []
+        }
+      },
+      "offline_activity_thresholds": [
+        {
+          "threshold": 0.3,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 7,
+          "speech_union_s": 667.68,
+          "overlap_s": 73.91,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 30.66,
+              "isolated_s": 28.11
+            },
+            {
+              "channel": 1,
+              "speech_s": 156.5,
+              "isolated_s": 118.6
+            },
+            {
+              "channel": 2,
+              "speech_s": 257.7,
+              "isolated_s": 215.47
+            },
+            {
+              "channel": 3,
+              "speech_s": 45.85,
+              "isolated_s": 26.64
+            },
+            {
+              "channel": 4,
+              "speech_s": 110.0,
+              "isolated_s": 79.06
+            },
+            {
+              "channel": 5,
+              "speech_s": 80.22,
+              "isolated_s": 58.97
+            },
+            {
+              "channel": 6,
+              "speech_s": 74.57,
+              "isolated_s": 66.92
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        },
+        {
+          "threshold": 0.5,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 7,
+          "speech_union_s": 646.31,
+          "overlap_s": 49.65,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 28.5,
+              "isolated_s": 27.86
+            },
+            {
+              "channel": 1,
+              "speech_s": 146.45,
+              "isolated_s": 116.03
+            },
+            {
+              "channel": 2,
+              "speech_s": 249.27,
+              "isolated_s": 213.77
+            },
+            {
+              "channel": 3,
+              "speech_s": 40.32,
+              "isolated_s": 29.78
+            },
+            {
+              "channel": 4,
+              "speech_s": 95.12,
+              "isolated_s": 79.12
+            },
+            {
+              "channel": 5,
+              "speech_s": 70.54,
+              "isolated_s": 64.55
+            },
+            {
+              "channel": 6,
+              "speech_s": 69.68,
+              "isolated_s": 65.55
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        },
+        {
+          "threshold": 0.7,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 7,
+          "speech_union_s": 596.96,
+          "overlap_s": 35.16,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 23.94,
+              "isolated_s": 23.57
+            },
+            {
+              "channel": 1,
+              "speech_s": 130.71,
+              "isolated_s": 107.7
+            },
+            {
+              "channel": 2,
+              "speech_s": 240.87,
+              "isolated_s": 213.34
+            },
+            {
+              "channel": 3,
+              "speech_s": 32.54,
+              "isolated_s": 27.14
+            },
+            {
+              "channel": 4,
+              "speech_s": 87.55,
+              "isolated_s": 77.17
+            },
+            {
+              "channel": 5,
+              "speech_s": 51.95,
+              "isolated_s": 49.04
+            },
+            {
+              "channel": 6,
+              "speech_s": 65.23,
+              "isolated_s": 63.84
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "WhatsApp Video 2026-09-27 at 10.19.02 AM.mp4",
+      "marked_faces": 8,
+      "methods": {
+        "existing": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 2,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 11.22,
+          "usable_s": 11.22,
+          "unknown_s": 620.76,
+          "overlap_s": 0.0,
+          "elapsed_s": 81.75,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 1.95,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 3.48,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 1.6,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.99,
+              "transcription": null
+            },
+            {
+              "slot": 8,
+              "status": "ready",
+              "usable_s": 3.2,
+              "transcription": null
+            }
+          ]
+        },
+        "nvidia": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 1,
+          "active_channels": 7,
+          "channels_over_one_second": null,
+          "assigned_s": 8.75,
+          "usable_s": 8.75,
+          "unknown_s": 537.23,
+          "overlap_s": 87.9,
+          "elapsed_s": 93.09,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 8.75,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            }
+          ]
+        },
+        "psycon": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 5,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 455.53,
+          "usable_s": 452.79,
+          "unknown_s": 122.21,
+          "overlap_s": 87.13,
+          "elapsed_s": 185.57,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 90.5,
+              "transcription": "complete"
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 125.63,
+              "transcription": "complete"
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 97.1,
+              "transcription": "complete"
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 122.75,
+              "transcription": "complete"
+            },
+            {
+              "slot": 8,
+              "status": "ready",
+              "usable_s": 16.81,
+              "transcription": "complete"
+            }
+          ]
+        },
+        "psycon-recovered": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 5,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 455.53,
+          "usable_s": 452.79,
+          "unknown_s": 122.21,
+          "overlap_s": 87.13,
+          "elapsed_s": null,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 90.5,
+              "transcription": "complete"
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 125.63,
+              "transcription": "complete"
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 97.1,
+              "transcription": "complete"
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": "unavailable"
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 122.75,
+              "transcription": "complete"
+            },
+            {
+              "slot": 8,
+              "status": "ready",
+              "usable_s": 16.81,
+              "transcription": "complete"
+            }
+          ]
+        },
+        "nemotron-streaming-guarded": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 2,
+          "active_channels": 7,
+          "channels_over_one_second": 7,
+          "assigned_s": 241.28,
+          "usable_s": 236.32,
+          "unknown_s": 315.02,
+          "overlap_s": 87.9,
+          "elapsed_s": 129.92,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 104.32
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 132.0
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            }
+          ],
+          "new_ready_slots_vs_psycon": [],
+          "lost_ready_slots_vs_psycon": [
+            3,
+            4,
+            8
+          ],
+          "detector_comparison_rows": 12,
+          "detector_disagreement_rows": 0,
+          "detector_disagreement_intervals": []
+        },
+        "nemotron-offline": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 4,
+          "active_channels": 6,
+          "channels_over_one_second": 6,
+          "assigned_s": 437.83,
+          "usable_s": 423.36,
+          "unknown_s": 134.91,
+          "overlap_s": 92.57,
+          "elapsed_s": 137.6,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 81.3
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 109.03
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 88.56
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 144.47
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            }
+          ],
+          "new_ready_slots_vs_psycon": [],
+          "lost_ready_slots_vs_psycon": [
+            8
+          ],
+          "detector_comparison_rows": 20,
+          "detector_disagreement_rows": 0,
+          "detector_disagreement_intervals": []
+        }
+      },
+      "offline_activity_thresholds": [
+        {
+          "threshold": 0.3,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 7,
+          "speech_union_s": 744.94,
+          "overlap_s": 142.64,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 40.56,
+              "isolated_s": 27.1
+            },
+            {
+              "channel": 1,
+              "speech_s": 233.19,
+              "isolated_s": 165.87
+            },
+            {
+              "channel": 2,
+              "speech_s": 218.82,
+              "isolated_s": 136.47
+            },
+            {
+              "channel": 3,
+              "speech_s": 164.55,
+              "isolated_s": 106.07
+            },
+            {
+              "channel": 4,
+              "speech_s": 91.57,
+              "isolated_s": 47.81
+            },
+            {
+              "channel": 5,
+              "speech_s": 187.39,
+              "isolated_s": 118.98
+            },
+            {
+              "channel": 6,
+              "speech_s": 2.02,
+              "isolated_s": 0.0
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        },
+        {
+          "threshold": 0.5,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 6,
+          "speech_union_s": 716.55,
+          "overlap_s": 92.57,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 34.31,
+              "isolated_s": 26.6
+            },
+            {
+              "channel": 1,
+              "speech_s": 220.95,
+              "isolated_s": 169.95
+            },
+            {
+              "channel": 2,
+              "speech_s": 165.66,
+              "isolated_s": 134.73
+            },
+            {
+              "channel": 3,
+              "speech_s": 146.75,
+              "isolated_s": 110.51
+            },
+            {
+              "channel": 4,
+              "speech_s": 81.88,
+              "isolated_s": 50.88
+            },
+            {
+              "channel": 5,
+              "speech_s": 170.5,
+              "isolated_s": 131.31
+            },
+            {
+              "channel": 6,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        },
+        {
+          "threshold": 0.7,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 6,
+          "speech_union_s": 638.37,
+          "overlap_s": 55.44,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 31.77,
+              "isolated_s": 27.1
+            },
+            {
+              "channel": 1,
+              "speech_s": 200.66,
+              "isolated_s": 167.95
+            },
+            {
+              "channel": 2,
+              "speech_s": 136.51,
+              "isolated_s": 123.39
+            },
+            {
+              "channel": 3,
+              "speech_s": 134.2,
+              "isolated_s": 113.08
+            },
+            {
+              "channel": 4,
+              "speech_s": 73.7,
+              "isolated_s": 55.73
+            },
+            {
+              "channel": 5,
+              "speech_s": 118.65,
+              "isolated_s": 95.68
+            },
+            {
+              "channel": 6,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "WhatsApp Video 2026-09-27 at 10.19.44 AM.mp4",
+      "marked_faces": 8,
+      "methods": {
+        "existing": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 5,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 29.29,
+          "usable_s": 29.29,
+          "unknown_s": 768.74,
+          "overlap_s": 0.0,
+          "elapsed_s": 104.19,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 8.96,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 3.53,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 3.62,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 2.34,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 3.13,
+              "transcription": null
+            },
+            {
+              "slot": 8,
+              "status": "ready",
+              "usable_s": 7.71,
+              "transcription": null
+            }
+          ]
+        },
+        "nvidia": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 3,
+          "active_channels": 8,
+          "channels_over_one_second": null,
+          "assigned_s": 337.27,
+          "usable_s": 337.27,
+          "unknown_s": 492.2,
+          "overlap_s": 33.96,
+          "elapsed_s": 120.7,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 116.95,
+              "transcription": null
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 33.19,
+              "transcription": null
+            },
+            {
+              "slot": 4,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 5,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 187.13,
+              "transcription": null
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0,
+              "transcription": null
+            }
+          ]
+        },
+        "psycon": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 8,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 684.46,
+          "usable_s": 683.3,
+          "unknown_s": 61.25,
+          "overlap_s": 33.16,
+          "elapsed_s": 215.6,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 45.87,
+              "transcription": "complete"
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 46.43,
+              "transcription": "complete"
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 66.41,
+              "transcription": "complete"
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 128.36,
+              "transcription": "complete"
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 169.07,
+              "transcription": "complete"
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 31.2,
+              "transcription": "complete"
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 189.74,
+              "transcription": "complete"
+            },
+            {
+              "slot": 8,
+              "status": "ready",
+              "usable_s": 6.22,
+              "transcription": "complete"
+            }
+          ]
+        },
+        "psycon-recovered": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 8,
+          "active_channels": null,
+          "channels_over_one_second": null,
+          "assigned_s": 684.46,
+          "usable_s": 683.3,
+          "unknown_s": 61.25,
+          "overlap_s": 33.16,
+          "elapsed_s": null,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 45.87,
+              "transcription": "complete"
+            },
+            {
+              "slot": 2,
+              "status": "ready",
+              "usable_s": 46.43,
+              "transcription": "complete"
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 66.41,
+              "transcription": "complete"
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 128.36,
+              "transcription": "complete"
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 169.07,
+              "transcription": "complete"
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 31.2,
+              "transcription": "complete"
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 189.74,
+              "transcription": "complete"
+            },
+            {
+              "slot": 8,
+              "status": "ready",
+              "usable_s": 6.22,
+              "transcription": "complete"
+            }
+          ]
+        },
+        "nemotron-streaming-guarded": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 6,
+          "active_channels": 8,
+          "channels_over_one_second": 8,
+          "assigned_s": 642.29,
+          "usable_s": 642.29,
+          "unknown_s": 180.68,
+          "overlap_s": 33.96,
+          "elapsed_s": 128.93,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "ready",
+              "usable_s": 12.34
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 74.41
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 133.99
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 194.69
+            },
+            {
+              "slot": 6,
+              "status": "ready",
+              "usable_s": 31.24
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 195.62
+            },
+            {
+              "slot": 8,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            }
+          ],
+          "new_ready_slots_vs_psycon": [],
+          "lost_ready_slots_vs_psycon": [
+            2,
+            8
+          ],
+          "detector_comparison_rows": 28,
+          "detector_disagreement_rows": 1,
+          "detector_disagreement_intervals": [
+            {
+              "source_segment_id": "729857d9-08cf-46c1-a739-01c447aafafc",
+              "start_s": 951.8100000000001,
+              "end_s": 964.48,
+              "assigned_slot": 4,
+              "reference_observations": [
+                {
+                  "slot_number": 3,
+                  "start_s": 963.98346875,
+                  "end_s": 965.71784375,
+                  "score": 0.7593171000480652
+                }
+              ]
+            }
+          ]
+        },
+        "nemotron-offline": {
+          "status": "complete",
+          "reason": null,
+          "ready_profiles": 5,
+          "active_channels": 7,
+          "channels_over_one_second": 7,
+          "assigned_s": 633.77,
+          "usable_s": 598.89,
+          "unknown_s": 229.56,
+          "overlap_s": 42.66,
+          "elapsed_s": 117.9,
+          "profiles": [
+            {
+              "slot": 1,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 2,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 3,
+              "status": "ready",
+              "usable_s": 39.62
+            },
+            {
+              "slot": 4,
+              "status": "ready",
+              "usable_s": 135.25
+            },
+            {
+              "slot": 5,
+              "status": "ready",
+              "usable_s": 207.72
+            },
+            {
+              "slot": 6,
+              "status": "insufficient_speech",
+              "usable_s": 0.0
+            },
+            {
+              "slot": 7,
+              "status": "ready",
+              "usable_s": 198.2
+            },
+            {
+              "slot": 8,
+              "status": "ready",
+              "usable_s": 18.1
+            }
+          ],
+          "new_ready_slots_vs_psycon": [],
+          "lost_ready_slots_vs_psycon": [
+            1,
+            2,
+            6
+          ],
+          "detector_comparison_rows": 21,
+          "detector_disagreement_rows": 2,
+          "detector_disagreement_intervals": [
+            {
+              "source_segment_id": "9ddb54ef-7946-49c2-ac3c-d212c679ece0",
+              "start_s": 951.84,
+              "end_s": 964.52,
+              "assigned_slot": 4,
+              "reference_observations": [
+                {
+                  "slot_number": 3,
+                  "start_s": 963.98346875,
+                  "end_s": 965.71784375,
+                  "score": 0.7593171000480652
+                }
+              ]
+            },
+            {
+              "source_segment_id": "1669b343-477d-4ebf-aaeb-f469a0611c1f",
+              "start_s": 964.76,
+              "end_s": 992.23,
+              "assigned_slot": 5,
+              "reference_observations": [
+                {
+                  "slot_number": 3,
+                  "start_s": 963.98346875,
+                  "end_s": 965.71784375,
+                  "score": 0.7593171000480652
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "offline_activity_thresholds": [
+        {
+          "threshold": 0.3,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 7,
+          "speech_union_s": 963.731,
+          "overlap_s": 51.721,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 97.02,
+              "isolated_s": 90.38
+            },
+            {
+              "channel": 1,
+              "speech_s": 88.48,
+              "isolated_s": 61.32
+            },
+            {
+              "channel": 2,
+              "speech_s": 233.321,
+              "isolated_s": 210.25
+            },
+            {
+              "channel": 3,
+              "speech_s": 61.72,
+              "isolated_s": 46.97
+            },
+            {
+              "channel": 4,
+              "speech_s": 259.251,
+              "isolated_s": 244.87
+            },
+            {
+              "channel": 5,
+              "speech_s": 194.51,
+              "isolated_s": 183.57
+            },
+            {
+              "channel": 6,
+              "speech_s": 95.69,
+              "isolated_s": 74.65
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        },
+        {
+          "threshold": 0.5,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 7,
+          "speech_union_s": 948.791,
+          "overlap_s": 42.66,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 94.55,
+              "isolated_s": 89.55
+            },
+            {
+              "channel": 1,
+              "speech_s": 81.96,
+              "isolated_s": 61.62
+            },
+            {
+              "channel": 2,
+              "speech_s": 227.131,
+              "isolated_s": 209.611
+            },
+            {
+              "channel": 3,
+              "speech_s": 59.47,
+              "isolated_s": 48.01
+            },
+            {
+              "channel": 4,
+              "speech_s": 256.95,
+              "isolated_s": 244.82
+            },
+            {
+              "channel": 5,
+              "speech_s": 192.69,
+              "isolated_s": 183.19
+            },
+            {
+              "channel": 6,
+              "speech_s": 87.53,
+              "isolated_s": 69.33
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        },
+        {
+          "threshold": 0.7,
+          "frame_resolution_s": 0.01,
+          "channels_over_one_second": 7,
+          "speech_union_s": 927.351,
+          "overlap_s": 31.76,
+          "channels": [
+            {
+              "channel": 0,
+              "speech_s": 93.13,
+              "isolated_s": 89.42
+            },
+            {
+              "channel": 1,
+              "speech_s": 77.01,
+              "isolated_s": 63.4
+            },
+            {
+              "channel": 2,
+              "speech_s": 215.051,
+              "isolated_s": 204.101
+            },
+            {
+              "channel": 3,
+              "speech_s": 57.09,
+              "isolated_s": 49.31
+            },
+            {
+              "channel": 4,
+              "speech_s": 253.82,
+              "isolated_s": 245.17
+            },
+            {
+              "channel": 5,
+              "speech_s": 180.64,
+              "isolated_s": 173.81
+            },
+            {
+              "channel": 6,
+              "speech_s": 83.26,
+              "isolated_s": 70.38
+            },
+            {
+              "channel": 7,
+              "speech_s": 0.0,
+              "isolated_s": 0.0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
