@@ -38,3 +38,6 @@ COPY --from=base /opt/psycon/diarization /opt/psycon/diarization
 ENV PSYCON_DIARIZATION_MODELS=/opt/psycon/diarization
 ENV HF_HOME=/opt/psycon/hf-cache
 ENV PSYCON_TALKNET_WEIGHTS=/opt/psycon/talknet/pretrain_TalkSet.model
+
+# Render builds the final stage; GPU workers explicitly select nvidia.
+FROM base AS web
