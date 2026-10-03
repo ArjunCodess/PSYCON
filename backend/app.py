@@ -18,6 +18,10 @@ from .routes import api, pages
 from . import group_routes
 from .services import ExportService, IngestionService, Processor
 from .storage import ObjectStorage
+from .communication.service import CommunicationService
+from .communication.store import PostgresCommunicationStore
+from .communication.routes import communication_api, coach_pages
+from .communication.sources import SourceAdapters
 
 
 def create_app(
@@ -58,10 +62,14 @@ def create_app(
         psycon_processor=Processor(repository, storage, inference),
         psycon_exporter=ExportService(repository, storage),
         psycon_group=GroupObservationService(PostgresGroupStore(database), storage),
+        psycon_communication=CommunicationService(PostgresCommunicationStore(database)),
     )
+    app.extensions["psycon_communication"].sources = SourceAdapters(app.extensions["psycon_group"], repository, storage)
     app.register_blueprint(pages)
     app.register_blueprint(api)
     app.register_blueprint(group_routes.group_api)
+    app.register_blueprint(communication_api)
+    app.register_blueprint(coach_pages)
 
     @app.errorhandler(RequestEntityTooLarge)
     def request_too_large(_error):

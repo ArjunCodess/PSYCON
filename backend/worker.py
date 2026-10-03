@@ -17,6 +17,11 @@ def run_worker(*, once: bool = False, poll_seconds: float = 1.0, device_only: bo
         repository.heartbeat(worker_id)
         job = repository.claim_job(worker_id)
         if job is None:
+            communication = app.extensions.get("psycon_communication")
+            if not device_only and communication is not None and communication.process_one():
+                if once:
+                    return
+                continue
             group_job = None if device_only else app.extensions["psycon_group"].claim_job(worker_id)
             if group_job is None:
                 if once:
