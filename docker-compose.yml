@@ -11,6 +11,8 @@ x-backend-environment: &backend-environment
   PSYCON_S3_REGION: us-east-1
   PSYCON_SECRET_KEY: psycon-local-flask-secret
   PSYCON_BOOTSTRAP_OPERATOR_TOKEN: psycon-local-operator
+  PSYCON_PROFILE_KEY: ${PSYCON_PROFILE_KEY:-}
+  PSYCON_COMMUNICATION_SPOOL: /private-spool
 
 services:
   postgres:
@@ -53,6 +55,8 @@ services:
       context: .
       target: base
     environment: *backend-environment
+    volumes:
+      - psycon_private_spool:/private-spool
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
@@ -78,15 +82,35 @@ services:
       PSYCON_DIARIZATION_DEVICE: cuda
       PSYCON_SPEAKER_DEVICE: cuda
       PSYCON_WHISPER_DEVICE: cuda
+      PSYCON_OLLAMA_URL: http://ollama:11434
+      PSYCON_OLLAMA_MODEL: qwen3.5:4b
+      PSYCON_OLLAMA_DIGEST: ${PSYCON_OLLAMA_DIGEST:-}
     gpus: all
     volumes:
       - .:/app
       - psycon_models:/opt/psycon/hf-cache
+      - psycon_private_spool:/private-spool
     depends_on:
       api:
         condition: service_healthy
+
+  ollama:
+    image: ollama/ollama:latest
+    profiles: [coaching]
+    gpus: all
+    environment:
+      OLLAMA_NUM_PARALLEL: 1
+      OLLAMA_MAX_LOADED_MODELS: 1
+      OLLAMA_KEEP_ALIVE: 0
+      OLLAMA_NO_CLOUD: 1
+    volumes:
+      - psycon_ollama:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
 
 volumes:
   psycon_postgres:
   psycon_objects:
   psycon_models:
+  psycon_private_spool:
+  psycon_ollama:

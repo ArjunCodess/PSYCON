@@ -17,3 +17,5 @@ firmware
 tests
 instance
 backups
+.psycon-private-spool
+.test-tmp-*
