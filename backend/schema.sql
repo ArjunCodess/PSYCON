@@ -3,6 +3,26 @@ CREATE TABLE IF NOT EXISTS schema_version (
     applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Additive communication migration 1. Documents are versioned by their service;
+-- research tables and IDs retain their existing meanings.
+CREATE TABLE IF NOT EXISTS communication_records (
+    kind TEXT NOT NULL,
+    id TEXT NOT NULL,
+    profile_id TEXT NOT NULL,
+    body JSONB NOT NULL,
+    PRIMARY KEY(kind, id)
+);
+CREATE INDEX IF NOT EXISTS communication_profile_idx ON communication_records(kind, profile_id);
+INSERT INTO schema_version(version) VALUES (100) ON CONFLICT DO NOTHING;
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM schema_version WHERE version=101) THEN
+        ALTER TABLE communication_records DROP CONSTRAINT IF EXISTS communication_records_kind_check;
+        ALTER TABLE communication_records ADD CONSTRAINT communication_records_kind_check
+            CHECK (kind IN ('profile','grant','conversation','baseline','goal','link','audit','enrollment'));
+        INSERT INTO schema_version(version) VALUES (101);
+    END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS participants (
     id UUID PRIMARY KEY,
     anonymous_code TEXT NOT NULL UNIQUE,
