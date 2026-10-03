@@ -372,6 +372,7 @@ def analyze_speakers(
         "ambiguity_margin": margin,
         "reasons": (["some_speakers_have_insufficient_clean_speech"] if insufficient else []),
         "turns": [turn.to_dict() for turn in exclusive],
+        "regular_turns": [turn.to_dict() for turn in regular],
         "attributed_words": attributed_words,
         "speakers": speakers,
         "conversation": conversation,
