@@ -2,6 +2,8 @@
 
 This matrix defines the software checks required from a clean checkout. Hardware measurements are tracked separately in the seven-week plan.
 
+The current direction and release limits are in [implementation status](IMPLEMENTATION_STATUS.md). Set `PSYCON_COMMUNICATION_TEST_DATABASE` to a local PostgreSQL URL for the real lifecycle test; otherwise it skips. Model-gated and licensed-dataset tests may also skip when their required inputs are unavailable.
+
 | Surface | Command | Clean-checkout expectation |
 | --- | --- | --- |
 | Python | `python -m pip install -r requirements.txt` then `python -m pytest` | Repository tests pass; the three raw-WESAD integration tests skip when the licensed external dataset is absent |
@@ -11,6 +13,9 @@ This matrix defines the software checks required from a clean checkout. Hardware
 | Audio demo | `python -m demo.audio_demo` | Generated tone and speech-like cases are usable; silence, impulse, clipping, noise, missing input, and CRC corruption produce explicit abstention states; JSON is written under `results/demo/` |
 | Real-audio upload page | `python -m demo.audio_web_app`, then open `http://127.0.0.1:5000` | The local page accepts consented WAV, MP3, and OGG uploads and reports quality, local transcription, speaker analysis, and language features; automated tests cover decoding, downmixing, resampling, quality gating, transcription states, speaker abstention, language abstention, successful analysis, and invalid-file errors |
 | Audio firmware | `python -m platformio run --project-dir firmware/ear` | ESP32 firmware compiles |
+| Communication software | `python -m pytest tests/backend/test_communication.py tests/backend/test_communication_postgres.py tests/validation/test_communication_semantics.py` | Private access, enrollment, deduplication, retention, future exclusion, snapshot lineage, baselines, roles, correction/deletion, and semantic gates pass. |
+| Complete containers | `docker compose build api worker minio` | Web, GPU worker, and local object-store images build; human/physical gates remain separate. |
+| Semantic validation | `python -m validation.communication_semantics reviewed.json validation.json` | Invalid references/duplicate exchanges are rejected; inadequate role coverage, precision, or review count leaves types unavailable. |
 | Wrist firmware | `python -m platformio run --project-dir firmware/wrist` | ESP32 firmware compiles |
 | Week 6 validation logic | `python -m pytest tests/validation` | Evidence-source rules, ordered integration gates, failure-scenario assessment, stress metrics, report generation, export verification, and risk mappings pass |
 | Week 6 live API scenarios | Start Compose, then run `python -m validation.api_validation --url http://localhost:8000` | Nine simulated scenarios, processing, synchronization, features, inference, dashboard access, and export integrity pass; this cannot satisfy a physical gate |

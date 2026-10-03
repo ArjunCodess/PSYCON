@@ -1,5 +1,7 @@
 # Audio Feature and Quality Contract
 
+The personal product reuses this pipeline through [communication analysis](COMMUNICATION_ARCHITECTURE.md). Wearer-only clean intervals feed personal baselines; recording-wide research results do not become coaching scores. Ear firmware now implements continuous DMA and Protocol v2 Wi-Fi PCM chunks, with physical continuity and attribution awaiting validation. See [the pilot runbook](COMMUNICATION_COACH.md).
+
 This document defines the software contract for mono signed PCM16 audio, local transcription, transparent English language features, consented wearer verification, conversation timing, and voice jitter. It does not infer a diagnosis or prove that the physical microphone is correctly configured.
 
 The Engineering PRD specifies language features and conversation analysis. The implemented consent-aware stage provides timestamped text, confidence/failure states, vocabulary and sentence statistics, sentiment, emotion-related word counts, topic transitions, and basic speech/pause summaries. The acoustic quality decision runs first so unusable audio does not silently enter transcription or multimodal inference.

@@ -1,5 +1,7 @@
 # Week 4 backend and local demo
 
+The same Flask application now includes the personal service and `/coach`. Its contract is in [communication architecture](COMMUNICATION_ARCHITECTURE.md), and startup/retention steps are in [the pilot runbook](COMMUNICATION_COACH.md). Device/research contracts below remain separate; their raw-object policy does not apply to new personal uploads.
+
 The Week 4 software is a cloud-ready local stack. Hardware sends authenticated Protocol v2 packets to a stateless HTTP service; PostgreSQL holds transactional metadata and processing state; S3-compatible object storage holds immutable raw packets and exports. The local demo uses MinIO, while a later deployment can use Cloudflare R2, Amazon S3, DigitalOcean Spaces, or another S3-compatible provider without changing object keys or repository records.
 
 The hardware is not required to exercise this contract. `backend.simulator` creates a session, provisions simulated Wrist and Audio credentials, performs clock exchanges, posts status, uploads real Protocol v2 bytes, and queues processing through the same endpoints intended for the ESP32 modules.

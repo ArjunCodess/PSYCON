@@ -1,12 +1,14 @@
 # Deployment
 
+The personal pilot is currently local. Its spool must be shared, profile key stable, and LLM local and pinned; use [the communication runbook](COMMUNICATION_COACH.md). Hosted checks below are a dated record of group research, not a hosted personal product or authorization to connect a local worker to production.
+
 ## Current hosting
 
 Checked on 1 October 2026 using the open Render and Cloudflare dashboards.
 The existing site is https://psycon.onrender.com. Render successfully deployed
 commit `dad6cbc` from `week-5-group-observation` on 1 October 2026.
 The configured source branch remains `main`; a specific-commit deployment was
-used, and automatic deployment was disabled by Render. The PR has not been merged.
+used, and automatic deployment was disabled by Render. The source work has since been merged into local `main` as `2ee246f`; this update does not verify a new hosted deployment.
 The free CPU instance is in Singapore. The private R2 bucket remains private.
 
 The live health and readiness endpoints returned 200, with PostgreSQL and

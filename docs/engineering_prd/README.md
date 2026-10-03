@@ -1,5 +1,7 @@
 # PSYCON Engineering PRD
 
+The personal product direction is governed by [vision](../PSYCON_VISION.md), [communication architecture](../COMMUNICATION_ARCHITECTURE.md), and [implementation status](../IMPLEMENTATION_STATUS.md). This PRD preserves the original wearable/research scope and remains the source for hardware, electrical, study, and safety procedures. Earlier product framing and firmware descriptions are not current communication-pilot status.
+
 Publication-quality, double-column LaTeX conversion of the PSYCON Engineering
 Design Document, styled to resemble a biomedical-engineering / PubMed-indexed
 journal paper (e.g., IEEE Transactions on Biomedical Engineering). The

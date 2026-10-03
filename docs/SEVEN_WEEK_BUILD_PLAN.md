@@ -24,7 +24,7 @@ Documentation proves documentation only. A diagram of a driver, backend, calibra
 | Engineering PRD | Tracked and reproducible | 34 TeX chapters, a current 37-page PDF, reproducibility matrix, device-feature contract, and audio contract; placeholder bibliography entries remain release blockers |
 | Hardware | Partial reported bring-up | BOM, GPIO, wiring, and power design; no integrated or measured evidence in repository |
 | Wrist firmware | Scaffold | Compiles and scans I2C; sensor samples are placeholders |
-| Audio firmware | Scaffold | Compiles and initializes 16 kHz I2S; capture is discontinuous and TEMT6000 is absent |
+| Audio firmware | Software implemented, physical validation open | Continuous 16 kHz DMA, bounded v2 PCM queue, Wi-Fi retries/clock/status and BLE controls compile; physical continuity and TEMT6000 remain open. See [current status](IMPLEMENTATION_STATUS.md). |
 | Protocol | Versioned transport and server ingestion implemented | Protocol v2 fixtures decode identically in Python, TypeScript, and C++; authenticated Flask ingestion preserves immutable packet identity and synchronization metadata |
 | Backend | Week 4 software complete | PostgreSQL, S3-compatible storage, authentication, validation, synchronization, jobs, dashboard, export, backup verification, containers, and deterministic device simulation pass the live Compose smoke test |
 | ML | Week 5 research pipeline prepared | WESAD models/artifacts, audio and language analysis, synchronized multimodal assembly, participant-safe splits, candidate selection, group cross-validation, confidence intervals, ablations, and context/duration analysis code exist; psychologist marksheets, matching PSYCON sessions, real multimodal results, and external validation remain absent |
