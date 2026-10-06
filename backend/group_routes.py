@@ -12,6 +12,7 @@ from flask import Blueprint, Response, current_app, g, jsonify, render_template,
 
 from .auth import Principal, hash_token, require_role
 from .group.errors import GroupError
+from .group.coaching import GroupCoaching, clean_context
 from .routes import api, error, pages
 
 
@@ -150,10 +151,32 @@ def import_group_labels(session_id):
     if upload is None:
         return error("invalid_labels", "Attach the spreadsheet as file", 400)
     try:
+        context = clean_context({key: request.form.get(key, "") for key in ("topic", "setting", "objective")}) if any(key in request.form for key in ("topic", "setting", "objective")) else None
         stored = _service().import_labels(g.principal, str(session_id), upload.filename or "labels.csv", upload.read())
+        if context is not None:
+            stored["feedback"] = GroupCoaching(_service()).request(g.principal, str(session_id), context)
     except GroupError as exc:
         return _failure(exc)
     return jsonify({"status": "stored", **stored})
+
+
+@group_api.get("/group-sessions/<uuid:session_id>/feedback")
+@group_role("operator", "psychologist", "reviewer")
+def get_group_feedback(session_id):
+    try:
+        return jsonify(GroupCoaching(_service()).get(g.principal, str(session_id)))
+    except GroupError as exc:
+        return _failure(exc)
+
+
+@group_api.post("/group-sessions/<uuid:session_id>/feedback")
+@group_role("operator", "psychologist")
+def request_group_feedback(session_id):
+    body = request.get_json(silent=True) or {}
+    try:
+        return jsonify(GroupCoaching(_service()).request(g.principal, str(session_id), body.get("context"), force=body.get("retry") is True)), 202
+    except GroupError as exc:
+        return _failure(exc)
 
 
 @group_api.get("/group-training/faces")

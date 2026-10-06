@@ -699,9 +699,10 @@ class GroupObservationService:
         }
 
     def import_labels(self, actor: Principal, session_id: str, filename: str, data: bytes) -> dict:
-        del filename
         self._require(actor, "operator", "psychologist")
         self._session(session_id)
+        if len(data) > 2 * 1024 * 1024:
+            raise GroupError("invalid_labels", "The spreadsheet must be under 2 MB", 400)
         try:
             parsed = parse_label_csv(data)
         except LabelSheetError as exc:
@@ -728,12 +729,19 @@ class GroupObservationService:
                         "class_name": row["class_name"],
                     }
                 )
-        saved = self.store.replace_training_labels(session_id, stored)
+        previous_context = (self.store.feedback_for(session_id) or {}).get("context", {})
+        source = {"id": str(uuid4()), "group_session_id": session_id, "filename": Path(filename).name,
+                  "sha256": hashlib.sha256(data).hexdigest(), "csv": data.decode("utf-8-sig"),
+                  "rows": parsed, "marksheet_version": MARKSHEET_VERSION, "actor_id": actor.id, "created_at": _stamp()}
+        saved = self.store.replace_training_labels(session_id, stored, source=source)
+        from .coaching import GroupCoaching
+        feedback = GroupCoaching(self).request(actor, session_id, previous_context)
         self._audit(actor, "import_labels", session_id, {"rows": len(parsed), "scores": len(saved)})
         return {
             "labels": len(saved),
             "participants": sorted({row["slot_number"] for row in saved}),
             "classes": {str(row["slot_number"]): row["class_name"] for row in parsed},
+            "feedback": feedback,
         }
 
     def training_status(self, actor: Principal) -> dict:
@@ -1317,6 +1325,10 @@ class GroupObservationService:
         return self.store.claim_job(worker_id)
 
     def run_job(self, job: dict) -> None:
+        if job.get("job_type") == "group_feedback":
+            from .coaching import GroupCoaching
+            GroupCoaching(self).run(job)
+            return
         if job.get("job_type") == "process_psycon":
             self._run_psycon_job(job)
             return

@@ -1,5 +1,5 @@
 (() => {
-  const state = { selected: null, step: 1, refresh: null, speechStop: null, method: "existing", reviewSegmentId: null };
+  const state = { selected: null, step: 1, refresh: null, feedbackRefresh: null, speechStop: null, method: "existing", reviewSegmentId: null };
   const byId = (id) => document.getElementById(id);
   const make = (tag, className, value) => {
     const node = document.createElement(tag);
@@ -23,6 +23,7 @@
     byId("screen-done").hidden = step !== 3;
     byId("notice").hidden = true;
     if (step !== 2 && state.refresh) clearTimeout(state.refresh);
+    if (state.feedbackRefresh) clearTimeout(state.feedbackRefresh);
     if (step !== 2) {
       state.speechStop?.();
       byId("voice-review-video").pause();
@@ -384,6 +385,7 @@
     }
     const body = new FormData();
     body.append("file", byId("csv-file").files[0]);
+    for (const field of ["topic", "setting", "objective"]) body.append(field, byId(`discussion-${field}`).value.trim());
     const button = event.currentTarget.querySelector("button");
     button.disabled = true;
     try {
@@ -391,19 +393,78 @@
       const classes = Object.entries(stored.classes || {}).map(([slot, name]) => `${slot} ${name}`).join(", ");
       byId("done-copy").textContent = `Stored ${stored.labels} scores. Classes: ${classes}.`;
       show(3);
-      window.setTimeout(() => {
-        state.selected = null;
-        history.replaceState(null, "", "/group");
-        byId("intake-form").reset();
-        byId("marked-preview").removeAttribute("src");
-        byId("face-voice-list").replaceChildren();
-        show(1);
-      }, 1600);
+      refreshFeedback();
     } catch (error) {
       notice(error.message, true);
     } finally {
       button.disabled = false;
     }
+  });
+
+  async function refreshFeedback() {
+    if (!state.selected || state.step !== 3) return;
+    const sessionId = state.selected;
+    try {
+      const data = await api(`/api/v1/group-sessions/${sessionId}/feedback`);
+      if (sessionId !== state.selected || state.step !== 3) return;
+      const context = data.context || {};
+      byId("feedback-context").textContent = [context.topic, context.setting, context.objective].filter(Boolean).join(" · ");
+      for (const field of ["topic", "setting", "objective"]) byId(`discussion-${field}`).value = context[field] || "";
+      const pending = ["queued", "running"].includes(data.status);
+      byId("feedback-status").textContent = pending ? "Feedback is processing. Keep the worker running." :
+        data.status === "complete" ? `Feedback ready. Practice suggestions: ${data.interpretation?.state === "local_llm" ? "local AI" : "rubric rules"}. Review them before use.` :
+        data.reason || `Feedback ${data.status}. You can generate it again.`;
+      byId("feedback-people").replaceChildren();
+      for (const person of data.people || []) {
+        const card = make("article", "face-voice-card");
+        card.append(make("h2", "", `Participant ${person.slot_number}`));
+        for (const [key, title] of [["strengths", "What went well"], ["improvements", "What to improve"]]) {
+          card.append(make("h3", "", title));
+          if (!person[key].length) card.append(make("p", "helper", "The spreadsheet has no supported rating for this section."));
+          for (const finding of person[key]) {
+            card.append(make("p", "", `${finding.item_letter} · reviewer score ${finding.score}. Rubric behavior: ${finding.behavior}. ${finding.observation} Rating meaning: ${finding.meaning}.`));
+            card.append(make("p", "", `Practice${finding.practice_source === "local_llm" ? " suggestion from local AI" : " from rubric rules"}: ${finding.practice}`));
+            const detail = make("details");
+            detail.append(make("summary", "", "Rating source and limits"), make("p", "helper", `${finding.id}. ${finding.uncertainty}`));
+            card.append(detail);
+          }
+        }
+        card.append(make("p", "helper", person.evidence_note));
+        const examples = make("details");
+        examples.append(make("summary", "", "Original speech intervals"));
+        for (const evidence of person.evidence) examples.append(make("p", "", `${fixed(evidence.start_s, 2)} to ${fixed(evidence.end_s, 2)} s. ${evidence.text || "Confirmed speech, transcript unavailable."}`));
+        if (!person.evidence.length) examples.append(make("p", "helper", "No current confirmed PSYCON speech intervals are available."));
+        card.append(examples);
+        if (person.not_observed.length) card.append(make("p", "helper", `N/O, no conclusion: ${person.not_observed.join(", ")}.`));
+        byId("feedback-people").append(card);
+      }
+      if (pending) state.feedbackRefresh = setTimeout(refreshFeedback, 2500);
+    } catch (error) {
+      byId("feedback-status").textContent = error.message;
+    }
+  }
+  async function requestFeedback(event) {
+    const button = event.currentTarget;
+    button.disabled = true;
+    try {
+      const context = Object.fromEntries(["topic", "setting", "objective"].map((key) => [key, byId(`discussion-${key}`).value.trim()]));
+      await api(`/api/v1/group-sessions/${state.selected}/feedback`, { method: "POST", body: { context, retry: true } });
+      show(3);
+      refreshFeedback();
+    } catch (error) { notice(error.message, true); }
+    finally { button.disabled = false; }
+  }
+  byId("feedback-retry").addEventListener("click", requestFeedback);
+  byId("update-feedback-context").addEventListener("click", requestFeedback);
+  byId("feedback-review").addEventListener("click", () => { show(2); refreshVoice(); });
+  byId("next-recording").addEventListener("click", () => {
+    state.selected = null;
+    history.replaceState(null, "", "/group");
+    byId("intake-form").reset();
+    byId("csv-form").reset();
+    byId("marked-preview").removeAttribute("src");
+    byId("face-voice-list").replaceChildren();
+    show(1);
   });
 
   const sessionId = new URLSearchParams(location.search).get("session");
@@ -412,6 +473,10 @@
       if (!data.marked_frame_ready) throw new Error("This session has no marked frame.");
       byId("marked-preview").src = `/api/v1/group-sessions/${sessionId}/reference-frame`;
       openMarkedSession(sessionId, data.participants.length);
+      return api(`/api/v1/group-sessions/${sessionId}/feedback`).then((feedback) => {
+        for (const field of ["topic", "setting", "objective"]) byId(`discussion-${field}`).value = feedback.context?.[field] || "";
+        if (feedback.status !== "not_requested") { show(3); refreshFeedback(); }
+      });
     }).catch((error) => notice(error.message, true));
   }
 })();

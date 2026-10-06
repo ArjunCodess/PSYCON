@@ -94,18 +94,32 @@
         <label class="field-label" for="csv-file">Marksheet spreadsheet</label>
         <input id="csv-file" type="file" accept=".csv,text/csv" required>
         <p class="field-helper">One row per marked face. Header participant,class,A through T. Scores are 0–4 or N/O.</p>
+        <label for="discussion-topic">Discussion topic</label>
+        <input id="discussion-topic" maxlength="500" placeholder="What did the group discuss?">
+        <label for="discussion-setting">Setting</label>
+        <input id="discussion-setting" maxlength="500" placeholder="For example, a classroom discussion">
+        <label for="discussion-objective">Discussion goal</label>
+        <input id="discussion-objective" maxlength="500" placeholder="What was the group trying to do?">
+        <p class="field-helper">This context applies to everyone. Feedback uses the reviewer scores; AI suggests ways to practice.</p>
         <button class="analyze-button" type="submit"><span>Submit spreadsheet</span><span aria-hidden="true">→</span></button>
+        <button type="button" id="update-feedback-context">Save context and update feedback</button>
       </form>
     </section>
 
     <section id="screen-done" class="intake-screen" hidden aria-labelledby="done-title">
-      <p class="section-index">03 / Stored</p>
-      <h1 id="done-title">Data submitted</h1>
+      <p class="section-index">03 / Feedback</p>
+      <h1 id="done-title">What to keep. What to improve.</h1>
       <p id="done-copy" class="helper">The spreadsheet is stored for this recording.</p>
+      <p id="feedback-status" class="helper" role="status"></p>
+      <p id="feedback-context" class="helper"></p>
+      <div id="feedback-people"></div>
+      <button type="button" id="feedback-retry">Generate feedback again</button>
+      <button type="button" id="feedback-review">Review recording and context</button>
+      <button type="button" id="next-recording">Upload another recording</button>
     </section>
 
     <div id="notice" class="success-message" role="status" hidden></div>
   </main>
-  <script src="{{ url_for('static', filename='group_session.js', v='group-console-18') }}" defer></script>
+  <script src="{{ url_for('static', filename='group_session.js', v='group-console-19') }}" defer></script>
 </body>
 </html>
