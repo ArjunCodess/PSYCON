@@ -4,6 +4,8 @@ PSYCON is a personal communication coach designed to grow into a wearable AI sys
 
 The first product is a local, English-language private pilot using uploaded recordings. Its software reuses the speech models, research console, backend, and device protocol already in this repository. Continuous wearable capture feeds the same conversation model once physical transport and attribution have been validated.
 
+Start with [the access and running guide](docs/START_HERE.md). It covers startup, accounts, the coaching flow, sharing, and common problems. The [user-system design](docs/USER_SYSTEM.md) describes the simpler experience to build next.
+
 ## Vision and theory
 
 Communication changes with the setting, the relationship, the objective, and the person speaking. A long explanation in a presentation has a different purpose from the same explanation during a sales discovery call. PSYCON therefore compares a person with their own history under comparable conditions rather than assigning a universal communication score.

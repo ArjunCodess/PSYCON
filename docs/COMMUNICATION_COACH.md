@@ -1,5 +1,7 @@
 # PSYCON communication pilot
 
+For plain-language startup and use, read [Start here](START_HERE.md). This page keeps the technical operating details. The proposed screen flow is in [the user-system design](USER_SYSTEM.md).
+
 Read [vision](PSYCON_VISION.md) for the reasoning, [architecture](COMMUNICATION_ARCHITECTURE.md) for the API/data contract, and [status](IMPLEMENTATION_STATUS.md) for implemented behavior and open release gates. This page is the operational runbook.
 
 The personal coach builds on the existing Flask service and local speech models. Open `/coach` for voice enrollment, consented audio uploads, baseline progress, evidence, role-specific adjustments, practice goals and revocable sharing. Research consoles and ratings retain their existing meanings.
