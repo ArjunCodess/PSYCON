@@ -1,0 +1,2 @@
+# Isolated build tooling; install into .runtime/firmware-venv.
+platformio==6.2.0

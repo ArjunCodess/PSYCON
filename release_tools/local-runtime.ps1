@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('services','ollama','web','worker','configure','test','protocol-test','train-group')]
+    [ValidateSet('services','ollama','web','worker','configure','test','protocol-test','train-group','firmware-build')]
     [string]$Action = 'web'
 )
 $ErrorActionPreference = 'Stop'
@@ -22,6 +22,8 @@ $env:TMP = $env:TEMP
 $env:PATH = (Join-Path $runtimeRoot 'bin')+';'+(Join-Path $runtimeRoot 'node')+';'+(Join-Path $runtimeRoot 'venv\Scripts')+';'+(Join-Path $runtimeRoot 'venv\Lib\site-packages\torch\lib')+';'+$env:PATH
 $env:UV_CACHE_DIR = Join-Path $runtimeRoot 'cache\uv'
 $env:NPM_CONFIG_CACHE = Join-Path $runtimeRoot 'cache\npm'
+$env:PIP_CACHE_DIR = Join-Path $runtimeRoot 'cache\pip'
+$env:PLATFORMIO_CORE_DIR = Join-Path $runtimeRoot 'platformio'
 $env:PSYCON_DATABASE_URL = 'postgresql://psycon:psycon@127.0.0.1:5432/psycon'
 $env:PSYCON_S3_ENDPOINT_URL = 'http://127.0.0.1:9000'
 $env:PSYCON_S3_SECRET_KEY = 'psycon-local-object-secret'
@@ -50,5 +52,12 @@ switch ($Action) {
     'configure' { & $pythonExe -m backend.communication.runtime configure-local }
     'test' { & $pythonExe -m pytest tests -p no:cacheprovider --basetemp (Join-Path $runtimeRoot 'tmp\pytest') }
     'protocol-test' { & (Join-Path $runtimeRoot 'node\node.exe') (Join-Path $runtimeRoot 'node\npm\bin\npm-cli.js') --prefix protocol test }
+    'firmware-build' {
+        $firmwarePythonExe = Join-Path $runtimeRoot 'firmware-venv\Scripts\python.exe'
+        if (!(Test-Path $firmwarePythonExe)) { throw 'Install requirements-firmware.txt into .runtime/firmware-venv; see docs/COMMUNICATION_COACH.md.' }
+        & $firmwarePythonExe -m platformio run --project-dir firmware/ear
+        if ($LASTEXITCODE -ne 0) { throw 'Audio firmware build failed.' }
+        & $firmwarePythonExe -m platformio run --project-dir firmware/wrist
+    }
 }
 if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) { throw "Runtime command failed: $Action" }
