@@ -6,12 +6,31 @@ The personal coach builds on the existing Flask service and local speech models.
 
 ## Start locally
 
-Use the existing Python environment with `requirements-backend.txt` and `requirements-psycon.txt` installed, including a compatible GPU PyTorch build. The speech models remain local. Community-1 still requires the existing Hugging Face access approval and `HF_TOKEN`.
+This machine now uses the project-local runtime in `.runtime`: CPython 3.12, its isolated environment, CUDA PyTorch 2.9.1, portable Ollama 0.35.0, Node, FFmpeg/ffprobe, model caches, logs, temporary files, and database/object-store data. The directory is ignored by Git and Docker builds. Docker Desktop and the NVIDIA driver remain system prerequisites. Community-1 still requires the existing Hugging Face access approval and `HF_TOKEN`.
+
+Use these commands from the repository root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 services
+powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 ollama
+powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 configure
+powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 web
+# In a second terminal:
+powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 worker
+```
+
+The launcher derives paths from its own repository location and supplies project-local caches and temporary paths. `.runtime/python` contains the interpreter, `.runtime/venv` contains installed Python dependencies, `.runtime/node` contains Node/npm, `.runtime/bin` contains media tools, and `.runtime/models` contains Ollama, Hugging Face, and torch caches. `docker-compose.local.yml` binds PostgreSQL and MinIO data to `.runtime/services`; use both Compose files together to keep using these data rather than the preserved original named volumes. Personal media remains in the repository's separate `.psycon-private-spool`, which must stay out of backups.
+
+The 6 October migration copied the database through a PostgreSQL custom-format dump and copied stopped object-store data. The original named volumes and `.runtime/migration/postgres.dump` remain for recovery. The working Python environment is `.runtime/venv`; an incomplete Python 3.14 `.venv` is unused. Preserve the existing `.env` encryption key. Downloaded runtimes and models are local installations, not source artifacts to commit.
+
+The standalone Ollama package comes from [the official Windows distribution](https://docs.ollama.com/windows); FFmpeg binaries come from the Windows builds linked by [FFmpeg](https://ffmpeg.org/download.html). Archive checksums were checked before extraction. Node was copied from the existing installation and protocol packages were installed from its lockfile.
+
+The commands below describe manual alternatives. Prefer the launcher above on this machine.
 
 Start the database and object store:
 
 ```powershell
-docker compose up -d postgres minio
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d postgres minio
 ```
 
 For a host Python web server, set the local object-store credential to match Compose:
@@ -22,14 +41,14 @@ $env:PSYCON_DATABASE_URL = 'postgresql://psycon:psycon@127.0.0.1:5432/psycon'
 $env:PSYCON_S3_ENDPOINT_URL = 'http://127.0.0.1:9000'
 ```
 
-Run a local Ollama service and pull `qwen3.5:4b`. This machine's portable runtime is at `G:\PSYCON-runtime\ollama\ollama.exe`, with models at `G:\PSYCON-runtime\models`. To restart it:
+Run a local Ollama service and pull `qwen3.5:4b`. This machine's portable runtime is now inside `.runtime`, replacing the unavailable `G:` location. To restart it manually:
 
 ```powershell
-$env:OLLAMA_MODELS = 'G:\PSYCON-runtime\models'
+$env:OLLAMA_MODELS = Join-Path (Resolve-Path .runtime).Path 'models\ollama'
 $env:OLLAMA_HOST = '127.0.0.1:11434'
 $env:OLLAMA_KEEP_ALIVE = '0'
 $env:OLLAMA_NO_CLOUD = '1'
-Start-Process -FilePath 'G:\PSYCON-runtime\ollama\ollama.exe' -ArgumentList 'serve' -WindowStyle Hidden
+Start-Process -FilePath '.runtime\ollama\ollama.exe' -ArgumentList 'serve' -WindowStyle Hidden
 ```
 
 Alternatively, use the optional Compose `coaching` profile for Ollama. The Docker GPU worker defaults to `http://ollama:11434`; a worker connecting to host Ollama must set `PSYCON_OLLAMA_URL=http://host.docker.internal:11434`. Only one inference worker should run on the 8 GB GPU. Model calls unload after completion.

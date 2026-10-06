@@ -53,6 +53,14 @@ The full Python suite passed 311 tests with three optional checks skipped, inclu
 
 The local portable Ollama runtime could not complete its smoke test because `G:` became unavailable after startup; the tags endpoint returned a missing model-directory error. Restore that drive or reconfigure the local runtime before using interpretation on this machine. The measured-only fallback and container builds remain usable. This is an operator runtime issue, and no cloud fallback was used. Human accuracy and pilot usefulness remain unverified.
 
+### Project-local installation follow-up
+
+The unavailable-drive issue is resolved: Ollama 0.35.0 and Qwen, CPython 3.12, an isolated dependency environment, CUDA PyTorch 2.9.1, Node/npm, FFmpeg/ffprobe, model caches, temporary paths, logs, PostgreSQL data, and MinIO data now live inside `.runtime` in this repository. Original named service volumes and a database migration dump were preserved. Docker Desktop and the NVIDIA driver remain existing system prerequisites. An unused, incomplete Python 3.14 `.venv` remains because automatic approval review blocked its deletion; `.runtime/venv` is the working environment.
+
+The newly downloaded Qwen tag is pinned to digest `d8b0f5e9760cd1682034f292d7ef72ec46f432149be0df7574bf2d6e92e38c04`. Existing semantic evaluations for another digest cannot enable it. Structured generation now constrains paired evidence to other-speaker and wearer references in that order, while application validation still checks original timing. The real local call returned `awaiting_validation` with complete windows. SpeechBrain produced a 192-element embedding on CUDA; Community-1 and Whisper loaded on the GPU from the project-local environment. The final launcher suite passed 312 tests with two optional skips after FFmpeg installation, protocol passed 20 tests and type checking, all 138 installed Python packages passed dependency checking, and API smoke returned 200/401/200. All three images rebuilt successfully. Optional file-decoder warnings remain; the application supplies decoded waveforms in memory.
+
+Use [the local launcher](../release_tools/local-runtime.ps1) and [runbook](COMMUNICATION_COACH.md). Runtime artifacts, personal data, caches, and secrets remain excluded from Git. The prior `G:` configuration is no longer used.
+
 ## Release gates
 
 1. **Recordings pilot.** Two consented human users must independently enroll, upload repeated conversations, form eligible baselines, review a supported recurring observation and adjustment, compare later sessions, export context, and delete history.

@@ -72,17 +72,19 @@ LLM output must reference supplied evidence IDs. Automated semantic types remain
 
 Use the existing Python speech environment with `requirements-backend.txt` and `requirements-psycon.txt`, a local Ollama service, and the existing Community-1 model access. Keep secrets in the ignored root `.env` file.
 
+On this machine the runtime, dependencies, model caches, and local service data are installed inside `.runtime`. Start them through [the project-local launcher](release_tools/local-runtime.ps1); the [runbook](docs/COMMUNICATION_COACH.md) gives its commands. Docker Desktop and the GPU driver remain system prerequisites.
+
 ```powershell
-docker compose up -d postgres minio
+powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 services
 $env:PSYCON_DATABASE_URL = 'postgresql://psycon:psycon@127.0.0.1:5432/psycon'
 $env:PSYCON_S3_ENDPOINT_URL = 'http://127.0.0.1:9000'
 $env:PSYCON_S3_SECRET_KEY = 'psycon-local-object-secret'
-python -m backend.communication.runtime configure-local
-python -m backend.communication.runtime create-wearer --label 'My pilot account' --role leadership
-python -m backend.communication.runtime web
+powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 configure
+.runtime\venv\Scripts\python.exe -m backend.communication.runtime create-wearer --label 'My pilot account' --role leadership
+powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 web
 ```
 
-Open `http://127.0.0.1:8000/coach` and enter the newly issued wearer token. In a second terminal with the same local environment settings, run `python -m backend.communication.runtime worker`. The [pilot runbook](docs/COMMUNICATION_COACH.md) explains Ollama startup, model pinning, Compose alternatives, enrollment, source imports, deletion, and troubleshooting. The example object-store credential is for the local development stack only.
+Open `http://127.0.0.1:8000/coach` and enter the newly issued wearer token. In a second terminal run `powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 worker`. Start Ollama with the launcher's `ollama` action before configuring the model. The [pilot runbook](docs/COMMUNICATION_COACH.md) explains startup, model pinning, Compose alternatives, enrollment, source imports, deletion, and troubleshooting. The example object-store credential is for the local development stack only.
 
 ## Build and verify
 
