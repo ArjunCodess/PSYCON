@@ -1,10 +1,11 @@
 import pytest
 from validation.communication_semantics import evaluate, REQUIRED_ROLES
 from backend.communication.llm import enabled_event_types
+from backend.communication.behaviors import VERSION
 
 
 def dataset(count=50):
-    return {"model_digest": "pinned-model", "examples": [
+    return {"model_digest": "pinned-model", "analysis_version": VERSION, "examples": [
         {"id": str(i), "roles": list(REQUIRED_ROLES), "evidence": [{"id": "t0"}],
          "expected": [{"type": "objection", "evidence_ids": ["t0"]}],
          "predicted": [{"type": "objection", "evidence_ids": ["t0"]}]} for i in range(count)]}
