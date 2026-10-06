@@ -35,6 +35,8 @@ The [architecture and API reference](docs/COMMUNICATION_ARCHITECTURE.md) describ
 
 ## Technical architecture
 
+The start page, coach, research console, and device console share one Jinja page template and CSS design system. All use the existing Flask, HTML, CSS, and plain JavaScript stack. [Design conventions](DESIGN.md) document the shared colors, typography, controls, and responsive layouts.
+
 | Component | Implementation and responsibility |
 | --- | --- |
 | Web and API | Flask serves the `/` start page, `/coach`, the existing `/group` research console, the `/devices` dashboard, and `/api/v1/communication`. Wearer APIs require scoped bearer credentials. |
