@@ -109,12 +109,11 @@ For your first account, follow [the wearer setup guide](docs/START_HERE.md). It 
 Group recordings now continue from spreadsheet upload to per-person feedback under shared discussion context. Human ratings stay separate from AI practice suggestions. Run `powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 train-group` to train and save PSYCON's group rating models from PostgreSQL. See [group feedback and training](docs/GROUP_FEEDBACK_AND_TRAINING.md) for the full flow and data requirements.
 
 ```powershell
-python -m pytest tests
-npm --prefix protocol test
-npm --prefix protocol run typecheck
-python -m platformio run --project-dir firmware/ear
-python -m platformio run --project-dir firmware/wrist
-docker compose build api worker minio
+powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 test
+powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 protocol-test
+.runtime/node/node.exe .runtime/node/npm/bin/npm-cli.js --prefix protocol run typecheck
+powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 firmware-build
+docker compose -f docker-compose.yml -f docker-compose.local.yml build api worker minio
 ```
 
 The PostgreSQL lifecycle test is opt-in through `PSYCON_COMMUNICATION_TEST_DATABASE`; it creates and removes its own synthetic records. Human semantic annotation and physical measurements are separate release checks. The [reproducibility matrix](docs/REPRODUCIBILITY.md) lists the remaining research, demo, protocol, and validation commands.

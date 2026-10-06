@@ -116,6 +116,16 @@ Firmware compilation does not prove DMA continuity, clock accuracy, successful p
 
 ## Verification
 
+Firmware builds use a separate local environment so PlatformIO's dependencies do not change the speech runtime. Install it once from the project root:
+
+```powershell
+$env:UV_CACHE_DIR = Join-Path (Get-Location) '.runtime/cache/uv'
+.runtime/bootstrap/uv.exe venv --python .runtime/python/cpython-3.12-windows-x86_64-none/python.exe .runtime/firmware-venv
+.runtime/bootstrap/uv.exe pip install --python .runtime/firmware-venv/Scripts/python.exe -r requirements-firmware.txt
+```
+
+Run `powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 firmware-build` to compile both firmware projects. The launcher keeps PlatformIO packages and toolchains in `.runtime/platformio`. Compiling does not flash a device or validate physical capture.
+
 The account command prints a new credential once. Keep it outside Git; profile and grant tokens are stored only as hashes. Replacing `PSYCON_PROFILE_KEY` makes existing encrypted enrollment and pending uploads unreadable, so preserve the key across web/worker restarts and backups of retained embeddings.
 
 For a container-only pilot, stop the host Ollama/web listeners before binding the same ports, then run `docker compose --profile coaching up --build -d`. Pull the model into that Ollama volume, inspect its digest, and set `PSYCON_OLLAMA_DIGEST` before recreating the worker. The worker uses `http://ollama:11434`; the host workflow above uses loopback. Do not run both inference workers on the 8 GB GPU. Provision a wearer with `docker compose exec api python -m backend.communication.runtime create-wearer --label 'My pilot account' --role leadership`.
@@ -128,10 +138,15 @@ Run the Python regression suite and protocol tests. The optional PostgreSQL life
 
 ```powershell
 $env:PSYCON_COMMUNICATION_TEST_DATABASE = 'postgresql://psycon:psycon@127.0.0.1:5432/psycon'
-python -m pytest tests/backend/test_communication.py tests/backend/test_communication_postgres.py tests/validation/test_communication_semantics.py
-python -m platformio run --project-dir firmware/ear
+powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 test
+powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 protocol-test
+.runtime/node/node.exe .runtime/node/npm/bin/npm-cli.js --prefix protocol run typecheck
+powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 firmware-build
+docker compose -f docker-compose.yml -f docker-compose.local.yml build api worker minio
 ```
 
 The software tests cover duplicate uploads, encryption, raw deletion, private access, grant revocation, asynchronous enrollment, baseline eligibility, repeated patterns, source continuity, semantic evidence validation and correction/deletion rebuilding. The two-wearer test uses simulated model output; it doesn't count as the human pilot or semantic accuracy evaluation.
+
+On 2026-10-06, the full Python suite passed 324 tests with two optional checks skipped. All 20 protocol tests, TypeScript checking and browser-script syntax checks passed. The API, worker and MinIO images built successfully, and the home, coach, group, devices and readiness routes returned HTTP 200. Both firmware projects compiled through the local launcher. Ear firmware used 17% static RAM and 82.6% flash; wrist firmware used 11.1% RAM and 47% flash. Physical-device testing and the human pilot remain separate release gates.
 
 On 2026-10-03, the regression run passed 275 Python tests with three unrelated optional checks skipped, and 20 protocol tests plus TypeScript checking passed. The ESP32 build used 17% static RAM and 82.6% flash. A live synthesized-speech smoke test completed real SpeechBrain enrollment, Whisper transcription, Community-1 wearer attribution, Qwen structured interpretation and raw deletion through PostgreSQL. The console displayed retained evidence and measurements without browser errors. Qwen used the installed RTX 4060; this host's existing speech environment used CPU PyTorch. Semantic events remained unavailable pending human annotation, as required. These checks don't establish human identity accuracy, coaching validity or physical-device performance.
