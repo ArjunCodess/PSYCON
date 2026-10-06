@@ -3,6 +3,7 @@
 __pycache__
 *.pyc
 .pytest_cache
+.pytest_cache_*
 .ruff_cache
 .venv
 venv
