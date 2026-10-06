@@ -670,8 +670,9 @@ class PostgresGroupStore:
             rows = connection.execute("SELECT * FROM voice_profiles WHERE method=%s ORDER BY group_session_id, slot_number", (method,)).fetchall()
         return [_public(row) for row in rows]
 
-    def replace_training_labels(self, session_id: str, rows: list[dict]) -> list[dict]:
+    def replace_training_labels(self, session_id: str, rows: list[dict], *, source: dict | None = None) -> list[dict]:
         with self.database.connection() as connection:
+            connection.execute("SELECT id FROM group_sessions WHERE id=%s FOR UPDATE", (session_id,))
             connection.execute("DELETE FROM training_labels WHERE group_session_id=%s", (session_id,))
             for row in rows:
                 connection.execute(
@@ -686,7 +687,29 @@ class PostgresGroupStore:
                         row["item_letter"], row["score"], row["class_name"],
                     ),
                 )
+            if source is not None:
+                connection.execute("INSERT INTO group_label_imports(id, group_session_id, body) VALUES (%s,%s,%s)",
+                                   (source["id"], session_id, Jsonb(source)))
+            connection.execute("DELETE FROM group_feedback WHERE group_session_id=%s", (session_id,))
         return self.training_labels_for(session_id)
+
+    def label_imports_for(self, session_id: str) -> list[dict]:
+        with self.database.connection() as connection:
+            rows = connection.execute("SELECT body FROM group_label_imports WHERE group_session_id=%s ORDER BY created_at", (session_id,)).fetchall()
+        return [row["body"] for row in rows]
+
+    def feedback_for(self, session_id: str) -> dict | None:
+        with self.database.connection() as connection:
+            row = connection.execute("SELECT body FROM group_feedback WHERE group_session_id=%s", (session_id,)).fetchone()
+        return row["body"] if row else None
+
+    def save_feedback(self, session_id: str, body: dict, *, expected_revision: str | None = None) -> bool:
+        with self.database.connection() as connection:
+            if expected_revision is not None:
+                return bool(connection.execute("UPDATE group_feedback SET body=%s WHERE group_session_id=%s AND body->>'revision'=%s RETURNING group_session_id",
+                                               (Jsonb(body), session_id, expected_revision)).fetchone())
+            connection.execute("INSERT INTO group_feedback(group_session_id, body) VALUES (%s,%s) ON CONFLICT (group_session_id) DO UPDATE SET body=EXCLUDED.body", (session_id, Jsonb(body)))
+        return True
 
     def training_labels_for(self, session_id: str) -> list[dict]:
         with self.database.connection() as connection:

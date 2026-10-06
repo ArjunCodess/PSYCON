@@ -26,6 +26,8 @@ class MemoryGroupStore:
         self.audit_events: list[dict] = []
         self.face_samples: dict[str, list[dict]] = {}
         self.training_labels: list[dict] = []
+        self.label_imports: list[dict] = []
+        self.feedback: dict[str, dict] = {}
         self.voice_segments: dict[str, list[dict]] = {}
         self.voice_profiles: dict[str, list[dict]] = {}
         self.nvidia_segments: dict[str, list[dict]] = {}
@@ -245,6 +247,8 @@ class MemoryGroupStore:
         self.psycon_segments.pop(session_id, None)
         self.psycon_profiles.pop(session_id, None)
         self.training_labels = [row for row in self.training_labels if row["group_session_id"] != session_id]
+        self.label_imports = [row for row in self.label_imports if row["group_session_id"] != session_id]
+        self.feedback.pop(session_id, None)
         return keys
 
     def replace_face_samples(self, session_id: str, rows: list[dict]) -> list[dict]:
@@ -285,10 +289,25 @@ class MemoryGroupStore:
                   "psycon": self.psycon_profiles if profiles else self.psycon_segments}
         return tables[method]
 
-    def replace_training_labels(self, session_id: str, rows: list[dict]) -> list[dict]:
+    def replace_training_labels(self, session_id: str, rows: list[dict], *, source: dict | None = None) -> list[dict]:
         self.training_labels = [row for row in self.training_labels if row["group_session_id"] != session_id]
         self.training_labels.extend(copy.deepcopy(rows))
+        if source is not None:
+            self.label_imports.append(copy.deepcopy(source))
+        self.feedback.pop(session_id, None)
         return self.training_labels_for(session_id)
+
+    def label_imports_for(self, session_id: str) -> list[dict]:
+        return copy.deepcopy([row for row in self.label_imports if row["group_session_id"] == session_id])
+
+    def feedback_for(self, session_id: str) -> dict | None:
+        return copy.deepcopy(self.feedback.get(session_id))
+
+    def save_feedback(self, session_id: str, body: dict, *, expected_revision: str | None = None) -> bool:
+        if expected_revision is not None and (self.feedback.get(session_id) or {}).get("revision") != expected_revision:
+            return False
+        self.feedback[session_id] = copy.deepcopy(body)
+        return True
 
     def training_labels_for(self, session_id: str) -> list[dict]:
         return [copy.deepcopy(row) for row in self.training_labels if row["group_session_id"] == session_id]

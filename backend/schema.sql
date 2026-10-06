@@ -469,3 +469,16 @@ CREATE UNIQUE INDEX IF NOT EXISTS voice_profiles_session_method_slot_unique
     ON voice_profiles(group_session_id, method, slot_number);
 CREATE INDEX IF NOT EXISTS voice_segments_session_method_time
     ON voice_segments(group_session_id, method, start_s);
+
+-- Group feedback and complete spreadsheet provenance, additive migration 8.
+CREATE TABLE IF NOT EXISTS group_label_imports (
+    id UUID PRIMARY KEY,
+    group_session_id UUID NOT NULL REFERENCES group_sessions(id) ON DELETE CASCADE,
+    body JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS group_feedback (
+    group_session_id UUID PRIMARY KEY REFERENCES group_sessions(id) ON DELETE CASCADE,
+    body JSONB NOT NULL
+);
+INSERT INTO schema_version(version) VALUES (8) ON CONFLICT DO NOTHING;
