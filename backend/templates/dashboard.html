@@ -1,24 +1,6 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light">
-  <title>PSYCON Session Console</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css', v='week4-complete') }}">
-</head>
-<body>
-  <main class="page-shell">
-    <header class="masthead">
-      <a class="brand" href="/" aria-label="PSYCON home">
-        <span class="brand-mark" aria-hidden="true"></span>
-        <span>PSYCON / SESSION CONSOLE</span>
-      </a>
-      <a href="/" class="local-label">Home</a>
-    </header>
+{% extends "base.html" %}
+{% block title %}PSYCON Session Console{% endblock %}
+{% block content %}
 
     <section class="intro" aria-labelledby="page-title">
       <div>
@@ -158,7 +140,6 @@
         <a href="http://127.0.0.1:5000">Open the audio analysis demo</a>
       </span>
     </footer>
-  </main>
-  <script src="{{ url_for('static', filename='dashboard.js', v='week4-complete') }}" defer></script>
-</body>
-</html>
+
+<script src="{{ url_for('static', filename='dashboard.js', v='week4-complete') }}" defer></script>
+{% endblock %}

@@ -270,7 +270,7 @@ def test_group_page_renders() -> None:
     client = build_app(service).test_client()
     page = client.get("/group")
     assert page.status_code == 200
-    assert b"SESSION CONSOLE" in page.data
+    assert b'aria-current="page">Research' in page.data
     assert b"dashboard.css" in page.data
     assert b"right side" in page.data
     assert b"Bearer token" not in page.data

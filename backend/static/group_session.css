@@ -4,24 +4,11 @@
 .field-grid .field-helper,
 .field-grid .analyze-button { grid-column: 1 / -1; }
 
-select, textarea {
-  width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 0;
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-  font-family: "Manrope", "Segoe UI", sans-serif;
-}
-select { min-height: 44px; padding: 0 12px; }
-textarea { min-height: 88px; padding: 10px 12px; resize: vertical; }
-select:focus, textarea:focus { border-color: var(--accent); outline: 3px solid rgba(36, 118, 107, .16); outline-offset: 2px; }
-
 .stack-form { display: grid; align-content: start; gap: 8px; }
 .inline-button { width: auto; min-width: 240px; }
 .frame-stage { margin-top: 28px; }
 .intake-screen { padding: 48px 0 24px; }
-.intake-screen h1 { margin: 0 0 22px; font-size: 40px; letter-spacing: -0.03em; }
+.intake-screen h1 { margin: 0 0 22px; }
 #marked-preview {
   display: block;
   width: min(100%, 960px);

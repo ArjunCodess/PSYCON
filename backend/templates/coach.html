@@ -1,7 +1,11 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PSYCON communication coach</title><link rel="stylesheet" href="/static/coach.css"><script defer src="/static/coach.js"></script></head>
-<body><main><header><a href="/">PSYCON / Home</a><p>PRIVATE PILOT</p><h1>Your communication, over time.</h1><p>Build a personal baseline, review recurring observations, and practice one adjustment at a time.</p></header>
+{% extends "base.html" %}
+{% block title %}PSYCON communication coach{% endblock %}
+{% block page_class %}coach-page{% endblock %}
+{% block styles %}<link rel="stylesheet" href="{{ url_for('static', filename='coach.css', v='shared-1') }}">{% endblock %}
+{% block scripts %}<script defer src="{{ url_for('static', filename='coach.js') }}"></script>{% endblock %}
+{% block content %}
+<section class="intro"><div><p class="eyebrow">Personal coach / private pilot</p><h1>Your communication, over time.</h1></div><p class="intro-copy">Build a personal baseline, review recurring observations, and practice one adjustment at a time.</p></section>
+<div class="coach-content">
 <section><h2>Account access</h2><form id="login"><label>Wearer access token<input id="token" type="password" required autocomplete="off"></label><button>Open my history</button><button id="logout" type="button">Sign out</button></form><p id="account"></p></section>
 <p id="message" role="status" aria-live="polite"></p>
 <div id="workspace" hidden>
@@ -13,4 +17,6 @@
 <section><h2>Practice goals</h2><form id="goal"><label>Measurement<select id="metric"><option value="candidate_interruptions_per_min">Candidate interruptions per minute</option><option value="speaking_share">Speaking share</option><option value="mean_turn_duration_s">Mean turn duration</option><option value="articulation_rate_wpm">Speaking rate</option><option value="response_gap_s">Response gap</option><option value="pause_mean_s">Pause length</option></select></label><label>Direction<select id="direction"><option value="decrease">Decrease</option><option value="increase">Increase</option></select></label><button>Set goal from current baseline</button></form><div id="goals"></div></section>
 <section><h2>AI context and sharing</h2><button id="export">Download my AI context</button><form id="grant"><label>Grant access<select id="scope"><option value="context">AI context only</option><option value="reviewer">Read-only reviewer</option></select></label><button>Create seven-day grant</button></form><output id="grant-token"></output><div id="grants"></div></section>
 <section><h2>Delete my profile</h2><p>This revokes your token and grants, removes enrollment and personal history, and queues any remaining raw files for deletion.</p><button id="delete-profile">Delete my profile and history</button></section>
-</div></main></body></html>
+</div>
+</div>
+{% endblock %}

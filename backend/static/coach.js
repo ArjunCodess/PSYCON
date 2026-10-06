@@ -14,7 +14,7 @@ async function api(path, method="GET", body) {
   return data;
 }
 function node(tag,text,parent){const n=document.createElement(tag);n.textContent=text;if(parent)parent.append(n);return n;}
-function action(parent,text,fn){const b=node("button",text,parent);b.type="button";b.addEventListener("click",()=>run(fn));}
+function action(parent,text,fn){const b=node("button",text,parent);b.type="button";if(text.startsWith("Delete")||text==="Revoke")b.classList.add("danger-button");b.addEventListener("click",()=>run(fn));}
 async function run(fn){try{await fn();}catch(error){message(error.message);}}
 function bind(id,fn){el(id).addEventListener("submit",event=>{event.preventDefault();run(fn);});}
 function signout(){token="";el("token").value="";el("workspace").hidden=true;el("account").textContent="";for(const id of ["history","conversations","goals","grants","grant-token"])el(id).replaceChildren();}

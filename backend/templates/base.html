@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>{% block title %}PSYCON{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css', v='shared-1') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='design-system.css', v='shared-1') }}">
+  {% block styles %}{% endblock %}
+  {% block scripts %}{% endblock %}
+</head>
+<body>
+  <a class="skip-link" href="#page-content">Skip to content</a>
+  <main class="page-shell {% block page_class %}{% endblock %}">
+    <header class="masthead">
+      <a class="brand" href="/" aria-label="PSYCON home"><span class="brand-mark" aria-hidden="true"></span><span>PSYCON</span></a>
+      <nav class="site-nav" aria-label="Main navigation">
+        {% for path, label in [('/', 'Home'), ('/coach', 'Coach'), ('/group', 'Research'), ('/devices', 'Devices')] %}
+        <a href="{{ path }}"{% if request.path == path %} aria-current="page"{% endif %}>{{ label }}</a>
+        {% endfor %}
+      </nav>
+    </header>
+    <div id="page-content" tabindex="-1">{% block content %}{% endblock %}</div>
+  </main>
+</body>
+</html>
