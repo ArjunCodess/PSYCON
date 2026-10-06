@@ -14,6 +14,7 @@ This document describes the implemented English recordings pilot. [Vision](PSYCO
 | `sources.py` | Explicit group/device source descriptions, original-timeline group imports, and continuous PCM assembly. |
 | `longitudinal.py` | Eligibility, comparable cohorts, robust summaries, snapshot IDs, prior references, and repeated deviations. |
 | `rubrics.py` | Versioned role focus and practical metric/role adjustments. |
+| `behaviors.py` | Observable role definitions, complete-pass behavior counts, and explicit response-opportunity denominators. |
 | `llm.py` | Local endpoint restrictions, digest checks, bounded interpretation, evidence validation, and semantic release gates. |
 | `routes.py` | Scoped bearer access and the versioned HTTP interface. |
 | `runtime.py` | Environment loading, model pinning, local account provisioning, web startup, and worker startup. |
@@ -45,7 +46,7 @@ Additive schema migrations 100 and 101 introduce `communication_records(kind, id
 | `grant` | Scope, token hash, expiry, and revocation state. |
 | `audit` | Minimal action, resource ID, profile ID, and completion date. |
 
-Observations use `communication-observations-1`, baselines use `communication-baseline-1`, history uses `communication-history-1`, rubrics use `communication-rubrics-1`, semantic validation uses `communication-semantic-validation-1`, and export uses `psycon-context-1`. Baseline `snapshot_id` hashes source IDs, revisions, media hashes, context, dates, metrics, analysis/model versions, and eligibility rules. Identical inputs reproduce the same ID; corrected support creates a different ID.
+Observations use `communication-observations-1`, baselines use `communication-baseline-1`, history uses `communication-history-1`, rubrics use `communication-rubrics-2`, semantic analysis uses `communication-semantics-2`, semantic validation uses `communication-semantic-validation-2`, and export uses `psycon-context-1`. Baseline `snapshot_id` hashes source IDs, revisions, media hashes, context, dates, metrics, analysis/model versions, and eligibility rules. Identical inputs reproduce the same ID; corrected support creates a different ID.
 
 The source SHA-256 and extractor/model metadata live on each conversation analysis. Its evidence and timing rows inherit that provenance and store source intervals. Anonymous attributed-word records retain timing and speaker labels, not a full persisted transcript. Device synchronization and group source lineage remain available through the existing source records.
 
@@ -65,9 +66,9 @@ Current wearer measurements include usable speech seconds, speaking share over r
 
 Candidate overlap entry requires at least 0.5 seconds in the new wearer turn and at least 0.2 seconds overlapping an already speaking counterpart. It is a timing candidate, not a validated interruption judgment. Retained overlap intervals make that distinction inspectable. Quality windows, anonymous turns, and word timing remain derived records.
 
-The local interpreter accepts only explicitly allowed local HTTP hostnames. It checks `/api/tags` against the configured model and digest before inference. Output must be an `events` array with supported types and existing evidence IDs. Supported types are disagreement, criticism, objection, acknowledgement, clarification, and question. A matching validation manifest must cover every role, contain at least 50 unique reviewed exchanges, and support at least ten predictions with 90% precision for each enabled type. Types that fail remain unavailable.
+The local interpreter accepts only explicitly allowed local HTTP hostnames. It checks `/api/tags` against the configured model and digest before inference. Output must be an `events` array with supported types and existing evidence IDs. The [role definitions](COMMUNICATION_ROLE_RUBRICS.md) cover exchange events, instructions, explanations, jargon, discovery, reasoning, concessions, and paired responses. A validation manifest must match the model digest and semantic version, cover every role, contain at least 50 unique reviewed exchanges, and support at least ten predictions with 90% precision for each enabled type. Types that fail remain unavailable.
 
-Malformed output, invalid evidence, unreachable inference, invalid manifests, and model mismatch return an unavailable semantic state without deleting measured results. There is no cloud fallback. Human event corrections reference retained evidence IDs and replace model events for interpretation metrics. The first six wearer-turn excerpts and at most 12 semantic events with up to two cited excerpts each are retained. Redaction is heuristic and may remove ordinary capitalized words or miss sensitive content.
+Malformed output, exhausted output windows, invalid evidence, unreachable inference, invalid manifests, and model mismatch return an unavailable semantic state without deleting measured results. There is no cloud fallback. The interpreter receives untrusted user context and one overlapping boundary turn between windows. Complete enabled-type counts are computed before capping retained examples. Paired rates require both enabled types and a consecutive other-to-wearer opportunity within 30 seconds; missing opportunities remain absent. Human event corrections reference retained evidence IDs and replace model events, removing semantic rates because partial excerpts cannot establish full-session absence. The first six wearer-turn excerpts and at most 12 semantic events with up to two cited excerpts each are retained. Redaction is heuristic and may remove ordinary capitalized words or miss sensitive content.
 
 ## Baselines, reports, and goals
 

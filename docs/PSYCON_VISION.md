@@ -44,9 +44,9 @@ Every recommendation should connect the observation, its setting, the earlier re
 | Medicine | Can concerns be expressed, explanations understood, and next steps acknowledged? |
 | Student and presentation | Are main points structured, pacing appropriate, and audience questions addressed? |
 
-The implementation provides every role lens over shared measurements and practice suggestions. It does not yet validate detectors for every question in this table. In particular, supported reasoning, explanation structure, jargon appropriateness, concessions, and audience understanding need additional operational definitions and annotated evidence. A role label must never imply that those capabilities already exist.
+The implementation provides shared measurements, role-specific suggestions, and operational definitions for supported reasoning, explanation structure, unexplained jargon, concessions, and opportunity-linked responses. These detectors remain unavailable automatically until annotated evidence passes the exact-version validation gate. Their definitions describe cited behavior rather than truth, skill, or audience understanding. See [role rubrics](COMMUNICATION_ROLE_RUBRICS.md).
 
-Goals use a frozen pre-goal reference. Later comparisons require comparable sessions and enough measured opportunities; the current implementation uses available metric summaries and clean wearer turns, which is an initial approximation. Better role-specific opportunity denominators require reviewed exchanges. Reports describe measured change without claiming that coaching caused it.
+Goals use a frozen pre-goal reference. Later comparisons require comparable sessions and observed opportunities. Paired response rates use explicit questions, disagreement, criticism, objections, confusion, or concerns followed by a consecutive wearer response, with both types independently validated. Missing opportunities cannot supply zeros, and partial excerpt corrections remove whole-session semantic rates. These conservative denominators need human validation. Reports describe measured change without claiming that coaching caused it.
 
 ## Local AI and the evidence boundary
 

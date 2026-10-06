@@ -1,6 +1,6 @@
 # Implementation status
 
-This is the detailed coverage record for the communication direction as of 3 October 2026. The short progress section belongs in [README](../README.md); current behavior is specified in [architecture](COMMUNICATION_ARCHITECTURE.md).
+This is the detailed coverage record for the communication direction as of 6 October 2026. The short progress section belongs in [README](../README.md); current behavior is specified in [architecture](COMMUNICATION_ARCHITECTURE.md).
 
 ## What can be confirmed
 
@@ -14,9 +14,9 @@ The entire PSYCON vision is not complete. Physical continuous wearable capture, 
 | --- | --- | --- |
 | Persistent personal profiles | Private wearer tokens, roles, consent, encrypted embeddings, independent histories, revocable scoped grants. | Human enrollment isolation and withdrawal rehearsal; account recovery beyond the local token pilot. |
 | Unified conversations | Upload, guarded group, and completed device adapters share records and preserve original timing. Exact upload hashes deduplicate retries. | Real identity-link review and physical device import; re-encoded duplicates require source review. |
-| Contextual observations | Wearer quality, timing, vocabulary, pitch, level, overlap, jitter, context correction, and local event proposals. | Semantic types stay disabled until reviewed evaluation passes; advanced reasoning/jargon/structure detectors are not implemented. |
+| Contextual observations | Wearer quality, timing, vocabulary, pitch, level, overlap, jitter, context correction, and local event proposals, including reasoning/jargon/structure behavior definitions. | Semantic types stay disabled until exact-version reviewed evaluation passes; context windows limit interpretation. |
 | Baselines and patterns | Comparable cohorts, session medians/MAD, source-addressed snapshots, 5/3/1800 eligibility, prior comparisons, three-later-session deviations. | Human longitudinal validity, drift studies, and stronger independent-session/opportunity modeling. |
-| All role lenses and coaching | General, leadership, sales, teaching, law, debate, negotiation, medicine, student, and presentation focus/adjustments; frozen goals. | Rule-based lenses are not validated complete semantic rubrics. Objection/concern/confusion opportunity counts need further implementation. |
+| All role lenses and coaching | General, leadership, sales, teaching, law, debate, negotiation, medicine, student, and presentation rubrics; frozen goals; question/disagreement/criticism/objection/concern/confusion response opportunities. | Semantic accuracy and role usefulness still need human evaluation. Conservative adjacent-turn rules omit ambiguous opportunities. |
 | Console and context | `/coach`, evidence, metrics, progress, corrections, goals, grants, context download, deletion, scoped versioned APIs. | Human usability pilot, external AI consumer integration, hosted operations. |
 | Continuous transport | Ear DMA, bounded PCM queue, Wi-Fi v2 chunks, CRC, acknowledgements/retry, NVS sequences, clock/status, BLE provisioning/pause. | Physical continuity, radio recovery, clock, attribution, power, and safe worn-use evidence. |
 | Optional wrist | Existing wrist feature/research code and compiling firmware scaffold. | Real sensor drivers; wrist firmware currently emits placeholders using its older starter packet. |
@@ -44,6 +44,14 @@ The follow-up audit adds strict future-date exclusion, deterministic snapshot li
 | Local Markdown links | New product documents and updated core references resolve. |
 
 An intermediate Docker daemon stop interrupted one rebuild and the PostgreSQL check; restarting Docker and restoring the services allowed both to pass. A flaky short-substring encryption assertion was replaced with verification of the encrypted round trip. The speech libraries warn about optional file-decoding backends; the successful live path decodes media first and supplies waveforms in memory. These software results leave all human and physical gates below open.
+
+## Software verification on 6 October 2026
+
+The follow-up implements semantic version 2 with evidence-linked role behavior definitions, explicit opportunity/response pairs, original-word concision checks, context-aware interpretation, boundary-window overlap, and observed/unavailable rubric coverage. Complete-pass counts precede excerpt retention limits. Disabled types, missing opportunities, incomplete output windows, and partial human corrections cannot produce whole-session semantic zeros. Evaluation binds the prompt contract as well as the model digest. See [role rubrics](COMMUNICATION_ROLE_RUBRICS.md).
+
+The full Python suite passed 311 tests with three optional checks skipped, including the live PostgreSQL two-wearer lifecycle. Protocol tests passed all 20 cases and TypeScript checking passed. Coach JavaScript syntax passed. API, GPU worker, and MinIO images rebuilt successfully. The API returned coach 200, private unauthenticated access 401, and readiness 200; the worker saw the RTX 4060 and imported the speech models through the existing compatibility adapter.
+
+The local portable Ollama runtime could not complete its smoke test because `G:` became unavailable after startup; the tags endpoint returned a missing model-directory error. Restore that drive or reconfigure the local runtime before using interpretation on this machine. The measured-only fallback and container builds remain usable. This is an operator runtime issue, and no cloud fallback was used. Human accuracy and pilot usefulness remain unverified.
 
 ## Release gates
 

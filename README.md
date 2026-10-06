@@ -44,7 +44,7 @@ The [architecture and API reference](docs/COMMUNICATION_ARCHITECTURE.md) describ
 | Wearable transport | ESP32 I2S/DMA captures 16 kHz PCM in 0.5-second Protocol v2 chunks. Wi-Fi carries audio; authenticated BLE provisions the device and controls pause/resume. |
 | Research | Guarded face-linked group analysis, A–T psychologist marksheets, participant-safe evaluation, WESAD experiments, and exports remain separate from coaching. |
 
-The initial role lenses cover general communication, leadership, sales, teaching, law, debate, negotiation, medicine, student communication, and presentations. They reuse the same observations and offer role-specific practice suggestions. Automatic high-level judgments about jargon, reasoning quality, explanation structure, or audience understanding are not established by naming a role; the [status matrix](docs/IMPLEMENTATION_STATUS.md) distinguishes current rules from those future capabilities.
+The role rubrics cover general communication, leadership, sales, teaching, law, debate, negotiation, medicine, student communication, and presentations. They combine shared measurements with evidence-linked behavior proposals and explicit response-opportunity denominators. Jargon, explanation structure, supported reasoning, concessions, and responses remain unavailable automatically until independent evaluation passes; audience understanding is never inferred. See [role definitions and opportunity rules](docs/COMMUNICATION_ROLE_RUBRICS.md).
 
 ```mermaid
 flowchart LR
