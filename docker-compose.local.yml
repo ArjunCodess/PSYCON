@@ -1,0 +1,20 @@
+# Project-local persistent data. Existing named volumes are preserved separately.
+services:
+  postgres:
+    volumes:
+      - ./.runtime/services/postgres:/var/lib/postgresql/data
+  minio:
+    volumes:
+      - ./.runtime/services/minio:/data
+  api:
+    volumes:
+      - ./.psycon-private-spool:/private-spool
+  worker:
+    volumes:
+      - ./.runtime/models/huggingface:/opt/psycon/hf-cache
+      - ./.psycon-private-spool:/private-spool
+  ollama:
+    environment:
+      OLLAMA_MODELS: /project-models
+    volumes:
+      - ./.runtime/models/ollama:/project-models

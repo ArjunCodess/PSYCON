@@ -68,3 +68,4 @@ output/pdf/*.log
 output/pdf/*.out
 .psycon-private-spool/
 .test-tmp-*/
+.runtime/
