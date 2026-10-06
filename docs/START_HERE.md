@@ -6,6 +6,8 @@ The pilot accepts English recordings. The speech models and local AI run on this
 
 ## Pick the right page
 
+Group spreadsheet uploads now lead to saved participant feedback. The [group feedback and training guide](GROUP_FEEDBACK_AND_TRAINING.md) explains shared context, improvements, and the separate database training command.
+
 | What you want to do | Where to go | What you need |
 | --- | --- | --- |
 | Choose a workspace | [PSYCON start page](http://127.0.0.1:8000/) | Open it in the browser |

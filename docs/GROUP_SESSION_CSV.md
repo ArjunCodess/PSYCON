@@ -2,7 +2,7 @@
 
 One CSV belongs to one marked video. It is the psychologist marksheet, version 4.0, copied into columns. The paper form is `docs/PSYCON_Psychologist_Observation_Mark_Sheet.tex`.
 
-Upload the video first. The page numbers each face from the right. Then press **Add spreadsheet to training** while that session is the one on screen. The file name does not choose the session.
+Upload the video first. The page numbers each face from the right. Add the shared discussion context, then press **Submit spreadsheet** while that session is on screen. The file name does not choose the session. The page saves your ratings and prepares participant feedback. Model training runs separately through the [database training script](GROUP_FEEDBACK_AND_TRAINING.md#train-from-saved-data).
 
 ## File
 

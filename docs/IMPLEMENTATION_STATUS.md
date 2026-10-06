@@ -8,6 +8,8 @@ The personal recordings software is implemented and has run through real local e
 
 The entire PSYCON vision is not complete. Physical continuous wearable capture, actual wrist sensing, semantic accuracy, longitudinal usefulness, role-specific opportunity validity, all-day power behavior, and hosted personal deployment remain open. Build success and accepted group profiles are not substitutes for those measurements.
 
+Group spreadsheet uploads now retain the CSV and parsed ratings in PostgreSQL and continue to per-person feedback under shared discussion context. Local AI proposes practice exercises; human scores remain the source of the findings and training labels. A separate database training script saves PSYCON item classifiers and a reproducible manifest. Database lifecycle tests, artifact loading, leakage checks, and a real local Qwen inference passed. The full suite now reports 324 passed and two skipped. See [group feedback and training](GROUP_FEEDBACK_AND_TRAINING.md) for the commands and limits.
+
 ## Plan coverage
 
 | Approved work | Implemented behavior | Remaining work or validation |

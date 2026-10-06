@@ -104,6 +104,8 @@ For your first account, follow [the wearer setup guide](docs/START_HERE.md). It 
 
 ## Build and verify
 
+Group recordings now continue from spreadsheet upload to per-person feedback under shared discussion context. Human ratings stay separate from AI practice suggestions. Run `powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 train-group` to train and save PSYCON's group rating models from PostgreSQL. See [group feedback and training](docs/GROUP_FEEDBACK_AND_TRAINING.md) for the full flow and data requirements.
+
 ```powershell
 python -m pytest tests
 npm --prefix protocol test
