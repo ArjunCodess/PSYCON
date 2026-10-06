@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>PSYCON | Start</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='home.css') }}">
+</head>
+<body>
+  <main>
+    <header><p class="eyebrow">PSYCON / LOCAL WORKSPACE</p><h1>Where do you want to start?</h1></header>
+    <nav aria-label="Workspaces">
+      <a class="workspace primary" href="/coach"><span class="label">Personal coach</span><span>Enroll your voice, upload a conversation, and review your progress.</span><span class="access">Use your wearer token</span></a>
+      <a class="workspace" href="/group"><span class="label">Group research</span><span>Analyze discussion videos and review participant marksheets.</span><span class="access">For research sessions</span></a>
+      <a class="workspace" href="{{ url_for('pages.dashboard') }}"><span class="label">Device console</span><span>Check device sessions, worker status, and exports.</span><span class="access">Use your operator credential</span></a>
+    </nav>
+    <section aria-labelledby="usage"><h2 id="usage">Your first conversation</h2><p>Open Personal coach. Connect your token, enroll with three voice clips, then upload an English recording. Review the evidence and pick one adjustment to practice.</p></section>
+    <footer>Keep the web server and processing worker running while you use PSYCON.</footer>
+  </main>
+</body>
+</html>

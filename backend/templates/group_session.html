@@ -14,11 +14,11 @@
 <body>
   <main class="page-shell">
     <header class="masthead">
-      <a class="brand" href="/group" aria-label="PSYCON session console home">
+      <a class="brand" href="/" aria-label="PSYCON home">
         <span class="brand-mark" aria-hidden="true"></span>
         <span>PSYCON / SESSION CONSOLE</span>
       </a>
-      <span class="local-label">{{ 'RESEARCH WORKSPACE' if require_group_login else 'LOCAL RESEARCH WORKSPACE' }}</span>
+      <a href="/" class="local-label">Home</a>
     </header>
 
     <details class="unknown-voice" id="group-access" {% if require_group_login %}open{% endif %}>

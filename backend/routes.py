@@ -24,6 +24,11 @@ def error(code: str, message: str, status: int):
 
 
 @pages.get("/")
+def home():
+    return render_template("home.html")
+
+
+@pages.get("/devices")
 def dashboard():
     return render_template("dashboard.html")
 

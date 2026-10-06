@@ -1,0 +1,19 @@
+:root { font-family: system-ui, sans-serif; color: #23312b; background: #f6f5ef; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 1040px; margin: auto; padding: 56px 24px; }
+header { padding-bottom: 28px; border-bottom: 2px solid #23312b; }
+.eyebrow { font-size: .8rem; letter-spacing: .12em; }
+h1 { font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.15; letter-spacing: -.04em; max-width: 700px; }
+nav { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 32px 0; }
+.workspace { display: flex; flex-direction: column; gap: 16px; padding: 24px; color: inherit; text-decoration: none; border: 1px solid #95a397; background: white; line-height: 1.6; }
+.workspace:hover { border-color: #274c3d; background: #eaf0e8; }
+.workspace:focus-visible { outline: 3px solid #c88731; outline-offset: 4px; }
+.primary { border-top: 4px solid #274c3d; }
+.label { font-size: 1.35rem; font-weight: 650; }
+.access { margin-top: auto; color: #546459; font-size: .85rem; }
+section { padding: 8px 0 24px; max-width: 680px; }
+h2 { font-size: 1.1rem; }
+p { line-height: 1.65; }
+footer { padding-top: 24px; border-top: 1px solid #ced5cc; color: #546459; font-size: .85rem; line-height: 1.6; }
+@media (max-width: 720px) { main { padding: 32px 20px; } nav { grid-template-columns: 1fr; } }
