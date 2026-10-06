@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('services','ollama','web','worker','configure','test','protocol-test')]
+    [ValidateSet('services','ollama','web','worker','configure','test','protocol-test','train-group')]
     [string]$Action = 'web'
 )
 $ErrorActionPreference = 'Stop'
@@ -43,6 +43,10 @@ switch ($Action) {
     }
     'web' { & $pythonExe -m backend.communication.runtime web }
     'worker' { & $pythonExe -m backend.communication.runtime worker }
+    'train-group' {
+        & $pythonExe -m backend.group.train
+        if ($LASTEXITCODE -eq 2) { exit 2 }
+    }
     'configure' { & $pythonExe -m backend.communication.runtime configure-local }
     'test' { & $pythonExe -m pytest tests -p no:cacheprovider --basetemp (Join-Path $runtimeRoot 'tmp\pytest') }
     'protocol-test' { & (Join-Path $runtimeRoot 'node\node.exe') (Join-Path $runtimeRoot 'node\npm\bin\npm-cli.js') --prefix protocol test }

@@ -755,7 +755,7 @@ class GroupObservationService:
             ),
         }
 
-    def train_faces(self, actor: Principal) -> dict:
+    def train_faces(self, actor: Principal, *, output_dir=None, seed: int = 42) -> dict:
         self._require(actor, "operator", "psychologist")
         samples = {
             (row["group_session_id"], int(row["slot_number"])): row
@@ -775,6 +775,10 @@ class GroupObservationService:
         examples = []
         for label in self.store.all_training_labels():
             key = (label["group_session_id"], int(label["slot_number"]))
+            participants = self.store.participants(label["group_session_id"])
+            person = next((p for p in participants if p["slot_number"] == label["slot_number"]), None)
+            if person and person.get("withdrawn_at"):
+                continue
             sample, profile = samples.get(key), profiles.get(key)
             if sample is None or profile is None:
                 continue
@@ -789,6 +793,10 @@ class GroupObservationService:
                     "score": label["score"],
                     "class_name": label.get("class_name") or "",
                     "feature": feature,
+                    "label_id": label.get("id"),
+                    "participant_key": ("research:" + person["research_code"] if person and person.get("research_code") else
+                                        f"session:{label['group_session_id']}:slot:{label['slot_number']}"),
+                    "source_hash": (self.store.recording_for_session(label["group_session_id"]) or {}).get("sha256"),
                 }
             )
         if not examples:
@@ -797,7 +805,7 @@ class GroupObservationService:
                 f"No labeled face has a usable voice profile; {len(profiles)} voice profiles are ready and {len(eligible_voice_keys)} have trainable features",
                 400,
             )
-        result = train_face_items(examples)
+        result = train_face_items(examples, seed=seed, output_dir=output_dir)
         result["ready_voices"] = len(profiles)
         result["trainable_voices"] = len(eligible_voice_keys)
         self._audit(actor, "train_faces", actor.id, {"sessions": result["sessions"], "examples": result["examples"]})
