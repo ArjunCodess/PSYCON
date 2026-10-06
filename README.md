@@ -37,7 +37,7 @@ The [architecture and API reference](docs/COMMUNICATION_ARCHITECTURE.md) describ
 
 | Component | Implementation and responsibility |
 | --- | --- |
-| Web and API | Flask serves `/coach`, the existing `/group` research console, the device dashboard, and `/api/v1/communication`. Wearer APIs require scoped bearer credentials. |
+| Web and API | Flask serves the `/` start page, `/coach`, the existing `/group` research console, the `/devices` dashboard, and `/api/v1/communication`. Wearer APIs require scoped bearer credentials. |
 | Persistence | PostgreSQL stores personal documents in additive migrations alongside existing research tables. S3-compatible storage retains research objects; a separate encrypted spool holds temporary personal uploads. |
 | Speech analysis | Existing NumPy quality/acoustic extraction, faster-whisper, pyannote Community-1, SpeechBrain ECAPA, and Praat voice-quality code run locally. |
 | Longitudinal coaching | A dedicated communication service owns eligibility, robust baselines, content-addressed snapshots, repeated deviations, role lenses, goals, and evidence lineage. |
@@ -70,23 +70,37 @@ New personal media and enrollment clips are encrypted while queued. Successful p
 
 LLM output must reference supplied evidence IDs. Automated semantic types remain unavailable until a matching model evaluation contains at least 50 independent annotated exchanges, covers every role, and reaches at least 90% precision for each enabled type. Wearer corrections take precedence. Missing data, uncertain identity, incompatible microphones, and isolated incidents must remain visible limitations rather than becoming scores or psychological claims.
 
-## Start the recordings pilot
+## Open the web app
 
-Use the existing Python speech environment with `requirements-backend.txt` and `requirements-psycon.txt`, a local Ollama service, and the existing Community-1 model access. Keep secrets in the ignored root `.env` file.
+These steps use the runtime and models already installed in this folder. Open Docker Desktop and wait for its engine to start. Then open PowerShell and run these commands in order.
 
-On this machine the runtime, dependencies, model caches, and local service data are installed inside `.runtime`. Start them through [the project-local launcher](release_tools/local-runtime.ps1); the [runbook](docs/COMMUNICATION_COACH.md) gives its commands. Docker Desktop and the GPU driver remain system prerequisites.
+The first command starts the database and object store. The second starts the local AI. The third starts the web server, so leave this terminal open.
 
 ```powershell
+cd C:\Users\USER\Desktop\code\PSYCON
 powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 services
-$env:PSYCON_DATABASE_URL = 'postgresql://psycon:psycon@127.0.0.1:5432/psycon'
-$env:PSYCON_S3_ENDPOINT_URL = 'http://127.0.0.1:9000'
-$env:PSYCON_S3_SECRET_KEY = 'psycon-local-object-secret'
-powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 configure
-.runtime\venv\Scripts\python.exe -m backend.communication.runtime create-wearer --label 'My pilot account' --role leadership
+powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 ollama
 powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 web
 ```
 
-Open `http://127.0.0.1:8000/coach` and enter the newly issued wearer token. In a second terminal run `powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 worker`. Start Ollama with the launcher's `ollama` action before configuring the model. The [pilot runbook](docs/COMMUNICATION_COACH.md) explains startup, model pinning, Compose alternatives, enrollment, source imports, deletion, and troubleshooting. The example object-store credential is for the local development stack only.
+Open a second PowerShell terminal and start the processing worker. Leave it open so enrollment and uploads can finish.
+
+```powershell
+cd C:\Users\USER\Desktop\code\PSYCON
+powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 worker
+```
+
+Open [PSYCON](http://127.0.0.1:8000/) in your browser. The start page links to every workspace.
+
+| Page | Use it for |
+| --- | --- |
+| [Personal coach](http://127.0.0.1:8000/coach) | Connect your wearer token, enroll with three voice clips, upload English recordings, and review your progress. |
+| [Group research](http://127.0.0.1:8000/group) | Analyze discussion videos and review participant marksheets. |
+| [Device console](http://127.0.0.1:8000/devices) | Inspect device sessions, worker status, and exports with your operator credential. |
+
+Each workspace has a Home link. If the server is already running, open it instead of starting another copy on port 8000. Press `Ctrl+C` in the web and worker terminals to stop them.
+
+For your first account, follow [the wearer setup guide](docs/START_HERE.md). It covers account creation, enrollment, uploads, sharing, deletion, and troubleshooting. The [technical runbook](docs/COMMUNICATION_COACH.md) covers model pinning and Compose alternatives. Runtime files and service data stay inside `.runtime`; Docker Desktop and the GPU driver are system prerequisites. Keep secrets in the ignored root `.env` file.
 
 ## Build and verify
 

@@ -1,6 +1,6 @@
 # Running and using PSYCON
 
-Start the local services, keep one worker running, and open the personal coach. That is the normal setup. This guide covers the software installed in this PSYCON folder.
+Start the local services, keep one worker running, and open the PSYCON start page. That is the normal setup. This guide covers the software installed in this PSYCON folder.
 
 The pilot accepts English recordings. The speech models and local AI run on this computer. Human testing still needs to confirm how accurate and useful the coaching is.
 
@@ -8,10 +8,11 @@ The pilot accepts English recordings. The speech models and local AI run on this
 
 | What you want to do | Where to go | What you need |
 | --- | --- | --- |
+| Choose a workspace | [PSYCON start page](http://127.0.0.1:8000/) | Open it in the browser |
 | Enroll, upload conversations, and review your history | [Personal coach](http://127.0.0.1:8000/coach) | Your wearer token |
 | Review someone's history with permission | The same personal coach | Their reviewer grant token |
 | Work with group recordings and marksheets | [Group research console](http://127.0.0.1:8000/group) | Research access under the existing group workflow |
-| Inspect device sessions, worker status, and exports | [Device dashboard](http://127.0.0.1:8000/) | The operator credential |
+| Inspect device sessions, worker status, and exports | [Device dashboard](http://127.0.0.1:8000/devices) | The operator credential |
 | Inspect research objects and storage | [MinIO console](http://127.0.0.1:9001) | The local storage administrator login |
 | Check the database and object store connection | [Readiness check](http://127.0.0.1:8000/api/v1/ready) | Open it in the browser |
 
@@ -43,7 +44,7 @@ powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 worker
 
 Leave this terminal open too. The website accepts uploads, but the worker processes enrollment and recordings. A file can stay queued if the worker is stopped. Run one inference worker on this GPU.
 
-Now open [the coach](http://127.0.0.1:8000/coach). If the website is already running and the readiness check says `ready`, use that server. Starting another server on port 8000 will fail.
+Now open [PSYCON](http://127.0.0.1:8000/) and choose Personal coach. The same start page opens group research and the device console. Each workspace links back to Home. If the website is already running and the readiness check says `ready`, use that server. Starting another server on port 8000 will fail.
 
 The installed model is already pinned. Run the following only after changing or reinstalling the local model:
 
@@ -135,7 +136,7 @@ This worker uses the same local database and personal upload folder. It reaches 
 
 A group participant enters a personal history only after an operator confirms who they are and creates a source link. Participant 1 in two videos is not an identity match. Completed device sessions also need an explicit profile link and acceptable timing before import. The [source-link instructions](COMMUNICATION_COACH.md#api-and-existing-sources) explain those operator steps.
 
-Use the [device dashboard](http://127.0.0.1:8000/) to inspect ingestion, session status, worker status, and exports. Physical wearable capture remains a separate validation stage. Start with uploaded recordings for the personal pilot.
+Use the [device dashboard](http://127.0.0.1:8000/devices) to inspect ingestion, session status, worker status, and exports. Physical wearable capture remains a separate validation stage. Start with uploaded recordings for the personal pilot.
 
 For a software-only device demo, keep the web server and worker running, then run:
 

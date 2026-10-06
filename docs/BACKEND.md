@@ -16,7 +16,7 @@ docker compose ps
 python -m backend.simulator --scenario normal
 ```
 
-Open `http://localhost:8000`. The local operator token is `psycon-local-operator`. This value is intentionally limited to the development Compose file and must never be reused in a deployment.
+Open `http://localhost:8000` and choose Device console, or go straight to `http://localhost:8000/devices`. The local operator token is `psycon-local-operator`. This value is intentionally limited to the development Compose file and must never be reused in a deployment.
 
 MinIO's local administration console is available at `http://localhost:9001`. PostgreSQL is exposed on port `5432` for local inspection. Stop the stack without deleting its named volumes using `docker compose down`; deleting the volumes destroys local research data and is not part of the normal workflow.
 
