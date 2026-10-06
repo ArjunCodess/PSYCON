@@ -104,7 +104,7 @@ def observations(samples, rate, turns, regular, words, wearer, quality_windows, 
     transient = []
     for index, turn in enumerate(turns):
         text = " ".join(w["text"] for w in words if w["start_s"] >= turn["start_s"] and w["end_s"] <= turn["end_s"] and w.get("speaker_id") == turn["speaker_id"])
-        transient.append({"id": f"t{index}", "start_s": turn["start_s"], "end_s": turn["end_s"], "speaker": label(turn["speaker_id"]), "text": redact(text)})
+        transient.append({"id": f"t{index}", "start_s": turn["start_s"], "end_s": turn["end_s"], "speaker": label(turn["speaker_id"]), "text": redact(text), "word_count": len(text.split())})
     return {"version": VERSION, "identity": identity, "quality": "usable" if speech >= 3 else "insufficient_speech",
             "usable_speech_s": speech, "duration_s": duration, "metrics": metrics, "evidence": evidence,
             "turns": [{"start_s": t["start_s"], "end_s": t["end_s"], "speaker": label(t["speaker_id"])} for t in turns],

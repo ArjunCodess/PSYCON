@@ -19,7 +19,7 @@ def test_live_postgres_two_wearers_processing_patterns_and_deletion(tmp_path, mo
     database.migrate()
     store = PostgresCommunicationStore(database)
     class Interpreter:
-        def interpret(self, evidence):
+        def interpret(self, evidence, context=None):
             return {"state": "unavailable", "events": []}
     def analyzer(raw, filename, digest, profile):
         return {"identity": "verified", "quality": "usable", "language": "en", "usable_speech_s": 400,

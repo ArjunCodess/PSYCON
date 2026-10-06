@@ -15,9 +15,10 @@ from backend.auth import create_token, hash_token
 from ml.src.audio_recording import decode_audio
 from ml.src.speaker_analysis import VoiceProfile, SpeechBrainEmbedder, enroll_wearer
 from .analysis import analyze_upload, redact
-from .llm import EVENTS, LocalInterpreter
+from .llm import EVENTS, LocalInterpreter, validate_events
 from .longitudinal import cohort, eligible, summarize
 from .rubrics import ROLES
+from .behaviors import SEMANTIC_METRICS, measurements
 
 
 def now():
@@ -275,19 +276,12 @@ class CommunicationService:
         rows = self.store.rows("conversation", pid)
         for row in rows:
             analysis = row.get("analysis", {})
-            evidence = {e["id"]:e for e in analysis.get("evidence", [])}
+            # Partial excerpt corrections override interpretation but cannot establish
+            # absence across the full recording or reconstruct deleted transcript data.
             if "human_events" in analysis:
-                events = [{"type":e["type"], "evidence_ids":[e["evidence_id"]]} for e in analysis["human_events"]]
-            elif analysis.get("semantic_status") == "validated":
-                events = analysis.get("events", [])
-            else:
-                continue
-            own_turns = sum(t["speaker"] == "wearer" for t in analysis.get("turns", []))
-            if own_turns:
-                for event_type, metric in (("acknowledgement", "acknowledgement_per_turn"), ("clarification", "clarification_per_turn")):
-                    intervals = {tuple(e["evidence_ids"]) for e in events if e["type"] == event_type and
-                                 any(evidence[key].get("speaker") == "wearer" for key in e["evidence_ids"] if key in evidence)}
-                    analysis["metrics"][metric] = len(intervals)/own_turns
+                for metric in SEMANTIC_METRICS:
+                    analysis.get("metrics", {}).pop(metric, None)
+                analysis["semantic_counts"] = {}
         return rows
 
     def correct(self, pid, cid, body):
@@ -304,10 +298,24 @@ class CommunicationService:
                 events = body["events"]
                 if not isinstance(events, list) or len(events) > 50:
                     raise ValueError("invalid events")
+                normalized = []
                 for event in events:
-                    if not isinstance(event, dict) or event.get("type") not in EVENTS or event.get("evidence_id") not in ids:
+                    if not isinstance(event, dict) or event.get("type") not in EVENTS:
                         raise ValueError("event needs a supported type and retained evidence ID")
-                row["analysis"]["human_events"] = [{"type": e["type"], "evidence_id": e["evidence_id"], "source": "wearer_correction"} for e in events]
+                    refs = event.get("evidence_ids", [event.get("evidence_id")])
+                    if not isinstance(refs, list) or any(not isinstance(key, str) or key not in ids for key in refs):
+                        raise ValueError("event needs retained evidence IDs")
+                    normalized.append({"type": event["type"], "evidence_ids": refs})
+                evidence = list(row["analysis"].get("evidence", []))
+                # Include anonymous original turns so gaps in retained excerpts
+                # cannot make nonadjacent human references look consecutive.
+                evidence.extend({**t, "id": "_timing-"+str(i)} for i, t in enumerate(row["analysis"].get("turns", [])))
+                evidence.sort(key=lambda e: (e["start_s"], e["end_s"]))
+                validate_events({"events": normalized}, evidence)
+                row["analysis"]["human_events"] = [{**e, "evidence_id": e["evidence_ids"][0], "source": "wearer_correction"} for e in normalized]
+                for metric in SEMANTIC_METRICS:
+                    row["analysis"].get("metrics", {}).pop(metric, None)
+                row["analysis"]["semantic_counts"] = {}
             row["revision"] += 1
             self.store.put("conversation", row)
             self.invalidate(pid)
@@ -388,8 +396,12 @@ class CommunicationService:
                         analysis = self.analyzer(raw, row["filename"], row["source_sha256"], self.voice(pid))
                         del raw
                     transient = analysis.pop("_transient", [])
-                    semantic = self.interpreter.interpret(transient) if analysis.get("language") == "en" else {"state": "unsupported_language", "events": []}
+                    semantic = self.interpreter.interpret(transient, {**row["context"], "role": profile["role"]}) if analysis.get("language") == "en" else {"state": "unsupported_language", "events": []}
                     analysis["events"] = []
+                    if semantic.get("coverage") == "complete_windows" and semantic["state"] == "validated":
+                        values, counts = measurements(semantic["events"], transient, semantic.get("enabled_types", []))
+                        analysis["metrics"].update(values)
+                        analysis["semantic_counts"] = counts
                     if semantic["state"] == "validated":
                         evidence = {e["id"]: e for e in transient}
                         for event in semantic["events"][:12]:
@@ -399,13 +411,13 @@ class CommunicationService:
                                 ref = "semantic-"+key
                                 if not any(e["id"] == ref for e in analysis["evidence"]):
                                     analysis["evidence"].append({"id": ref, "start_s": item["start_s"], "end_s": item["end_s"],
-                                                                 "speaker": item["speaker"], "excerpt": item["text"][:200]})
+                                                                 "speaker": item["speaker"], "excerpt": item["text"][:200], "word_count": item.get("word_count", len(item["text"].split()))})
                                 refs.append(ref)
                             analysis["events"].append({"type": event["type"], "evidence_ids": refs, "source": "validated_local_model"})
                     # Full transcripts end here; only bounded, cited excerpts survive.
                     del transient
                     analysis["semantic_status"] = semantic["state"]
-                    analysis["semantic_model"] = {key:semantic.get(key) for key in ("model", "digest", "reason")}
+                    analysis["semantic_model"] = {key:semantic.get(key) for key in ("model", "digest", "reason", "version", "enabled_types", "coverage")}
                     analysis["source_sha256"] = row["source_sha256"]
                     with self.store.lock(pid):
                         current = self.store.get("conversation", cid)

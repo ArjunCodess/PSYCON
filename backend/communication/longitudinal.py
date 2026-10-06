@@ -7,7 +7,7 @@ import hashlib
 import json
 from datetime import datetime, timezone
 
-from .rubrics import ADJUSTMENTS, ROLE_ADJUSTMENTS, ROLES, VERSION
+from .rubrics import ADJUSTMENTS, ROLE_ADJUSTMENTS, ROLE_METRICS, ROLES, VERSION
 
 METRICS = tuple(ADJUSTMENTS)
 MIN_CONVERSATIONS = max(1, int(os.getenv("PSYCON_BASELINE_MIN_CONVERSATIONS", "5")))
@@ -78,7 +78,7 @@ def summarize(rows, role="general"):
             # Floors prevent a zero-MAD baseline from treating numerical noise as change.
             floors = {"acknowledgement_per_turn": .1, "clarification_per_turn": .1, "speaking_share": .1, "candidate_interruptions_per_min": .5,
                       "articulation_rate_wpm": 20, "mean_turn_duration_s": 3, "response_gap_s": .3, "pause_mean_s": .3}
-            threshold = max(2 * 1.4826 * stat["mad"], floors[metric])
+            threshold = max(2 * 1.4826 * stat["mad"], floors.get(metric, .1))
             for direction in ("increased", "decreased"):
                 support = [row for row in later if metric in row["analysis"].get("metrics", {}) and
                            (row["analysis"]["metrics"][metric] - stat["median"]) * (1 if direction == "increased" else -1) > threshold]
@@ -92,8 +92,12 @@ def summarize(rows, role="general"):
                                  "context": dict(zip(("language", "conversation_type", "microphone", "setting"), key)),
                                  "baseline": stat, "evidence_count": len(support), "source_ids": [r["id"] for r in support],
                                  "evidence": [{"conversation_id": r["id"], "occurred_at": r["occurred_at"], "value": r["analysis"]["metrics"][metric],
-                                               "intervals": r["analysis"].get("evidence", [])[:3]} for r in support],
+                                               "opportunities": r["analysis"].get("semantic_counts", {}).get(metric),
+                                               "intervals": r["analysis"].get("semantic_counts", {}).get(metric, {}).get("intervals", r["analysis"].get("evidence", [])[:3])} for r in support],
                                  "possible_effect": effect, "suggested_adjustment": adjustment+" "+ROLE_ADJUSTMENTS.get(role, ""),
                                  "uncertainty": "Pilot heuristic; neither a diagnosis nor a calibrated probability."})
     return {"version": "communication-history-1", "rubric_version": VERSION, "role": role,
+            "rubric_coverage": [{"metric": metric, "state": "observed" if any(metric in r["analysis"].get("metrics", {}) for r in rows) else "unavailable",
+                                 "reason": "Requires validated event types and comparable observed opportunities."}
+                                for metric in ROLE_METRICS[role]],
             "focus": ROLES[role], "general_focus": ROLES["general"], "baselines": baselines, "patterns": patterns, "comparisons": comparisons}

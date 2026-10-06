@@ -26,7 +26,7 @@ CONTEXT = {"language": "en", "conversation_type": "discussion", "microphone": "m
 
 
 class FakeInterpreter:
-    def interpret(self, evidence):
+    def interpret(self, evidence, context=None):
         return {"state": "unavailable", "events": []}
 
 
@@ -214,6 +214,49 @@ def test_local_llm_abstains_without_pin_and_rejects_cloud(monkeypatch):
     monkeypatch.setenv("PSYCON_OLLAMA_URL", "https://external.example")
     with pytest.raises(ValueError):
         LocalInterpreter()
+
+
+def test_processing_counts_full_semantic_pass_before_excerpt_cap_and_correction(system):
+    service, _, user, _ = system
+    def analyzer(raw, filename, digest, profile):
+        value = analysis(raw, filename, digest, profile)
+        value["_transient"] = [{"id": f"t{i}", "speaker": "wearer", "start_s": i*3, "end_s": i*3+2,
+                                "text": "I recognize your point.", "word_count": 5} for i in range(20)]
+        return value
+    class Interpreter:
+        def interpret(self, evidence, context=None):
+            assert context["role"] == "leadership" and context["setting"] == "work"
+            return {"state": "validated", "coverage": "complete_windows", "enabled_types": ["acknowledgement"],
+                    "events": [{"type": "acknowledgement", "evidence_ids": [e["id"]]} for e in evidence[:15]]}
+    service.analyzer, service.interpreter = analyzer, Interpreter()
+    row = service.upload(user["id"], b"semantic", "test.wav", CONTEXT, "2026-09-01T12:00:00+00:00")
+    assert service.process_one()
+    completed = service.conversations(user["id"])[0]
+    assert completed["analysis"]["metrics"]["acknowledgement_per_turn"] == .75
+    assert "clarification_per_turn" not in completed["analysis"]["metrics"]
+    assert len(completed["analysis"]["events"]) == 12
+    assert completed["analysis"]["semantic_counts"]["acknowledgement_per_turn"]["observed"] == 15
+    assert completed["raw_state"] == "deleted"
+    service.correct(user["id"], row["id"], {"events": []})
+    assert "acknowledgement_per_turn" not in service.history_rows(user["id"])[0]["analysis"]["metrics"]
+
+
+def test_paired_correction_uses_original_turns_despite_duplicate_excerpts(system):
+    service, _, user, _ = system
+    row = service.upload(user["id"], b"paired", "test.wav", CONTEXT, "2026-09-01T12:00:00+00:00")
+    assert service.process_one()
+    stored = service.store.get("conversation", row["id"])
+    other = {"id": "q", "speaker": "other_1", "start_s": 0, "end_s": 2, "excerpt": "When?"}
+    own = {"id": "a", "speaker": "wearer", "start_s": 3, "end_s": 5, "excerpt": "Tomorrow."}
+    stored["analysis"].update(evidence=[other, own, {**own, "id": "duplicate"}], turns=[other, own])
+    service.store.put("conversation", stored)
+    correction = {"events": [{"type": "direct_answer", "evidence_ids": ["q", "a"]}]}
+    assert service.correct(user["id"], row["id"], correction)["analysis"]["human_events"][0]["evidence_ids"] == ["q", "a"]
+    stored = service.store.get("conversation", row["id"])
+    stored["analysis"]["turns"].insert(1, {"speaker": "other_2", "start_s": 2, "end_s": 2.5})
+    service.store.put("conversation", stored)
+    with pytest.raises(ValueError, match="consecutive"):
+        service.correct(user["id"], row["id"], correction)
 
 
 def test_device_assembly_rejects_time_gaps():
