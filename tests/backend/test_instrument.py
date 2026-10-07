@@ -275,6 +275,22 @@ def test_llm_failure_never_becomes_report(service):
     assert process_run(service, Bad())["status"] == "failed"
 
 
+def test_llm_readiness_failure_reaches_ui_without_queuing_a_report(service, monkeypatch):
+    from backend.instrument.local_llm import LocalLLMError
+    from backend.instrument.research import Ollama
+    sid = add(service)
+    speaker_id = service.detail(sid)["speakers"][0]["id"]
+    def unavailable(self):
+        raise LocalLLMError("Cannot connect to local Ollama. Start Ollama and retry.")
+    monkeypatch.setattr(Ollama, "digest", unavailable)
+    client = create_app(instrument=service, testing=True).test_client()
+    response = client.post(f"/api/instrument/speakers/{speaker_id}/runs", json={"conditions": ["C"]},
+                           headers={"X-PSYCON-Request": "research-instrument"})
+    assert response.status_code == 400
+    assert "Start Ollama and retry" in response.get_json()["error"]
+    assert service.store.rows("SELECT * FROM llm_runs") == []
+
+
 def test_same_origin_and_database_failure(service, monkeypatch):
     client = create_app(instrument=service, testing=True).test_client()
     assert client.post("/api/instrument/profiles", json=dict(label="p")).status_code == 403

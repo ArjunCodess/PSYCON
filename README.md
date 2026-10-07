@@ -18,13 +18,15 @@ Use the existing local Python runtime in two PowerShell terminals:
 
 Open [PSYCON](http://127.0.0.1:8001). SQLite and retained media live in the ignored `instance/instrument` directory. PostgreSQL, Docker, and object storage are not required for this workspace. It binds to localhost and is a single-user research tool, not a hosted multi-user deployment.
 
-For local LLM interpretation, start the existing Ollama runtime:
+When an interpretation is requested, PSYCON reuses the configured local Ollama service. If the loopback service is stopped and the bundled `.runtime/ollama` executable exists, it starts that executable in the background with the project-local model directory and cloud access disabled. No model is downloaded, substituted, or repinned automatically. Container endpoints and independently installed runtimes must be started separately. You can also start the bundled runtime manually:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 ollama
 ```
 
 The app uses Community-1 diarization and faster-whisper large-v3 through replaceable adapters. The launcher selects the available CUDA device or CPU and uses project-local model caches. The diarization model requires the applicable Hugging Face model access and `HF_TOKEN`. The local interpreter uses the configured Ollama model and records its actual digest. Missing models and rejected evidence references produce explicit failures, never substitute profiles.
+
+Interpretation failures identify whether the service is unreachable, the selected model is absent, or its digest differs from `PSYCON_OLLAMA_DIGEST`. Digest mismatches remain blocked. Background-service logs are in `.runtime/logs/ollama-stdout.log` and `ollama-stderr.log`. Interpretation cites only the target speaker's supplied evidence IDs while retaining other speakers' words as interaction context, and truncated model responses are withheld.
 
 ## Use it
 
