@@ -62,6 +62,8 @@ LLM inputs use a documented bounded transcript window and retrieved evidence. A 
 .runtime/venv/Scripts/python.exe -m pytest tests -o addopts= -q
 .runtime/node/node.exe --check backend/static/instrument.js
 .runtime/node/node.exe --check backend/static/instrument_review.js
+.runtime/node/node.exe --check backend/static/instrument_reports.js
+.runtime/node/node.exe tests/frontend/instrument_reports.cjs
 ```
 
 The previous coaching, wearable, physiology, and face-linked workflows remain as legacy code. Their documentation is archived in [the previous README](docs/LEGACY_PRODUCT_README.md); they do not define the current prototype. The legacy Flask app also exposes this workspace at `/instrument`, but its startup still requires its original external services.

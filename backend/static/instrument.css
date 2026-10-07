@@ -407,3 +407,90 @@ td small { font-size: 11px; line-height: 1.6; }
 @media (max-width: 760px) { .stage-list { grid-template-columns: 1fr; } }
 
 .panel > .empty { border: 0; padding: 16px 0; margin-bottom: 0; }
+
+/* Reports read as observations and supporting moments, with research controls secondary. */
+.speaker-focus { align-items: center; gap: 18px; margin: 24px 0; }
+.speaker-focus label { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 550; }
+.speaker-focus select { min-width: 180px; }
+.speaker-focus-note { color: var(--muted); font-size: 13px; }
+.speaker-focus[hidden] { display: none; }
+.report-workspace { padding: 0; overflow-wrap: anywhere; }
+.report-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; padding: 24px 28px; border-bottom: 1px solid var(--line); }
+.report-heading h2 { font-size: 20px; font-weight: 550; }
+.report-heading p { font-size: 13px; color: var(--muted); margin-top: 5px; }
+.report-heading button { flex-shrink: 0; }
+.communication-report { padding: 28px; }
+.report-summary { padding-bottom: 28px; }
+.report-scope { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+.report-summary h3 { font-size: 14px; margin-bottom: 8px; font-weight: 550; color: var(--accent); }
+.report-overview { font-size: 18px; line-height: 1.7; letter-spacing: -.015em; max-width: 65ch; }
+.report-qualification { margin-top: 14px; font-size: 12px; color: var(--muted); max-width: 80ch; }
+.report-findings { list-style: none; margin: 0; padding: 0; }
+.report-finding { display: grid; grid-template-columns: minmax(0, 1fr) minmax(190px, .4fr); gap: 36px; padding: 28px 0; border-top: 1px solid var(--line); }
+.finding-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; font-size: 12px; color: var(--muted); }
+.confidence-label { color: var(--copper); padding: 2px 8px; background: #f3ebe4; border-radius: 3px; }
+.finding-reading { min-width: 0; }
+.finding-reading > h3 { font-size: 17px; line-height: 1.65; font-weight: 550; max-width: 65ch; }
+.finding-inference { margin-top: 16px; font-size: 14px; line-height: 1.75; color: #435148; }
+.finding-inference strong { display: block; font-weight: 550; color: var(--ink); margin-bottom: 3px; }
+.finding-adjustment { align-self: start; padding: 18px 20px; background: #eef2ea; border-radius: 4px; }
+.finding-adjustment h4 { font-size: 13px; font-weight: 600; color: var(--accent); margin: 0 0 8px; }
+.finding-adjustment p { font-size: 14px; line-height: 1.75; color: #35483c; }
+.finding-evidence { margin-top: 18px; }
+.finding-evidence > summary { font-size: 13px; color: var(--accent); font-weight: 550; padding: 7px 0; }
+.finding-sources { margin-top: 8px; }
+.finding-sources figure { margin: 0; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.finding-sources figcaption { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 12px; }
+.finding-sources blockquote { margin: 12px 0 0; font-size: 15px; line-height: 1.7; max-width: 65ch; }
+.evidence-play { min-height: 36px; padding: 5px 10px; gap: 7px; font-size: 12px; }
+.evidence-play svg { width: 12px; height: 12px; fill: var(--accent); }
+.finding-sources > button { padding-left: 0; margin-top: 10px; font-size: 12px; }
+.finding-limitation { margin-top: 8px; }
+.finding-limitation > summary { font-size: 12px; color: var(--muted); padding: 7px 0; }
+.finding-limitation p { font-size: 13px; margin: 8px 0; color: var(--muted); }
+.report-limitations { border-top: 1px solid var(--line); padding-top: 20px; }
+.report-limitations > summary { font-size: 13px; font-weight: 550; }
+.report-limitations p { font-size: 13px; color: var(--muted); margin-top: 12px; }
+.report-history { border-top: 1px solid var(--line); padding: 20px 28px; background: #f5f6f1; border-radius: 0 0 7px 7px; }
+.report-history > summary { font-size: 13px; font-weight: 550; color: var(--muted); }
+.report-history > p { margin: 16px 0; color: var(--muted); font-size: 13px; }
+.report-start { padding: 32px 28px; }
+.report-start h3 { font-size: 19px; line-height: 1.5; font-weight: 550; margin-bottom: 12px; }
+.report-start p { margin-top: 12px; font-size: 14px; }
+.report-progress, .report-failure { margin: 24px 28px 0; padding: 16px 20px; background: #edf2ea; border-radius: 4px; font-size: 13px; }
+.report-progress { display: flex; align-items: start; gap: 12px; }
+.report-progress p, .report-failure p { margin-top: 4px; color: var(--muted); }
+.report-state-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; margin-top: 7px; flex-shrink: 0; }
+.report-failure { background: #f5eee6; }
+.report-failure details { margin-top: 10px; }
+.report-progress:last-child { margin-bottom: 24px; }
+.report-no-claims { font-size: 14px; margin: 0 0 24px; }
+.measured-adjustments > summary { font-weight: 550; }
+.measured-adjustments .trait-row:first-of-type { margin-top: 18px; }
+#run-dialog { width: min(1000px, calc(100vw - 30px)); }
+#run-dialog .communication-report { padding: 20px 0; }
+#run-dialog .report-history { border-radius: 4px; padding: 18px; }
+#run-dialog .report-start { padding: 20px 0; }
+.report-audio { width: 100%; margin: 4px 0 16px; }
+@media (max-width: 1100px) {
+  .report-finding { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .finding-adjustment { max-width: 65ch; }
+}
+@media (max-width: 760px) {
+  .report-workspace { padding: 0; }
+  .report-heading, .communication-report, .report-start { padding: 20px; }
+  .report-heading { gap: 16px; }
+  .report-heading button { width: 100%; min-height: 44px; }
+  .report-heading h2 { font-size: 19px; }
+  .report-overview { font-size: 16px; }
+  .report-finding { padding: 24px 0; }
+  .finding-reading > h3 { font-size: 16px; }
+  .finding-meta, .report-scope, .report-qualification { font-size: 13px; }
+  .finding-evidence > summary, .finding-limitation > summary { min-height: 44px; padding: 11px 0; }
+  .evidence-play { min-height: 44px; }
+  .report-history { padding: 20px; }
+  .report-progress, .report-failure { margin: 20px 20px 0; padding: 16px; }
+  .speaker-focus label { width: 100%; }
+  .speaker-focus select { flex: 1; max-width: none; }
+  .speaker-focus-note { font-size: 13px; }
+}

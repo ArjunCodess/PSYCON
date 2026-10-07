@@ -17,13 +17,15 @@ let sessionPane = "overview";
 let sessionSearch = "";
 let sessionStatus = "";
 let sessionDataset = "";
-const paneNames = {overview:"Overview", transcript:"Transcript", measurements:"Measurements", analysis:"Analysis"};
+const paneNames = {overview:"Overview", transcript:"Transcript", measurements:"Measurements", analysis:"Report"};
 function routeState() {
   const [page="dashboard", sessionId="", pane="overview"] = location.hash.slice(1).split("/");
   return {page, sessionId, pane: Object.hasOwn(paneNames, pane) ? pane : "overview"};
 }
 function applySessionPane() {
   document.querySelectorAll("[data-session-pane]").forEach(element => element.classList.toggle("active", element.dataset.sessionPane === sessionPane));
+  const speakerFocus = $(".speaker-focus");
+  if (speakerFocus) speakerFocus.hidden = !["measurements", "analysis"].includes(sessionPane);
   document.querySelectorAll(".session-tabs a").forEach(link => {
     if (link.dataset.pane === sessionPane) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
@@ -125,7 +127,7 @@ async function sessions() {
   if (detail.stages.some(s => s.name === "preprocessing" && s.status === "complete")) body += `<section class="panel session-player"><div class="player-head"><h2>Conversation audio</h2><a href="/api/instrument/sessions/${esc(session.id)}/audio?original=1">Original file</a></div><audio id="session-audio" controls preload="metadata" src="/api/instrument/sessions/${esc(session.id)}/audio"></audio><details><summary>Speaker timeline</summary>${timeline(detail)}</details></section>`;
   if (detail.speakers.length) body += `<section class="panel session-pane" data-session-pane="overview"><div class="section-head"><div><h2>Speaker mapping</h2><p>Map the same person across sessions to build their baseline.</p></div></div><details><summary>Edit speaker names and connect personal history</summary><div class="mapping-list">${detail.speakers.map(s => `<form class="mapping-form" data-speaker-form="${esc(s.id)}"><h3>${esc(s.label)}</h3><label>Display name<input name="display_name" value="${esc(s.display_name)}" maxlength="100" required></label><label>Longitudinal person<select name="profile_id"><option value="">Unmapped</option>${state.profiles.map(p => `<option value="${esc(p.id)}" ${p.id === s.profile_id ? "selected" : ""}>${esc(p.label)}</option>`).join("")}</select></label><button type="submit">Save mapping</button></form>`).join("")}</div></details></section>`;
   if (detail.utterances.length) body += `<section class="panel session-pane" data-session-pane="transcript"><div class="section-head"><h2>Speaker-attributed transcript</h2><a href="/api/instrument/sessions/${esc(session.id)}/export/transcript">Export transcript</a></div><div class="controls transcript-filter"><input type="search" id="transcript-search" aria-label="Search transcript" placeholder="Find words in this conversation"><span class="transcript-count" id="transcript-count" role="status">${detail.utterances.length} excerpts</span></div><div id="transcript-results">${transcriptRows(detail.utterances, detail.speakers)}</div></section>`;
-  if (report) body += `<div class="controls"><label>Inspect speaker<select id="analysis-speaker">${detail.speakers.map(s => `<option value="${esc(s.id)}" ${s.id === activeSpeaker ? "selected" : ""}>${esc(s.display_name)}</option>`).join("")}</select></label><button class="primary session-pane" data-session-pane="analysis" data-run="${esc(activeSpeaker)}" data-condition="C">Generate grounded interpretation</button><button class="session-pane" data-session-pane="analysis" data-run="${esc(activeSpeaker)}" data-condition="ABC">Run A / B / C comparison</button></div><div class="two-column session-pane" data-session-pane="measurements"><section class="panel"><div class="section-head"><h2>Communication indicators</h2>${badge("estimated")}</div>${traitRows(report.traits) || '<p class="muted">No supported trait indicators.</p>'}</section><section class="panel"><h2>Personal changes</h2><p class="muted">${esc(report.baseline.reason)}</p><p>Eligible previous sessions: ${report.baseline.sample_count}</p>${report.deviations.length ? deviationsTable(report.deviations) : '<p class="muted">No substantial descriptive deviations established.</p>'}<details><summary>Inspect context-specific baseline statistics</summary><pre>${esc(JSON.stringify(report.baseline, null, 2))}</pre></details><details><summary>Inspect global baseline</summary><pre>${esc(JSON.stringify(report.global_baseline, null, 2))}</pre></details></section></div><div class="two-column session-pane" data-session-pane="measurements"><section class="panel"><div class="section-head"><h2>Archetype comparison</h2><span class="muted">Selected goal: ${esc(report.target_archetype)}</span></div>${comparisonBars(report.archetypes)}<details><summary>Calculation, dimensions, and reference provenance</summary><pre>${esc(JSON.stringify(report.archetypes, null, 2))}</pre></details></section><section class="panel"><h2>Group interaction map</h2>${interactionGraph(detail)}</section></div><section class="panel session-pane" data-session-pane="measurements"><div class="section-head"><h2>Speaker feature table</h2><a href="#archetypes">Feature definitions →</a></div>${featuresTable(report.features)}</section><section class="panel session-pane" data-session-pane="analysis"><div class="section-head"><h2>Interpretation runs</h2><p class="muted">Model-generated claims need independent review.</p></div>${report.llm_runs.length ? runsTable(report.llm_runs) : '<p class="muted">No LLM interpretations yet. Measured features remain available independently of the reasoning model.</p>'}</section>`;
+  if (report) body += `<div class="controls speaker-focus"><label>Speaker<select id="analysis-speaker">${detail.speakers.map(s => `<option value="${esc(s.id)}" ${s.id === activeSpeaker ? "selected" : ""}>${esc(s.display_name)}</option>`).join("")}</select></label><span class="speaker-focus-note">Measurements and the report follow your selected speaker.</span></div><div class="two-column session-pane" data-session-pane="measurements"><section class="panel"><div class="section-head"><h2>Communication indicators</h2>${badge("estimated")}</div>${traitRows(report.traits) || '<p class="muted">No supported trait indicators.</p>'}</section><section class="panel"><h2>Personal changes</h2><p class="muted">${esc(report.baseline.reason)}</p><p>Eligible previous sessions: ${report.baseline.sample_count}</p>${report.deviations.length ? deviationsTable(report.deviations) : '<p class="muted">No substantial descriptive deviations established.</p>'}<details><summary>Inspect context-specific baseline statistics</summary><pre>${esc(JSON.stringify(report.baseline, null, 2))}</pre></details><details><summary>Inspect global baseline</summary><pre>${esc(JSON.stringify(report.global_baseline, null, 2))}</pre></details></section></div><div class="two-column session-pane" data-session-pane="measurements"><section class="panel"><div class="section-head"><h2>Archetype comparison</h2><span class="muted">Selected goal: ${esc(report.target_archetype)}</span></div>${comparisonBars(report.archetypes)}<details><summary>Calculation, dimensions, and reference provenance</summary><pre>${esc(JSON.stringify(report.archetypes, null, 2))}</pre></details></section><section class="panel"><h2>Group interaction map</h2>${interactionGraph(detail)}</section></div><section class="panel session-pane" data-session-pane="measurements"><div class="section-head"><h2>Speaker feature table</h2><a href="#archetypes">Feature definitions →</a></div>${featuresTable(report.features)}</section>${await speakerReportWorkspace(report)}`;
   body += `<section class="panel session-pane" data-session-pane="overview"><h2>Export & reproduce</h2><p class="muted">Exports include actual stage states. An incomplete session never becomes a fabricated report.</p><div class="controls">${["json", "csv", "rttm", "transcript", "zip"].map(format => `<a class="button-link" href="/api/instrument/sessions/${esc(session.id)}/export/${format}">${esc(format.toUpperCase())}</a>`).join("")}</div></section>`;
   return body;
 }
@@ -176,6 +178,8 @@ async function research() {
 }
 async function render() {
   const version = ++renderVersion;
+  const retainedAudio = $("#session-audio");
+  const resumeAudio = retainedAudio && !retainedAudio.paused;
   const route = routeState();
   page = titles[route.page] ? route.page : "dashboard";
   selectedSession = page === "sessions" ? route.sessionId || null : null;
@@ -196,8 +200,13 @@ async function render() {
         const session = currentDetail.session;
         $("#view").insertAdjacentHTML("beforeend", `<section class="panel session-pane" data-session-pane="overview"><details><summary>Edit session metadata</summary><p class="muted">Correct individual recording dates after a batch upload. Changing dates, context, or identities invalidates historical comparisons.</p><form id="metadata-form" data-session-id="${esc(session.id)}"><div class="form-grid"><label>Actual recording time<input name="recorded_at" value="${esc(session.recorded_at)}" required></label><label>Context<input name="context" value="${esc(session.context)}" required></label><label>Topic<input name="topic" value="${esc(session.topic)}"></label><label>Dataset<input name="dataset" value="${esc(session.dataset)}" required></label><label>Data split<select name="split">${["development","validation","evaluation","reference"].map(s=>`<option value="${s}" ${session.split===s?'selected':''}>${s}</option>`).join("")}</select></label><label>Consent status<select name="consent">${["not documented","documented","public licensed","self recording"].map(s=>`<option value="${s}" ${session.consent===s?'selected':''}>${s}</option>`).join("")}</select></label></div><label>Anonymous participant IDs<input name="participant_ids" value="${esc(session.participant_ids.join(", "))}"></label><label>Recording conditions<textarea name="conditions">${esc(session.conditions)}</textarea></label><button type="submit">Save session metadata</button></form></details></section>`);
         const report = currentDetail.reports.find(r=>r.speaker.id===activeSpeaker);
-        if (report && (report.coaching.length || report.archetype_coaching.length)) $("#view").insertAdjacentHTML("beforeend", `<section class="panel session-pane" data-session-pane="analysis"><h2>Evidence-backed communication adjustments</h2>${[...report.coaching,...report.archetype_coaching].map(c=>`<div class="trait-row"><div><p>${esc(c.observation)}</p><p>Possible adjustment: ${esc(c.suggestion)}</p><small>${esc(c.confidence)} confidence · goal/context dependent</small></div><button data-evidence="${esc(JSON.stringify(c.evidence_ids))}">Inspect evidence</button></div>`).join("")}</section>`);
+        if (report && (report.coaching.length || report.archetype_coaching.length)) $("#view").insertAdjacentHTML("beforeend", `<details class="panel session-pane measured-adjustments" data-session-pane="analysis"><summary>Measured changes and goal-specific adjustments</summary>${[...report.coaching,...report.archetype_coaching].map(c=>`<div class="trait-row"><div><p>${esc(c.observation)}</p><p>Possible adjustment: ${esc(c.suggestion)}</p><small>${esc(c.confidence)} confidence · goal/context dependent</small></div><button data-evidence="${esc(JSON.stringify(c.evidence_ids))}">Inspect evidence</button></div>`).join("")}</details>`);
       }
+      const nextAudio = $("#session-audio");
+      if (retainedAudio && nextAudio?.getAttribute("src") === retainedAudio.getAttribute("src")) {
+        nextAudio.replaceWith(retainedAudio);
+        if (resumeAudio) retainedAudio.play().catch(() => {});
+      } else retainedAudio?.pause();
       applySessionPane();
     }
   } catch (error) { if (version === renderVersion) { $("#view").innerHTML = empty("This view could not load", error.message); notice(error.message, true); } }
@@ -212,14 +221,19 @@ async function showEvidence(ids) {
   } catch (error) { $("#evidence-detail").textContent = error.message; }
 }
 async function showRun(id) {
-  $("#run-detail").innerHTML = '<p class="loading">Loading interpretation…</p>'; $("#run-dialog").showModal();
-  const run = await api(`/runs/${id}`);
-  $("#run-detail").innerHTML = `<div class="controls">${badge(run.status)}<span>Condition ${esc(run.condition)} · ${esc(run.model)}</span></div><p class="muted">Generated interpretation. Citation validation checks source IDs; independent reviewers must assess actual claim support.</p>${run.error ? `<p class="notice error">${esc(run.error)}</p>` : ""}${run.status === "complete" ? `<p>${esc(run.output.summary)}</p>${run.output.claims.map(c => `<div class="evidence-quote"><h3>Observation</h3><p>${esc(c.observation)}</p><h3>Inference · ${esc(c.confidence)} confidence</h3><p>${esc(c.inference)}</p><p class="muted">${esc(c.limitation)}</p><p>Possible adjustment: ${esc(c.suggestion)}</p><button data-evidence="${esc(JSON.stringify(c.evidence_ids))}">Inspect supporting evidence</button></div>`).join("")}${run.output.limitations.map(l => `<p class="muted">${esc(l)}</p>`).join("")}<a href="/review/${esc(run.blind_id)}" target="_blank" rel="noopener">Open blinded reviewer form ↗</a>` : '<p class="muted">A valid interpretation is not available for this run.</p>'}<details><summary>Input representation, model provenance, and raw output</summary><pre>${esc(JSON.stringify(run, null, 2))}</pre></details>`;
+  $("#run-detail").innerHTML = '<p class="loading">Loading report...</p>'; $("#run-dialog").showModal();
+  try {
+    const run = await api(`/runs/${id}`);
+    const speakerName = currentDetail?.speakers.find(s => s.id === run.speaker_id)?.display_name || "Selected speaker";
+    const names = {A:"Transcript-only comparison", B:"Structured-context comparison", C:"Full PSYCON report"};
+    $("#run-title").textContent = run.status === "complete" ? "Communication report" : "Report attempt";
+    $("#run-detail").innerHTML = `<p class="report-scope">${esc(names[run.condition])} / ${esc(nice(run.status))}</p>${run.status === "complete" ? `<audio class="report-audio" controls preload="metadata" src="/api/instrument/sessions/${esc(run.session_id)}/audio"></audio>${communicationReportContent(run, speakerName)}` : `<div class="report-start"><h3>${run.status === "stale" ? "This report is no longer current." : ["queued","running"].includes(run.status) ? "This report is being prepared." : "A report could not be created."}</h3><p>${esc(run.error || "Return to the speaker's Report section to check its progress.")}</p></div>`}<details class="report-history"><summary>Research details and raw data</summary><p>Model: ${esc(run.model)}. This generated interpretation still needs independent review of its evidence support.</p>${run.blind_id && run.status === "complete" ? `<a href="/review/${esc(run.blind_id)}" target="_blank" rel="noopener">Independent reviewer form &nearr;</a>` : ""}<pre>${esc(JSON.stringify(run, null, 2))}</pre></details>`;
+  } catch (error) { $("#run-detail").innerHTML = empty("The report could not be loaded", error.message); }
 }
 async function queue(speakerId, condition) {
   if (!speakerId) throw new Error("Select a speaker first");
   const result = await api(`/speakers/${speakerId}/runs`, {method:"POST", body:JSON.stringify({conditions:condition === "ABC" ? ["A","B","C"] : [condition]})});
-  notice(`${result.runs.length} interpretation runs queued. The local worker must be running.`); await render();
+  notice(condition === "ABC" ? "Research comparison queued. You can follow its progress in Research or report history." : "Your communication report is queued. It will appear here when the local worker finishes."); await render();
 }
 document.addEventListener("click", async event => {
   const button = event.target.closest("button,a[data-page],rect[data-seek]");
@@ -233,7 +247,7 @@ document.addEventListener("click", async event => {
     if (button.dataset.page === "sessions") selectedSession = null;
     if (button.dataset.session) { document.querySelectorAll("dialog[open]").forEach(d => d.close()); activeSpeaker = null; const target = `sessions/${button.dataset.session}/overview`; if (location.hash.slice(1) === target) await render(); else location.hash = target; }
     if (button.hasAttribute("data-back-sessions")) location.hash = "sessions";
-    if (button.dataset.seek) { const audio = $("#session-audio"); if (audio) { audio.currentTime = Number(button.dataset.seek); await audio.play(); } }
+    if (button.dataset.seek) { const audio = button.closest("#run-dialog")?.querySelector("audio") || $("#session-audio"); if (audio) { audio.currentTime = Number(button.dataset.seek); await audio.play(); } }
     if (button.dataset.evidence) await showEvidence(JSON.parse(button.dataset.evidence));
     if (button.dataset.runView) await showRun(button.dataset.runView);
     if (button.dataset.run) { button.disabled = true; button.setAttribute("aria-busy", "true"); await queue(button.dataset.run, button.dataset.condition); }
@@ -251,7 +265,7 @@ document.addEventListener("change", async event => {
   try {
     if (event.target.id === "person-select") { selectedPerson = event.target.value; await refreshState(); await render(); }
     if (event.target.id === "target-select") { const role = event.target.value; await api("/settings", {method:"PATCH", body:JSON.stringify({target_archetype:role})}); if (selectedPerson) await api(`/profiles/${selectedPerson}`, {method:"PATCH", body:JSON.stringify({target_archetype:role})}); await refreshState(); notice(`Comparison goal set to ${role}; this is not an identity label.`); await render(); }
-    if (event.target.id === "analysis-speaker") { activeSpeaker = event.target.value; await render(); }
+    if (event.target.id === "analysis-speaker") { activeSpeaker = event.target.value; await render(); $("#analysis-speaker")?.focus(); }
     if (event.target.id === "status-filter") { sessionStatus = event.target.value; updateSessionList(); }
     if (event.target.id === "dataset-filter") { sessionDataset = event.target.value; updateSessionList(); }
     if (event.target.id === "longitudinal-feature") { const person = await api(`/profiles/${selectedPerson}`); $("#longitudinal-chart").innerHTML = lineChart(person.series, event.target.value); }
