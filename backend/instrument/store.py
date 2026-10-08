@@ -109,10 +109,10 @@ class Store:
     @contextmanager
     def connect(self):
         with self.pool.connection() as db:
-            db.execute(sql.SQL('SET LOCAL search_path TO {}').format(sql.Identifier(self.schema)))
-            db.execute('SET LOCAL statement_timeout = 30000')
+            settings=sql.SQL('SET LOCAL search_path TO {}; SET LOCAL statement_timeout = 30000').format(sql.Identifier(self.schema))
             if self.role:
-                db.execute(sql.SQL('SET LOCAL ROLE {}').format(sql.Identifier(self.role)))
+                settings+=sql.SQL('; SET LOCAL ROLE {}').format(sql.Identifier(self.role))
+            db.execute(settings)
             if self.fence:
                 job, owner, attempt, revision = self.fence
                 current = db.execute('SELECT * FROM jobs WHERE id=%s FOR UPDATE', (job,)).fetchone()
