@@ -14,7 +14,7 @@ Current verification: 50 focused PostgreSQL instrument tests pass. The complete 
 
 ## Implementation checklist
 
-Status is recorded only after implementation and validation, not after schema creation. No commits or pushes are authorized by the current request.
+Status is recorded only after implementation and validation, not after schema creation. The implementation was delivered in 12 focused lowercase commits on feat/audio-research-instrument. The current request authorizes further relevant commits; pushes remain deferred.
 
 - [x] W01 PostgreSQL environment, permissions, ordered migrations, readiness
 - [x] W02 Complete native PostgreSQL storage port and preserved reports
