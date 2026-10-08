@@ -325,28 +325,62 @@ class Instrument:
         for row in result["evidence"]:
             row["context"] = decode(row["context"])
         result["words"] = self.store.rows("SELECT w.* FROM words w JOIN utterances u ON u.id=w.utterance_id WHERE u.session_id=%s ORDER BY w.start_s", (session_id,))
-        result["reports"] = [self.report(s["id"]) for s in result["speakers"]] if session["status"] == "complete" else []
+        result['reports']=[]
+        if session['status']=='complete':
+            context=self._report_context(session,result)
+            result['reports']=[self.report(s['id'],context=context,persist=False) for s in result['speakers']]
+            self._save_comparisons(result['reports'])
         return result
 
-    def report(self, speaker_id):
-        speaker = self.store.one("SELECT * FROM speakers WHERE id=%s", (speaker_id,))
-        session = self.store.session(speaker["session_id"])
-        if session["status"] != "complete":
-            raise ValueError("Analysis unavailable while processing is incomplete or failed")
-        features = self.store.rows("SELECT * FROM features WHERE speaker_id=%s", (speaker_id,))
-        traits = self.store.rows("SELECT s.*,t.name,t.feature FROM session_traits s JOIN traits t ON t.id=s.trait_id WHERE s.speaker_id=%s", (speaker_id,))
-        for trait in traits:
-            trait["evidence_ids"] = [r["evidence_id"] for r in self.store.rows("SELECT evidence_id FROM trait_evidence WHERE session_trait_id=%s", (trait["id"],))]
-        comparisons = compare_archetypes(self.store, session, speaker, features)
+    def _report_context(self,session,detail=None):
+        """Session-wide reads avoid a remote database round trip for every speaker."""
+        context=dict(detail or {},session=session)
+        sid=session['id']
+        for table in ('speakers','features','evidence'):
+            if table not in context:
+                context[table]=self.store.rows(f'SELECT * FROM {table} WHERE session_id=%s',(sid,))
+        context['traits']=self.store.rows('SELECT st.*,t.name,t.feature FROM session_traits st JOIN traits t ON t.id=st.trait_id JOIN speakers p ON p.id=st.speaker_id WHERE p.session_id=%s',(sid,))
+        links=self.store.rows('SELECT r.session_trait_id,r.evidence_id FROM trait_evidence r JOIN session_traits st ON st.id=r.session_trait_id JOIN speakers p ON p.id=st.speaker_id WHERE p.session_id=%s',(sid,))
+        evidence_ids={}
+        for link in links:evidence_ids.setdefault(link['session_trait_id'],[]).append(link['evidence_id'])
+        for trait in context['traits']:trait['evidence_ids']=evidence_ids.get(trait['id'],[])
+        from .profiles import reference_context
+        context['references']=reference_context(self.store)
+        context['targets']={p['id']:p['target_archetype'] for p in self.store.rows("SELECT id,target_archetype FROM profiles WHERE user_id='local'")}
+        context['default_target']=self.store.one("SELECT value FROM workspace_settings WHERE name='target_archetype'")['value']
+        context['predictions']=self.store.rows("SELECT DISTINCT ON (p.speaker_id,m.family,m.target) p.*,m.family,m.target,m.evaluation_status FROM model_predictions p JOIN model_versions m ON m.id=p.model_id JOIN speakers sp ON sp.id=p.speaker_id WHERE sp.session_id=%s AND p.input_revision=%s AND m.status='active' ORDER BY p.speaker_id,m.family,m.target,p.created_at DESC",(sid,session['input_revision']))
+        if context['predictions']:
+            links=self.store.rows('SELECT r.prediction_id,r.evidence_id FROM prediction_evidence r JOIN model_predictions p ON p.id=r.prediction_id JOIN speakers sp ON sp.id=p.speaker_id WHERE sp.session_id=%s',(sid,))
+            evidence_ids={}
+            for link in links:evidence_ids.setdefault(link['prediction_id'],[]).append(link['evidence_id'])
+            for prediction in context['predictions']:prediction['evidence_ids']=evidence_ids.get(prediction['id'],[])
+        context['runs']=self.store.rows('SELECT id,speaker_id,condition,status,model,error FROM llm_runs WHERE session_id=%s ORDER BY created_at DESC',(sid,))
+        return context
+
+    def _save_comparisons(self,reports):
+        if not reports:return
+        from psycopg.types.json import Jsonb
+        rows=[(uid(),report['session_id'],report['speaker']['id'],result['archetype']['id'],result['similarity'],result['method'],Jsonb(result['dimensions']),result['status']) for report in reports for result in report['archetypes']]
         with self.store.connect() as db:
-            db.execute("DELETE FROM comparisons WHERE speaker_id=%s", (speaker_id,))
-            for result in comparisons:
-                self.store.insert("comparisons", dict(id=uid(), session_id=session["id"], speaker_id=speaker_id,
-                             archetype_id=result["archetype"]["id"], similarity=result["similarity"], method=result["method"],
-                             dimensions=encode(result["dimensions"]), status=result["status"]), db)
+            db.execute('DELETE FROM comparisons WHERE speaker_id=ANY(%s)',([report['speaker']['id'] for report in reports],))
+            if rows:
+                with db.cursor() as cursor:
+                    cursor.executemany('INSERT INTO comparisons(id,session_id,speaker_id,archetype_id,similarity,method,dimensions,status) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)',rows)
+
+    def report(self, speaker_id, *, context=None, persist=True):
+        if context is None:
+            speaker=self.store.one('SELECT * FROM speakers WHERE id=%s',(speaker_id,))
+            context=self._report_context(self.store.session(speaker['session_id']))
+        speaker=next(s for s in context['speakers'] if s['id']==speaker_id)
+        session=context['session']
+        if session['status']!='complete':
+            raise ValueError('Analysis unavailable while processing is incomplete or failed')
+        features=[r for r in context['features'] if r['speaker_id']==speaker_id]
+        traits=[r for r in context['traits'] if r['speaker_id']==speaker_id]
+        comparisons=compare_archetypes(self.store,session,speaker,features,context['references'])
         personal = baseline(self.store, session, speaker)
         changes = [dict(feature=k, **v) for k, v in personal["statistics"].items() if v["substantial_descriptive_deviation"]]
-        evidence = self.store.rows("SELECT * FROM evidence WHERE speaker_id=%s", (speaker_id,))
+        evidence = [r for r in context['evidence'] if r['speaker_id']==speaker_id]
         suggestions = {
             "interruption_candidate_rate": "If the overlap was an unwanted interruption, let the other speaker finish before offering the counterargument. Review the audio first; overlap does not establish intent.",
             "question_ratio": "If your goal is to invite more perspectives, ask an open clarification question before the next proposal.",
@@ -363,7 +397,7 @@ class Instrument:
                 coaching.append(dict(feature=r["feature"], observation=f"Current {r['current']:.3g}; historical median {r['median']:.3g} across {r['sample_count']} earlier sessions. Deviation is not inherently good or bad.",
                                      suggestion=suggestions.get(r["feature"], "Review the conversational examples and choose a specific adjustment appropriate to this setting."),
                                      confidence=r["confidence"], evidence_ids=refs))
-        target = self.store.one("SELECT target_archetype FROM profiles WHERE id=%s", (speaker["profile_id"],))["target_archetype"] if speaker["profile_id"] else self.store.one("SELECT value FROM workspace_settings WHERE name='target_archetype'")["value"]
+        target = context['targets'][speaker['profile_id']] if speaker['profile_id'] else context['default_target']
         archetype_coaching = []
         for comparison in comparisons:
             if comparison["status"] != "available" or not comparison["archetype"]["name"].startswith(target):
@@ -380,16 +414,16 @@ class Instrument:
                                  observation=f"Your {d['name'].replace('_', ' ')} dimension is below the exploratory {target} reference in the selected feature space.",
                                  suggestion=suggestions.get(feature, "Practice stating one proposal and its supporting reason, then invite a response. Treat this as a goal-specific experiment, not a personality change."),
                                  confidence="low", evidence_ids=refs, reference_id=comparison["archetype"]["id"]))
-        predictions=self.store.rows("SELECT DISTINCT ON (m.family,m.target) p.*,m.family,m.target,m.evaluation_status FROM model_predictions p JOIN model_versions m ON m.id=p.model_id WHERE p.speaker_id=%s AND p.input_revision=%s AND m.status='active' ORDER BY m.family,m.target,p.created_at DESC",(speaker_id,session['input_revision']))
-        for prediction in predictions:
-            prediction['evidence_ids']=[row['evidence_id'] for row in self.store.rows('SELECT evidence_id FROM prediction_evidence WHERE prediction_id=%s',(prediction['id'],))]
-        return dict(speaker=speaker, session_id=session["id"], features=features, traits=traits, supervised_predictions=predictions,
+        predictions=[r for r in context['predictions'] if r['speaker_id']==speaker_id]
+        result=dict(speaker=speaker, session_id=session["id"], features=features, traits=traits, supervised_predictions=predictions,
                     baseline=personal, global_baseline=baseline(self.store, session, speaker, False), deviations=changes,
                     archetypes=comparisons, coaching=coaching, archetype_coaching=archetype_coaching,
                     archetype_status="available" if comparisons else "missing_reference_data",
                     target_archetype=target,
                     status="measured and estimated indicators; interpretation is separate",
-                    llm_runs=self.store.rows("SELECT id,condition,status,model,error FROM llm_runs WHERE speaker_id=%s ORDER BY created_at DESC", (speaker_id,)))
+                    llm_runs=[{k:v for k,v in r.items() if k!='speaker_id'} for r in context['runs'] if r['speaker_id']==speaker_id])
+        if persist:self._save_comparisons([result])
+        return result
 
     def map_speaker(self, speaker_id, body):
         speaker = self.store.one("SELECT * FROM speakers WHERE id=%s", (speaker_id,))

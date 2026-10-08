@@ -108,17 +108,25 @@ def baseline(store, session, speaker, context_specific=True):
     return result
 
 
-def compare_archetypes(store, session, speaker, features):
+def reference_context(store):
+    """Load shared reference definitions and source ancestry once per report batch."""
+    from .provenance import source_groups
+    grouped={}
+    for row in store.rows('SELECT * FROM archetype_features'):
+        grouped.setdefault(row['archetype_id'],[]).append(row)
+    return dict(components=source_groups(store),references=store.rows('SELECT * FROM archetypes ORDER BY sample_count DESC,name'),features=grouped)
+
+
+def compare_archetypes(store, session, speaker, features, context=None):
     person = vector(features)
     results = []
-    from .provenance import source_groups
-    components=source_groups(store)
-    references = store.rows("SELECT * FROM archetypes ORDER BY sample_count DESC,name")
+    context=context if context is not None else reference_context(store)
+    components=context['components']; references=context['references']
     empirical_roles = {r["name"].split(" Â· ")[0] for r in references if r["sample_count"] > 0}
     for archetype in references:
         if archetype["id"].startswith("prototype-") and archetype["name"] in empirical_roles:
             continue
-        reference = store.rows("SELECT * FROM archetype_features WHERE archetype_id=%s", (archetype["id"],))
+        reference = context['features'].get(archetype['id'],[])
         # Never compare to a corpus containing this session or person.
         provenance = []
         for r in reference:

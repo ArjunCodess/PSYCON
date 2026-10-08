@@ -406,3 +406,23 @@ def test_whisper_failure_unloads_weights_and_preserves_explicit_precision(monkey
     with pytest.raises(RuntimeError,match='synthetic GPU failure'):
         adapter.transcribe(np.ones(16000,dtype=np.int16),16000)
     assert unloaded==[True] and options[0]['compute_type']=='int8_float16'
+
+
+def test_session_report_reads_do_not_scale_with_anonymous_speaker_count(service,monkeypatch):
+    sid=add(service)
+    from backend.instrument.store import uid
+    for index in range(10):
+        service.store.insert('speakers',dict(id=uid(),session_id=sid,label='SYNTHETIC_EXTRA_'+str(index),display_name='Anonymous synthetic speaker'))
+    calls=[]
+    original=service.store.rows
+    def counted(query,params=()):
+        calls.append(query)
+        return original(query,params)
+    monkeypatch.setattr(service.store,'rows',counted)
+    detail=service.detail(sid)
+    assert len(detail['reports'])==12
+    assert len(calls)<=24
+    assert len([q for q in calls if 'FROM archetype_features' in q])==1
+    assert len([q for q in calls if 'FROM trait_evidence' in q])==1
+    assert service.store.one('SELECT count(*) n FROM comparisons WHERE session_id=%s',(sid,))['n']==sum(len(r['archetypes']) for r in detail['reports'])
+    assert {e for report in detail['reports'] for trait in report['traits'] for e in trait['evidence_ids']} <= {e['id'] for e in detail['evidence']}
