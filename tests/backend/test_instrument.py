@@ -1,7 +1,7 @@
 """Synthetic fixtures exercise invariants; they are never displayed as research results."""
 import io
 import json
-import sqlite3
+import psycopg
 import wave
 
 import numpy as np
@@ -13,7 +13,7 @@ from backend.instrument.features import extract, time_metrics
 from backend.instrument.profiles import baseline, build_reference
 from backend.instrument.research import queue_runs, process_run, evaluation, validate_output, annotate
 from backend.instrument.service import Instrument
-from backend.instrument.store import uid, now, encode
+from backend.instrument.store import uid, now, encode, decode
 
 
 def recording(seconds=6, phase=0):
@@ -48,8 +48,27 @@ class Transcriber:
 
 
 @pytest.fixture
-def service(tmp_path):
-    return Instrument(tmp_path, Diarizer, Transcriber)
+def service(tmp_path,monkeypatch):
+    import os
+    test_url=os.getenv('PSYCON_TEST_DATABASE_URL')
+    if not test_url: pytest.fail('Set PSYCON_TEST_DATABASE_URL to a dedicated PostgreSQL validation database')
+    monkeypatch.setenv('PSYCON_DATABASE_URL',test_url)
+    monkeypatch.setenv('PSYCON_INSTRUMENT_DEVICE','cpu')
+    monkeypatch.delenv('PSYCON_DATABASE_ROLE',raising=False)
+    schema='psycon_test_'+uid().replace('-','')
+    monkeypatch.setenv('PSYCON_DATABASE_SCHEMA',schema)
+    from backend.instrument.store import Store
+    store=Store(tmp_path);store.migrate()
+    from backend.instrument.forms import install
+    from backend.instrument.profiles import initialize_archetypes
+    install(store);initialize_archetypes(store)
+    service=Instrument(tmp_path,Diarizer,Transcriber)
+    yield service
+    service.store.pool.close()
+    from psycopg import sql
+    with store.pool.connection() as db:
+        db.execute(sql.SQL('DROP SCHEMA {} CASCADE').format(sql.Identifier(schema)))
+    store.pool.close()
 
 
 def add(service, day=1, phase=0, split="development"):
@@ -82,7 +101,7 @@ def test_pipeline_queryable_exports_and_failure_transparency(service):
         response = client.get(f"/api/instrument/sessions/{sid}/export/{format}")
         assert response.status_code == 200
         assert response.data
-    original = service.store.one("SELECT original_path FROM sessions WHERE id=?", (sid,))["original_path"]
+    original = service.store.one("SELECT original_path FROM sessions WHERE id=%s", (sid,))["original_path"]
     assert open(original, "rb").read() == recording()
 
 
@@ -91,8 +110,8 @@ def test_no_future_leakage_and_rebuild_after_mapping_and_delete(service):
     sessions = []
     for day in (7, 1, 3, 2, 5, 4, 6):
         sid = add(service, day=day, phase=day/10)
-        speaker = service.store.one("SELECT * FROM speakers WHERE session_id=? AND label='SPEAKER_01'", (sid,))
-        service.map_speaker(speaker["id"], dict(profile_id=profile_id))
+        speaker = service.store.one("SELECT * FROM speakers WHERE session_id=%s AND label='SPEAKER_01'", (sid,))
+        service.map_speaker(speaker["id"], dict(profile_id=profile_id,reviewer_id="test-mapper"))
         sessions.append((day, sid, speaker))
     current = next(s for day, sid, s in sessions if day == 6)
     report = service.report(current["id"])
@@ -165,9 +184,9 @@ def test_duplicate_session_and_mapping_guard(service):
         service.ingest(io.BytesIO(recording()), "same.wav", dict(recorded_at=now(), consent="documented"))
     profile_id = person(service)
     speakers = service.detail(sid)["speakers"]
-    service.map_speaker(speakers[0]["id"], dict(profile_id=profile_id))
+    service.map_speaker(speakers[0]["id"], dict(profile_id=profile_id,reviewer_id="test-mapper"))
     with pytest.raises(ValueError, match="one speaker"):
-        service.map_speaker(speakers[1]["id"], dict(profile_id=profile_id))
+        service.map_speaker(speakers[1]["id"], dict(profile_id=profile_id,reviewer_id="test-mapper"))
 
 
 def test_model_failure_and_retry(service):
@@ -208,7 +227,7 @@ def test_worker_lease_recovery(service):
     row = service.ingest(io.BytesIO(recording()), "x.wav", dict(recorded_at=now(), consent="documented"))
     assert service.store.claim("worker-a") == row["id"]
     assert service.store.claim("worker-b") is None
-    service.store.execute("UPDATE sessions SET lease_until=0 WHERE id=?", (row["id"],))
+    service.store.execute("UPDATE sessions SET lease_until=0 WHERE id=%s", (row["id"],))
     assert service.store.claim("worker-b") == row["id"]
 
 
@@ -241,7 +260,7 @@ def test_matched_runs_blind_annotations_and_metrics(service):
     sid = add(service)
     speaker_id = service.detail(sid)["speakers"][0]["id"]
     runs = queue_runs(service, speaker_id, provider=Provider())
-    inputs = [json.loads(service.store.one("SELECT input FROM llm_runs WHERE id=?", (r["id"],))["input"]) for r in runs]
+    inputs = [decode(service.store.one("SELECT input FROM llm_runs WHERE id=%s", (r["id"],))["input"]) for r in runs]
     assert all(p["transcript"] == inputs[0]["transcript"] for p in inputs)
     assert "session_features" not in inputs[0] and "personal_baseline" not in inputs[1]
     assert "personal_baseline" in inputs[2]
@@ -296,7 +315,7 @@ def test_same_origin_and_database_failure(service, monkeypatch):
     assert client.post("/api/instrument/profiles", json=dict(label="p")).status_code == 403
     assert client.post("/api/instrument/profiles", json=dict(label="p"), headers={"X-PSYCON-Request": "research-instrument", "Origin": "http://evil.example"}).status_code == 403
     def failure(*args):
-        raise sqlite3.OperationalError("test database failure")
+        raise psycopg.OperationalError("test database failure")
     monkeypatch.setattr(service.store, "rows", failure)
     response = client.get("/api/instrument/state")
     assert response.status_code == 503 and "fabricated" in response.get_json()["error"]
@@ -333,7 +352,7 @@ def test_metadata_edits_rebuild_baseline_and_reference_delete_removes_dependents
     with pytest.raises(ValueError, match="reference profile"):
         service.edit_metadata(sessions[0], dict(split="development"))
     service.delete(sessions[0])
-    assert not service.store.rows("SELECT id FROM archetypes WHERE id=?", (ref["id"],))
+    assert not service.store.rows("SELECT id FROM archetypes WHERE id=%s", (ref["id"],))
     sid = add(service, day=8, phase=.8)
     updated = service.edit_metadata(sid, dict(recorded_at="2026-09-07T15:30:00+05:30", context="interview", participant_ids=["P1"]))
     assert updated["recorded_at"].startswith("2026-09-07T10:00:00") and updated["context"] == "interview"
@@ -344,10 +363,10 @@ def test_interpretation_invalidation_and_goal_change(service):
     sid = add(service)
     p = person(service)
     speaker = service.detail(sid)["speakers"][0]
-    service.map_speaker(speaker["id"], dict(profile_id=p))
+    service.map_speaker(speaker["id"], dict(profile_id=p,reviewer_id="test-mapper"))
     runs = queue_runs(service, speaker["id"], provider=Provider())
     service.store.invalidate()
-    assert service.store.one("SELECT status FROM llm_runs WHERE id=?", (runs[2]["id"],))["status"] == "stale"
+    assert service.store.one("SELECT status FROM llm_runs WHERE id=%s", (runs[2]["id"],))["status"] == "stale"
     client = create_app(instrument=service, testing=True).test_client()
     response = client.patch("/api/instrument/profiles/"+p, json=dict(target_archetype="Negotiator"), headers={"X-PSYCON-Request":"research-instrument"})
     assert response.status_code == 200
@@ -355,11 +374,11 @@ def test_interpretation_invalidation_and_goal_change(service):
 
 
 def test_worker_exclusive_lock_and_missing_references(service):
-    from backend.instrument.worker import lock
-    with lock(service.store.root):
-        with pytest.raises(RuntimeError, match="already running"):
-            with lock(service.store.root):
-                pass
+    from backend.instrument.jobs import enqueue,claim
+    job=enqueue(service.store,'import','synthetic-import',1)
+    first=claim(service.store,'import','first')
+    assert first['id']==job['id']
+    assert claim(service.store,'import','second') is None
     sid = add(service)
     service.store.execute("DELETE FROM archetypes")
     assert service.detail(sid)["reports"][0]["archetype_status"] == "missing_reference_data"
@@ -376,7 +395,7 @@ def test_workspace_goal_controls_anonymous_reports_and_matched_inputs(service):
     assert service.report(speaker["id"])["target_archetype"] == "Salesperson"
     runs = queue_runs(service, speaker["id"], provider=Provider())
     for run in runs:
-        packet = json.loads(service.store.one("SELECT input FROM llm_runs WHERE id=?", (run["id"],))["input"])
+        packet = decode(service.store.one("SELECT input FROM llm_runs WHERE id=%s", (run["id"],))["input"])
         assert packet["user_selected_goal"] == "Salesperson"
     client.patch("/api/instrument/settings", json={"target_archetype": "Negotiator"}, headers=headers)
     assert all(r["status"] == "stale" for r in service.store.rows("SELECT status FROM llm_runs"))
