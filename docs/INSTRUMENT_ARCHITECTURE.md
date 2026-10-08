@@ -4,9 +4,9 @@ PSYCON is an audio-based longitudinal communication-analysis system that learns 
 
 ## Runtime and persistence
 
-`run_psycon.py web` serves the local instrument on 127.0.0.1:8001. `run_psycon.py worker` processes audio and interpretation jobs. The app can also mount inside the legacy Flask service at `/instrument`. The standalone app has no PostgreSQL, object-store, wearable, face-recognition, or enrollment prerequisite.
+`run_psycon.py web` serves the canonical local application on 127.0.0.1:8001. `run_psycon.py worker` processes durable speech, interpretation, import, and training queues. The legacy default entry point opens this same application. PostgreSQL is mandatory; startup never creates a SQLite database or silently falls back to one. Migration is an explicit operator command.
 
-SQLite runs with foreign keys, WAL, short transactions, and a 30-second busy timeout. The database, immutable uploaded originals, and normalized playback files are under `instance/instrument`. Original bytes are streamed to a unique session directory and hashed; an exact duplicate is rejected. Failed ingestion removes only its newly created directory. Explicit session deletion verifies the media directory before removing it and invalidates dependent history.
+The `psycon` PostgreSQL schema holds all application records, immutable human annotation revisions, frozen training datasets, evaluations, and provenance. Native psycopg pools use short transactions, connection timeouts, and a 30-second statement timeout. Original media and model artifacts remain in registered local roots with exact filenames, paths, sizes, and SHA-256 hashes. Normalized playback files are disposable. Annotation spreadsheets and bounded scanned sources are retained in PostgreSQL. Failed ingestion removes only the newly created upload directory.
 
 Users, profiles, sessions, speakers, turns, utterances, words, features, evidence, directed interactions, traits, trait-evidence edges, baseline snapshots, baseline feature statistics, baseline-source edges, archetypes, archetype dimensions, comparisons, LLM runs, feature evaluations, behavioral annotations, and reviewer ratings are separately queryable. JSON additionally stores raw stage outputs, input representations, configurations, and statistical snapshots.
 
@@ -14,7 +14,7 @@ The local instrument assumes a trusted single-user machine. Same-origin mutation
 
 ## Pipeline and inspectable intermediate outputs
 
-1. **Ingestion.** MP3, WAV, M4A, MP4, MOV, and OGG are accepted. Each file stores original filename, SHA-256, recording time in UTC, processing configuration, model provenance, context, participant IDs, recording conditions, consent status, dataset, and split. Maximums are 512 MiB, four hours, eight input channels, and 12 diarized speakers.
+1. **Ingestion.** MP3, WAV, M4A, MP4, MOV, and OGG are accepted. Each file stores original filename, SHA-256, recording time in UTC, processing configuration, model provenance, context, participant IDs, recording conditions, consent status, dataset, and split. Maximums are 8 GiB, four hours, eight input channels, and 12 diarized speakers.
 2. **Preprocessing.** PyAV extracts audio, downmixes to mono, and resamples to 16 kHz PCM16. Source time is preserved; silence is never removed or concatenated. Diagnostics record original channels/rate, duration, clipping fraction after downmix, 20 ms frame silence below -50 dBFS, and an energy-quantile contrast proxy. The proxy is not a calibrated SNR. Denoising is disabled. Silence, invalid samples, corruption, absent audio, and recordings below one second fail explicitly.
 3. **Diarization.** A lazy Community-1 adapter accepts normalized in-memory waveforms and preserves regular overlapping speaker intervals. Diarization confidence remains null when the model does not supply it. The default revision is pinned, and an adapter interface permits replacement without changing storage or feature calculations.
 4. **Transcription.** The large-v3 adapter uses beam size 5, English, VAD, word timestamps, and no conditioning on previous text. Its default model revision is pinned. Model confidence is an estimate, not calibrated accuracy. Raw segment outputs remain in the stage record.
@@ -25,7 +25,9 @@ The local instrument assumes a trusted single-user machine. Same-origin mutation
 
 Mean transcript confidence below 0.55, attributed word coverage below 0.60, or clipping above 5% withholds communication profiles. Available transcripts and preceding stage outputs remain inspectable. Missing transcription or failed diarization cannot produce features or a confident profile. These are prototype quality gates, not independently calibrated operating thresholds.
 
-An exclusive worker lock prevents concurrent local model workers from resetting one another's jobs. Audio work has heartbeat leases; interrupted jobs resume with completed speech model artifacts. Failed stages can be retried explicitly. Interrupted LLM work is marked failed, since partially generated reasoning cannot be accepted as a report. Identity or history edits mark current/queued Full PSYCON runs stale, and the worker cannot overwrite a stale run as complete.
+PostgreSQL owns job claims, renewable leases, worker heartbeats, attempt budgets, cancellation, and the shared GPU lease. Expired jobs recover only after their worker heartbeat expires. Completion transactions check the owner, attempt, lease, and input revision. Transient connectivity/timeouts have bounded exponential retry delays; invalid inputs fail explicitly. Cached speech retries retain transcript/evidence identities and refuse changed evidence rather than deleting cited records. Mapping, annotation, consent, and context changes invalidate dependent snapshots, models, predictions, and interpretations.
+
+See [the PostgreSQL and training runbook](POSTGRES_TRAINING_RUNBOOK.md) for migration, role configuration, imports, supervised training, activation, deletion, backups, and verified restoration.
 
 ## Formal feature dictionary
 
@@ -76,3 +78,11 @@ Session exports support JSON, feature CSV, RTTM, transcript text, and a ZIP cont
 ## Model API sources
 
 The adapter follows [Community-1's official model interface](https://huggingface.co/pyannote/speaker-diarization-community-1) and [faster-whisper's official transcription interface](https://github.com/SYSTRAN/faster-whisper). Model availability, local inference checks, or existing group coverage are not evidence of longitudinal communication validity.
+
+## Canonical annotation and training storage
+
+Ordered migrations in `backend/instrument/migrations` create a separate `psycon` schema under a migration ledger and advisory lock. Runtime requests never execute migrations. Native JSONB, timezone-aware timestamps, finite measurements, and explicit start_s/end_s columns retain the external transcript timing contract. PostgreSQL leases own speech, interpretation, import, and training jobs; completion checks owner, attempt, lease, and input revision. A shared GPU lease excludes concurrent speech/LLM use. Frozen datasets use a serializable transaction to detect concurrent revisions.
+
+People, session participants, and speaker clusters remain distinct. Reviewed mappings and consent precede feature joins. Human observer answers, self-report, independent review, adjudication, supervised predictions, and LLM claims retain separate storage and provenance. Corrections and withdrawals invalidate dependent snapshots and flag model weights for retraining; deletion additionally removes affected weights and frozen private copies. Original media keep exact local filenames, and small bounded annotation sources remain database bytes. See the storage/training runbook for the implemented contract and remaining validation gates.
+
+B and C receive the same frozen supervised-model predictions and feature version, so the personalization comparison isolates history/reference/evidence representation. Supervised prediction evaluation is reported separately. Uncalibrated logistic probabilities are explicitly identified; no model is active automatically.

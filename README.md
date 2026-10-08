@@ -6,17 +6,19 @@ The current ISEF prototype is audio-only. Its contribution is the structured con
 
 ## Run the research instrument
 
-Use the existing local Python runtime in two PowerShell terminals:
+Run this one command from the repository root in PowerShell, with Docker Desktop running and the PostgreSQL URL in the ignored `.env`:
 
 ```powershell
-.runtime/venv/Scripts/python.exe run_psycon.py web
+.runtime\venv\Scripts\python.exe run_psycon.py docker
 ```
 
-```powershell
-.runtime/venv/Scripts/python.exe run_psycon.py worker
-```
+Open http://localhost:8008. Docker starts the web app and CUDA worker concurrently after applying migrations and idempotently queuing the original-video batch. Both services use the configured PostgreSQL, including Neon pooled URLs. Startup never substitutes the old local database. The Docker image extends the installed `psycon-week4-worker:latest` speech runtime; build that runtime first on a fresh machine. Registered Windows paths are explicitly mapped to the mounted workspace, and originals are mounted read only.
 
-Open [PSYCON](http://127.0.0.1:8001). SQLite and retained media live in the ignored `instance/instrument` directory. PostgreSQL, Docker, and object storage are not required for this workspace. It binds to localhost and is a single-user research tool, not a hosted multi-user deployment.
+PostgreSQL is the only application database; a connection failure never creates another store. Original media and generated models stay in registered local paths; answers, bounded source spreadsheets, evidence, jobs, model manifests, and results live in PostgreSQL. The application remains a local single-user research instrument.
+
+Session **Participants & answers** supports anonymous participants, reviewed speaker mappings, individual/batch CSV and XLSX previews, source downloads, direct entry, immutable corrections, independent review, and consent records. **Training & models** shows explicit exclusions, frozen snapshots, queued supervised fitting, held-out evaluations, exploratory limitations, deliberate activation, rollback, and predictions. Saving a sheet does not grant consent or establish training eligibility. A-T uses the actual v4.0 marksheet; independent communication labels use [the annotation guidelines](docs/COMMUNICATION_ANNOTATION_GUIDELINES.md).
+
+Read [the storage and training runbook](docs/POSTGRES_TRAINING_RUNBOOK.md) for migrations, least-privilege roles, snapshots, workers, exports, coordinated backups/restoration, and deletion. The retained legacy source is read only by the one-time migration command. `run_backend.py` and the local-runtime web/worker commands launch the same canonical application.
 
 When an interpretation is requested, PSYCON reuses the configured local Ollama service. If the loopback service is stopped and the bundled `.runtime/ollama` executable exists, it starts that executable in the background with the project-local model directory and cloud access disabled. No model is downloaded, substituted, or repinned automatically. Container endpoints and independently installed runtimes must be started separately. You can also start the bundled runtime manually:
 
@@ -39,7 +41,7 @@ Interpretation failures identify whether the service is unreachable, the selecte
 
 ## Group-discussion reference profiles
 
-Saved guarded group analysis can be imported without rerunning face recognition or connecting PostgreSQL:
+Saved guarded group analysis can be imported without rerunning face recognition; PostgreSQL must be available:
 
 ```powershell
 .runtime/venv/Scripts/python.exe run_psycon.py import-groups
@@ -59,6 +61,7 @@ LLM inputs use a documented bounded transcript window and retrieved evidence. A 
 ## Verify
 
 ```powershell
+$env:PSYCON_TEST_DATABASE_URL = "postgresql://psycon:psycon@127.0.0.1:5432/psycon"
 .runtime/venv/Scripts/python.exe -m pytest tests -o addopts= -q
 .runtime/node/node.exe --check backend/static/instrument.js
 .runtime/node/node.exe --check backend/static/instrument_review.js

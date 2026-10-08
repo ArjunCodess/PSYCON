@@ -1,3 +1,9 @@
+## Current audio-first implementation amendment, 2026-10-08
+
+The canonical application follows [the frozen dataset protocol](../DATASET_PROTOCOL.md) and [the PostgreSQL runbook](../POSTGRES_TRAINING_RUNBOOK.md). PostgreSQL holds normalized annotations, bounded original spreadsheet/form sources, immutable corrections, mappings, consent, snapshots and model lineage. Original audio/video and generated model files remain local with exact names and registered hashes. Source documents and private exports retain human metadata under the annotation-source retention policy; they are not public research releases. Names and identity embeddings are unnecessary.
+
+The supervised targets are eligible A-T ratings and separately annotated communication traits. Same-session event baselines differ from strictly earlier personal history. Fitting, held-out evaluation and deliberate deployment are separate gates, as is the controlled A/B/C personalization experiment. Real training is currently unavailable without consented, independently reviewed human labels. Historical device-study instructions below apply only to that separate experiment and do not define the active predictor.
+
 # Data required before Week 5 evaluation
 
 PSYCON has two separate Week 5 paths. The group-observation path is the one that matches the current marksheet. The earlier binary stress comparison in `research/evaluation.py` remains available for the wrist-and-speech study, and it cannot train 0–4 or N/O ratings as written.
