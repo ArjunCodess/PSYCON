@@ -33,6 +33,13 @@ def create_app(
     storage=None,
     initialize: bool = True,
 ) -> Flask:
+    if not testing and settings is None and database is None and storage is None:
+        from ml.src.environment import load_project_environment
+        load_project_environment()
+        os.environ.setdefault('PSYCON_DATABASE_ROLE','psycon_web')
+        if os.getenv('PSYCON_WEB_DATABASE_URL'):os.environ['PSYCON_DATABASE_URL']=os.environ['PSYCON_WEB_DATABASE_URL']
+        from .instrument.app import create_app as canonical_app
+        return canonical_app(os.getenv('PSYCON_INSTRUMENT_ROOT','instance/instrument'))
     app = Flask(__name__, template_folder="templates", static_folder="static")
     settings = settings or Settings.from_env(testing=testing)
     app.config.update(
