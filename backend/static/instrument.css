@@ -494,3 +494,8 @@ td small { font-size: 11px; line-height: 1.6; }
   .speaker-focus select { flex: 1; max-width: none; }
   .speaker-focus-note { font-size: 13px; }
 }
+
+.participant-record,.model-record,.answer-revision{padding:24px 0;border-bottom:1px solid var(--line)}
+.participant-record form,.model-record form{margin:16px 0} #answers-dialog{width:min(1120px,95vw);max-width:95vw} #answers-dialog td{vertical-align:top;min-width:120px} #answers-dialog td:first-child{min-width:230px;max-width:320px} #answers-dialog td:last-child{min-width:230px} #answers-dialog small{display:block} fieldset{border:1px solid var(--line);padding:16px;margin:20px 0} input[type=checkbox]{width:auto;margin-right:8px} .participant-record pre,.model-record pre{max-height:350px;overflow:auto} #import-preview{margin-top:24px}
+
+label:has(> input[type="checkbox"]){display:flex;align-items:center;gap:8px} input[type="checkbox"]{width:18px;height:18px;min-width:18px;min-height:18px;padding:0;flex:0 0 18px;align-self:center}

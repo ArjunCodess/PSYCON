@@ -6,6 +6,7 @@
   <link rel="preload" href="{{ url_for('static', filename='fonts/Geist-Variable.woff2') }}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{ url_for('static', filename='instrument.css') }}">
   <script defer src="{{ url_for('static', filename='instrument_reports.js') }}"></script>
+  <script defer src="{{ url_for('static', filename='instrument_workflow.js') }}"></script>
   <script defer src="{{ url_for('static', filename='instrument.js') }}"></script>
 </head>
 <body>
@@ -21,6 +22,7 @@
     <a href="#archetypes" data-page="archetypes"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 7h17l-4-4M21 17H4l4 4"/></svg> Archetypes</a>
     <a href="#evidence" data-page="evidence"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M15 15l6 6"/></svg> Evidence</a>
     <a href="#research" data-page="research"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 3h14M9 3v6l-5 10a2 2 0 002 2h12a2 2 0 002-2L15 9V3M7 15h10"/></svg> Research</a>
+    <a href="#training" data-page="training">Training & models</a>
   </nav>
   <div class="sidebar-note"><span class="dot"></span> Local audio-only prototype<p>Observable evidence first.<br>Interpretations remain reviewable.</p></div>
 </aside>
@@ -41,7 +43,7 @@
     <div class="dialog-title"><h2 id="upload-title">Add conversations</h2><button type="button" data-close="upload-dialog" aria-label="Close upload">×</button></div>
     <p>Each recording becomes a session. Originals and full transcripts remain local until you delete the session.</p>
     <label>Recordings<input name="recordings" type="file" accept=".mp3,.wav,.m4a,.mp4,.mov,.ogg" multiple required></label>
-    <p class="muted">Up to 512 MiB and 4 hours per recording. MP4 and MOV are processed for audio only.</p>
+    <p class="muted">Up to 8 GiB and 4 hours per recording. MP4 and MOV are processed for audio only.</p>
     <div class="form-grid">
       <label>Recording time<input name="recorded_at" type="datetime-local" required><small>Use the actual conversation time. Selected files share this time.</small></label>
       <label>Conversation context<select name="context"><option>meeting</option><option>brainstorming</option><option>interview</option><option>debate</option><option>negotiation</option><option>sales</option><option>presentation</option><option>casual conversation</option></select></label>
@@ -65,5 +67,6 @@
 </dialog>
 <dialog id="evidence-dialog" aria-labelledby="evidence-title"><div class="dialog-title"><h2 id="evidence-title">Trace the evidence</h2><button data-close="evidence-dialog" aria-label="Close evidence">×</button></div><div id="evidence-detail"></div></dialog>
 <dialog id="run-dialog" aria-labelledby="run-title"><div class="dialog-title"><h2 id="run-title">Interpretation run</h2><button data-close="run-dialog" aria-label="Close interpretation">×</button></div><div id="run-detail"></div></dialog>
+<dialog id="answers-dialog" aria-labelledby="answers-title"></dialog>
 </body>
 </html>
