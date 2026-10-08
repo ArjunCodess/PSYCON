@@ -9,7 +9,7 @@ from pathlib import Path
 from .audio import preprocess
 from .features import extract
 from .profiles import build_reference, vector, ROLE_FRAMEWORKS
-from .store import encode, uid
+from .store import decode, encode, uid
 
 
 def import_group(instrument, directory, source_video, recorded_at, consent):
@@ -17,7 +17,7 @@ def import_group(instrument, directory, source_video, recorded_at, consent):
     detail_path = directory/"psycon-recovered-detail.json"
     if not detail_path.exists():
         detail_path = directory/"psycon-detail.json"
-    payload = json.loads(detail_path.read_text(encoding="utf-8"))
+    payload = decode(detail_path.read_text(encoding="utf-8"))
     if payload.get("summary", {}).get("status") != "complete":
         raise ValueError("Only completed saved group analysis can be imported")
     shared = directory/"shared-16khz.wav"
@@ -31,10 +31,11 @@ def import_group(instrument, directory, source_video, recorded_at, consent):
                                     context="group discussion", participant_ids=[], topic="Original group discussion; topic not annotated",
                                     conditions="Imported guarded intervals and partial word transcripts; anonymous source slots are recording-specific"), allow_unknown_consent=True)
     sid = session["id"]
-    source_path = Path(instrument.store.one("SELECT original_path FROM sessions WHERE id=?", (sid,))["original_path"])
+    instrument.store.execute("UPDATE jobs SET status='canceled',finished_at=now(),error='Explicit one-time retained-corpus import' WHERE subject_id=%s AND kind='speech' AND status='queued'",(sid,))
+    source_path = Path(instrument.store.one("SELECT original_path FROM sessions WHERE id=%s", (sid,))["original_path"])
     try:
         audio = preprocess(source_path, source_path.parent/"normalized.wav")
-        instrument.store.execute("UPDATE sessions SET duration=?,sample_rate=?,channels=?,status='processing' WHERE id=?",
+        instrument.store.execute("UPDATE sessions SET duration=%s,sample_rate=%s,channels=%s,status='processing' WHERE id=%s",
                                  (audio.diagnostics["duration"], 16000, 1, sid))
         session = instrument.store.session(sid)
         speakers, turns, utterances, words = [], [], [], []
@@ -79,11 +80,14 @@ def import_group(instrument, directory, source_video, recorded_at, consent):
                           validation="Model-supported assignments; independently unvalidated", transcript="Partial retained attributed speech only",
                           confidence="Source word confidence not stored; remains null")
         with instrument.store.connect() as db:
+            from .assets import register
+            original=register(instrument.store,source_video,'media',root=Path(source_video).resolve().parent,db=db)
+            db.execute('INSERT INTO session_assets VALUES (%s,%s,%s) ON CONFLICT DO NOTHING',(sid,original['id'],'original group discussion video'))
             for table, rows in (("speakers", speakers), ("turns", turns), ("utterances", utterances), ("words", words),
                                 ("features", features), ("evidence", evidence), ("interactions", interactions)):
                 for row in rows:
                     instrument.store.insert(table, row, db)
-            db.execute("UPDATE sessions SET status='complete',versions=?,worker_id=NULL,lease_until=NULL WHERE id=?", (encode(provenance), sid))
+            db.execute("UPDATE sessions SET status='complete',versions=%s,worker_id=NULL,lease_until=NULL WHERE id=%s", (encode(provenance), sid))
         for stage in ("diarization", "transcription", "attribution", "segmentation", "features", "evidence", "profile"):
             instrument.store.stage(sid, stage, "complete", dict(imported=True, provenance=provenance,
                                    warning="Existing guarded partial observations, not a new full recording pipeline run"))
@@ -93,7 +97,7 @@ def import_group(instrument, directory, source_video, recorded_at, consent):
             generate_traits(instrument.store, session, speaker, [f for f in features if f["speaker_id"] == speaker["id"]],
                             [e for e in evidence if e["speaker_id"] == speaker["id"]])
     except Exception as exc:
-        instrument.store.execute("UPDATE sessions SET status='failed',error=? WHERE id=?", (str(exc)[:1000], sid))
+        instrument.store.execute("UPDATE sessions SET status='failed',error=%s WHERE id=%s", (str(exc)[:1000], sid))
         raise
     return instrument.store.session(sid)
 
@@ -105,7 +109,7 @@ def build_group_lenses(instrument):
                             "AND s.dataset='Existing group discussion analysis'")
     by_session = {}
     for speaker in candidates:
-        features = vector(store.rows("SELECT * FROM features WHERE speaker_id=?", (speaker["id"],)))
+        features = vector(store.rows("SELECT * FROM features WHERE speaker_id=%s", (speaker["id"],)))
         by_session.setdefault(speaker["session_id"], []).append((speaker, features))
     if len(by_session) < 3:
         raise ValueError("At least three independent reference recordings are required")

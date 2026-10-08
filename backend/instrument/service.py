@@ -7,7 +7,7 @@ import json
 import os
 from pathlib import Path
 import shutil
-import sqlite3
+import psycopg
 import threading
 from uuid import uuid4
 
@@ -16,7 +16,7 @@ import numpy as np
 from .audio import PyannoteAdapter, WhisperAdapter, attribute, preprocess, model_versions
 from .features import DICTIONARY, UNAVAILABLE, extract
 from .profiles import baseline, compare_archetypes, generate_traits, initialize_archetypes, TRAIT_FEATURES
-from .store import Store, encode, uid, now
+from .store import decode, Store, encode, uid, now
 from . import annotations  # Registers reviewed-event feature definitions.
 
 STAGES = ("preprocessing", "diarization", "transcription", "attribution", "segmentation", "features", "evidence", "profile")
@@ -34,11 +34,11 @@ def configuration():
     model = os.getenv("PSYCON_INSTRUMENT_WHISPER_MODEL", "large-v3")
     return dict(diarization_model=os.getenv("PSYCON_INSTRUMENT_DIARIZATION_MODEL", "pyannote/speaker-diarization-community-1"),
                 diarization_revision=os.getenv("PSYCON_COMMUNITY1_REVISION", "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee"),
-                transcription_model=model,
+                transcription_model=model, transcription_compute_type=os.getenv("PSYCON_WHISPER_COMPUTE_TYPE", "int8_float16" if device=="cuda" else "int8"),
                 transcription_revision=os.getenv("PSYCON_INSTRUMENT_WHISPER_REVISION", "edaa852ec7e145841d8ffdb056a99866b5f0a478" if model == "large-v3" else "") or None,
                 device=device, max_speakers=12, max_duration_seconds=14400,
                 min_transcript_confidence=.55, min_attribution_fraction=.6,
-                max_upload_bytes=512*1024*1024, denoising=False, language="en")
+                max_upload_bytes=8*1024*1024*1024, denoising=False, language="en")
 
 
 class Instrument:
@@ -46,9 +46,11 @@ class Instrument:
         self.store = Store(root)
         self.diarizer_factory = diarizer_factory
         self.transcriber_factory = transcriber_factory
-        initialize_archetypes(self.store)
+        # Definitions and archetypes are installed by the explicit migration command.
 
     def ingest(self, stream, filename, metadata, *, allow_unknown_consent=False):
+        if not filename or Path(filename).name != filename or '/' in filename or '\\' in filename or len(filename)>255:
+            raise ValueError('Use an original basename without directory components')
         suffix = Path(filename).suffix.lower()
         if suffix not in SUPPORTED:
             raise ValueError("Upload MP3, WAV, M4A, MP4, MOV, or OGG audio")
@@ -72,12 +74,12 @@ class Instrument:
         if not isinstance(participants, list) or any(not isinstance(p, str) for p in participants):
             raise ValueError("Participant IDs must be an array of anonymous identifiers")
         for existing in self.store.rows("SELECT participant_ids,split FROM sessions"):
-            if ((split == "reference") != (existing["split"] == "reference")) and set(participants) & set(json.loads(existing["participant_ids"])):
+            if ((split == "reference") != (existing["split"] == "reference")) and set(participants) & set(decode(existing["participant_ids"])):
                 raise ValueError("Reference and analysis participants must be disjoint")
         key = uid()
         folder = self.store.root / "media" / key
         folder.mkdir(parents=True)
-        original = folder / ("original"+suffix)
+        original = folder / filename
         config = configuration()
         sha, size = hashlib.sha256(), 0
         try:
@@ -85,20 +87,26 @@ class Instrument:
                 while chunk := stream.read(1024*1024):
                     size += len(chunk)
                     if size > config["max_upload_bytes"]:
-                        raise ValueError("Maximum upload size is 512 MiB per recording")
+                        raise ValueError("Maximum upload size is 8 GiB per recording")
                     sha.update(chunk)
                     target.write(chunk)
             if not size:
                 raise ValueError("The uploaded file is empty")
-            if self.store.rows("SELECT id FROM sessions WHERE sha256=?", (sha.hexdigest(),)):
+            if self.store.rows("SELECT id FROM sessions WHERE sha256=%s", (sha.hexdigest(),)):
                 raise ValueError("Duplicate recording: the original session is already stored")
-            self.store.insert("sessions", dict(id=key, filename=filename[:512], sha256=sha.hexdigest(), original_path=str(original),
+            from .assets import register
+            with self.store.connect() as db:
+                asset=register(self.store, original, 'media', root=folder, db=db, digest=sha.hexdigest())
+                self.store.insert("sessions", dict(id=key, filename=filename[:512], sha256=sha.hexdigest(), original_path=str(original),
                               recorded_at=stamp, created_at=now(), context=str(metadata.get("context", "meeting"))[:100],
                               topic=str(metadata.get("topic", ""))[:500], dataset=str(metadata.get("dataset", "personal uploads"))[:200],
                               split=split, consent=consent, conditions=str(metadata.get("conditions", "not supplied"))[:1000],
-                              participant_ids=encode(participants), status="queued", config=encode(config), versions=encode(model_versions(config))))
-            for stage in STAGES:
-                self.store.stage(key, stage, "pending")
+                              participant_ids=encode(participants), status="queued", config=encode(config), versions=encode(model_versions(config)), asset_id=asset["id"]), db)
+                self.store.insert('session_assets',dict(session_id=key,asset_id=asset['id'],purpose='input'),db)
+                for stage in STAGES:
+                    self.store.insert('stages', dict(session_id=key,name=stage,status='pending'),db)
+                from .jobs import enqueue
+                enqueue(self.store,'speech',key,1,db=db)
         except Exception:
             shutil.rmtree(folder)
             raise
@@ -108,7 +116,10 @@ class Instrument:
         session = self.store.session(session_id)
         if session["status"] not in ("failed", "blocked"):
             raise ValueError("Only failed or blocked sessions can be retried")
-        self.store.execute("UPDATE sessions SET status='queued', error=NULL, lease_until=NULL,worker_id=NULL WHERE id=?", (session_id,))
+        with self.store.connect() as db:
+            row=db.execute("UPDATE sessions SET status='queued',error=NULL,input_revision=input_revision+1 WHERE id=%s RETURNING input_revision",(session_id,)).fetchone()
+            from .jobs import enqueue
+            enqueue(self.store,'speech',session_id,row['input_revision'],db=db)
 
     def edit_metadata(self, session_id, body):
         session = self.store.session(session_id)
@@ -131,70 +142,101 @@ class Instrument:
         split = body.get("split", session["split"])
         if split not in ("development", "validation", "evaluation", "reference"):
             raise ValueError("Invalid dataset split")
-        others = self.store.rows("SELECT participant_ids,split FROM sessions WHERE id!=?", (session_id,))
-        if any((split == "reference") != (r["split"] == "reference") and set(participants) & set(json.loads(r["participant_ids"])) for r in others):
+        others = self.store.rows("SELECT participant_ids,split FROM sessions WHERE id!=%s", (session_id,))
+        if any((split == "reference") != (r["split"] == "reference") and set(participants) & set(decode(r["participant_ids"])) for r in others):
             raise ValueError("Reference and analysis participants must be disjoint")
         source = self.store.rows("SELECT af.distribution FROM archetype_features af WHERE af.distribution IS NOT NULL")
-        if split != "reference" and any(session_id in {s["session_id"] for s in json.loads(r["distribution"])["sources"]} for r in source):
+        if split != "reference" and any(session_id in {s["session_id"] for s in decode(r["distribution"])["sources"]} for r in source):
             raise ValueError("This session is used by a reference profile; keep its reference split or remove the dependent reference first")
-        linked = self.store.rows("SELECT s.split FROM sessions s JOIN speakers p ON p.session_id=s.id WHERE s.id!=? "
-                                 "AND p.profile_id IN (SELECT profile_id FROM speakers WHERE session_id=? AND profile_id IS NOT NULL)", (session_id, session_id))
+        linked = self.store.rows("SELECT s.split FROM sessions s JOIN speakers p ON p.session_id=s.id WHERE s.id!=%s "
+                                 "AND p.profile_id IN (SELECT profile_id FROM speakers WHERE session_id=%s AND profile_id IS NOT NULL)", (session_id, session_id))
         if any((r["split"] == "reference") != (split == "reference") for r in linked):
             raise ValueError("Known personal identities cannot cross reference and analysis splits")
         if values["consent"] not in ("documented", "public licensed", "self recording", "not documented"):
             raise ValueError("Invalid consent status")
         with self.store.connect() as db:
-            db.execute("UPDATE sessions SET recorded_at=?,context=?,topic=?,conditions=?,dataset=?,consent=?,split=?,participant_ids=? WHERE id=?",
+            db.execute("UPDATE sessions SET recorded_at=%s,context=%s,topic=%s,conditions=%s,dataset=%s,consent=%s,split=%s,participant_ids=%s,input_revision=input_revision+1 WHERE id=%s",
                        (stamp, *(values[k] for k in ("context", "topic", "conditions", "dataset", "consent")), split, encode(participants), session_id))
-            for row in db.execute("SELECT id,context FROM evidence WHERE session_id=?", (session_id,)).fetchall():
-                context = json.loads(row["context"])
+            for row in db.execute("SELECT id,context FROM evidence WHERE session_id=%s", (session_id,)).fetchall():
+                context = decode(row["context"])
                 context.update(session_context=values["context"])
                 if not context.get("annotation_reviewer"):
                     context["topic"] = values["topic"] or "not annotated"
-                db.execute("UPDATE evidence SET context=? WHERE id=?", (encode(context), row["id"]))
-            db.execute("UPDATE llm_runs SET status='stale',error='Session metadata changed; queue a new run' WHERE session_id=? AND status IN ('complete','queued','running')", (session_id,))
+                db.execute("UPDATE evidence SET context=%s WHERE id=%s", (encode(context), row["id"]))
+            db.execute("UPDATE llm_runs SET status='stale',error='Session metadata changed; queue a new run' WHERE session_id=%s AND status IN ('complete','queued','running')", (session_id,))
+            from .answers import invalidate_participant
+            for participant in db.execute('SELECT id FROM session_participants WHERE session_id=%s',(session_id,)).fetchall():
+                invalidate_participant(self.store,str(participant['id']),'Session context or dataset role changed',db)
+            db.execute("UPDATE jobs SET status='canceled',finished_at=now() WHERE subject_id=%s AND status IN ('queued','running')",(session_id,))
+            if session['status']=='queued':
+                from .jobs import enqueue
+                revision=db.execute('SELECT input_revision FROM sessions WHERE id=%s',(session_id,)).fetchone()['input_revision']
+                enqueue(self.store,'speech',session_id,revision,db=db)
         self.store.invalidate()
         return self.store.session(session_id)
 
     def process_next(self):
-        worker_id = str(uuid4())
-        session_id = self.store.claim(worker_id)
-        if session_id is None:
+        from .jobs import claim, lease, finish
+        from .store import StaleJob
+        job=claim(self.store,'speech')
+        if job is None:
             return None
-        finished = threading.Event()
-        def heartbeat():
-            while not finished.wait(20):
-                self.store.heartbeat(session_id, worker_id)
-        thread = threading.Thread(target=heartbeat, daemon=True)
-        thread.start()
+        session_id=job['subject_id']
+        try:
+            with lease(self.store,job,gpu=True):
+                session=self.store.session(session_id)
+                if session['input_revision'] != job['input_revision']:
+                    raise StaleJob('Session changed since this job was queued')
+                self.store.execute("UPDATE sessions SET status='processing',worker_id=%s WHERE id=%s",(job['owner'],session_id))
+                result=self._process_claimed(session_id,job['owner'])
+                finish(self.store,job,result={'session_id':session_id},error=result.get('error') if result['status']=='failed' else None,retry=result.get('retryable',False))
+                return result
+        except StaleJob:
+            return None
+
+    def _process_claimed(self, session_id, worker_id):
         stage = "preprocessing"
         try:
             session = self.store.session(session_id)
             config = session["config"]
-            original = Path(self.store.one("SELECT original_path FROM sessions WHERE id=?", (session_id,))["original_path"])
+            original = self.store.local_path(self.store.one("SELECT original_path FROM sessions WHERE id=%s", (session_id,))["original_path"])
             self.store.stage(session_id, stage, "running")
-            audio = preprocess(original, original.parent/"normalized.wav", config["max_duration_seconds"])
+            derived=self.store.root/"media"/session_id/"derived"
+            derived.mkdir(parents=True,exist_ok=True)
+            audio = preprocess(original, derived/"normalized.wav", config["max_duration_seconds"])
+            from .assets import register
+            with self.store.connect() as db:
+                asset=register(self.store,derived/'normalized.wav','media',root=derived,db=db)
+                db.execute('INSERT INTO session_assets VALUES (%s,%s,%s) ON CONFLICT DO NOTHING',(session_id,asset['id'],'normalized playback'))
             self.store.stage(session_id, stage, "complete", audio.diagnostics)
-            self.store.execute("UPDATE sessions SET duration=?,sample_rate=?,channels=? WHERE id=?",
+            self.store.execute("UPDATE sessions SET duration=%s,sample_rate=%s,channels=%s WHERE id=%s",
                                (audio.diagnostics["duration"], audio.diagnostics["original_sample_rate"], audio.diagnostics["original_channels"], session_id))
             session = self.store.session(session_id)
             def model_stage(name, action):
-                old = self.store.one("SELECT * FROM stages WHERE session_id=? AND name=?", (session_id, name))
+                old = self.store.one("SELECT * FROM stages WHERE session_id=%s AND name=%s", (session_id, name))
                 if old["status"] == "complete" and old["output"]:
-                    return json.loads(old["output"])
+                    return decode(old["output"])
                 self.store.stage(session_id, name, "running")
-                result = action()
+                try:
+                    result = action()
+                finally:
+                    if config['device']=='cuda':
+                        # Torch's caching allocator otherwise retains diarization
+                        # VRAM that CTranslate2 needs for the next model.
+                        import gc,torch
+                        gc.collect()
+                        torch.cuda.empty_cache()
                 self.store.stage(session_id, name, "complete", result)
                 return result
             stage = "diarization"
-            raw_turns = model_stage(stage, lambda: self.diarizer_factory(config).diarize(audio.samples, 16000))
+            raw_turns = model_stage(stage, lambda: config.get("reviewed_diarization") or self.diarizer_factory(config).diarize(audio.samples, 16000))
             stage = "transcription"
             transcript = model_stage(stage, lambda: self.transcriber_factory(config).transcribe(audio.samples, 16000))
             stage = "attribution"
             self.store.stage(session_id, stage, "running")
             speakers, turns, utterances, words = attribute(session_id, raw_turns, transcript, session["duration"], config["max_speakers"])
             # Keep reviewed mappings and identifiers on retry.
-            old = {s["label"]: s for s in self.store.rows("SELECT * FROM speakers WHERE session_id=?", (session_id,))}
+            old = {s["label"]: s for s in self.store.rows("SELECT * FROM speakers WHERE session_id=%s", (session_id,))}
             for speaker in speakers:
                 if speaker["label"] in old:
                     previous = old[speaker["label"]]
@@ -207,11 +249,21 @@ class Instrument:
             total = sum(len(u["text"].split()) for u in utterances)
             fraction = attributed/max(total, 1)
             confidence = sum(u["confidence"] for u in utterances)/len(utterances)
-            with self.store.connect() as db:
-                db.execute("DELETE FROM speakers WHERE session_id=?", (session_id,))
-                for table, rows in (("speakers", speakers), ("turns", turns), ("utterances", utterances), ("words", words)):
-                    for row in rows:
-                        self.store.insert(table, row, db)
+            if old:
+                retained_turns=self.store.rows('SELECT * FROM turns WHERE session_id=%s',(session_id,))
+                retained_utterances=self.store.rows('SELECT * FROM utterances WHERE session_id=%s',(session_id,))
+                def signatures(rows,fields):
+                    return sorted((tuple(row[field] for field in fields) for row in rows),key=repr)
+                if (signatures(turns,('speaker_id','start','end')) != signatures(retained_turns,('speaker_id','start','end')) or
+                    signatures(utterances,('speaker_id','start','end','text')) != signatures(retained_utterances,('speaker_id','start','end','text'))):
+                    raise ValueError('Retry changed retained speaker evidence; create a separate analysis and review its mapping')
+                # Cached speech output must retain the identities cited by human answers and reports.
+                speakers=list(old.values());turns=retained_turns;utterances=retained_utterances
+            else:
+                with self.store.connect() as db:
+                    for table, rows in (("speakers", speakers), ("turns", turns), ("utterances", utterances), ("words", words)):
+                        for row in rows:
+                            self.store.insert(table, row, db)
             self.store.stage(session_id, stage, "complete", dict(attributed_word_fraction=fraction, mean_transcript_confidence=confidence,
                                                                 confidence_note="Model confidence is an estimate, not calibrated accuracy",
                                                                 ambiguous_utterances=sum(u["speaker_id"] is None for u in utterances)))
@@ -224,12 +276,17 @@ class Instrument:
                              method="speaker changes, sentence punctuation, and >1s gaps; adjacent exchanges retained",
                              topic=session["topic"] or "not annotated", topic_boundaries="not validated", phases="not annotated"))
             stage = "features"
-            self.store.stage(session_id, stage, "running")
-            features, evidence, interactions = extract(session, speakers, turns, utterances)
-            with self.store.connect() as db:
-                for table, rows in (("features", features), ("evidence", evidence), ("interactions", interactions)):
-                    for row in rows:
-                        self.store.insert(table, row, db)
+            features=self.store.rows('SELECT * FROM features WHERE session_id=%s',(session_id,))
+            if features:
+                evidence=self.store.rows('SELECT * FROM evidence WHERE session_id=%s',(session_id,))
+                interactions=self.store.rows('SELECT * FROM interactions WHERE session_id=%s',(session_id,))
+            else:
+                self.store.stage(session_id, stage, "running")
+                features, evidence, interactions = extract(session, speakers, turns, utterances)
+                with self.store.connect() as db:
+                    for table, rows in (("features", features), ("evidence", evidence), ("interactions", interactions)):
+                        for row in rows:
+                            self.store.insert(table, row, db)
             self.store.stage(session_id, stage, "complete", dict(count=len(features), dictionary=DICTIONARY, unavailable=UNAVAILABLE))
             stage = "evidence"
             self.store.stage(session_id, stage, "complete", dict(count=len(evidence), interactions=len(interactions),
@@ -241,51 +298,55 @@ class Instrument:
             self.store.stage(session_id, stage, "complete", dict(status="observable indicators ready",
                                                                interpretation="Request evidence-grounded LLM analysis per speaker",
                                                                validation="not independently validated"))
-            self.store.execute("UPDATE sessions SET status='complete',lease_until=NULL,worker_id=NULL WHERE id=?", (session_id,))
+            self.store.execute("UPDATE sessions SET status='complete',lease_until=NULL,worker_id=NULL WHERE id=%s", (session_id,))
+            from .training import predict
+            for speaker in speakers:
+                predict(self.store,speaker['id'])
+        except __import__("backend.instrument.store", fromlist=["StaleJob"]).StaleJob:
+            raise
         except Exception as exc:
             # Never convert model/runtime failure into plausible fabricated features.
             message = str(exc)[:1500]
             self.store.stage(session_id, stage, "failed", error=message)
-            self.store.execute("UPDATE sessions SET status='failed',error=?,lease_until=NULL,worker_id=NULL WHERE id=?", (message, session_id))
-        finally:
-            finished.set()
-            thread.join(timeout=1)
+            self.store.execute("UPDATE sessions SET status='failed',error=%s,lease_until=NULL,worker_id=NULL WHERE id=%s", (message, session_id))
+            from .jobs import retryable
+            return dict(self.store.session(session_id),retryable=retryable(exc))
         return self.store.session(session_id)
 
     def detail(self, session_id):
         session = self.store.session(session_id)
-        stages = self.store.rows("SELECT * FROM stages WHERE session_id=?", (session_id,))
+        stages = self.store.rows("SELECT * FROM stages WHERE session_id=%s", (session_id,))
         stages.sort(key=lambda row: STAGES.index(row["name"]) if row["name"] in STAGES else len(STAGES))
         for row in stages:
-            row["output"] = json.loads(row["output"]) if row["output"] else None
+            row["output"] = decode(row["output"]) if row["output"] else None
         result = dict(session=session, stages=stages)
         for table in ("speakers", "turns", "utterances", "features", "evidence", "interactions"):
-            result[table] = self.store.rows(f"SELECT * FROM {table} WHERE session_id=?", (session_id,))
+            result[table] = self.store.rows(f"SELECT * FROM {table} WHERE session_id=%s", (session_id,))
         for row in result["evidence"]:
-            row["context"] = json.loads(row["context"])
-        result["words"] = self.store.rows("SELECT w.* FROM words w JOIN utterances u ON u.id=w.utterance_id WHERE u.session_id=? ORDER BY w.start", (session_id,))
+            row["context"] = decode(row["context"])
+        result["words"] = self.store.rows("SELECT w.* FROM words w JOIN utterances u ON u.id=w.utterance_id WHERE u.session_id=%s ORDER BY w.start_s", (session_id,))
         result["reports"] = [self.report(s["id"]) for s in result["speakers"]] if session["status"] == "complete" else []
         return result
 
     def report(self, speaker_id):
-        speaker = self.store.one("SELECT * FROM speakers WHERE id=?", (speaker_id,))
+        speaker = self.store.one("SELECT * FROM speakers WHERE id=%s", (speaker_id,))
         session = self.store.session(speaker["session_id"])
         if session["status"] != "complete":
             raise ValueError("Analysis unavailable while processing is incomplete or failed")
-        features = self.store.rows("SELECT * FROM features WHERE speaker_id=?", (speaker_id,))
-        traits = self.store.rows("SELECT s.*,t.name,t.feature FROM session_traits s JOIN traits t ON t.id=s.trait_id WHERE s.speaker_id=?", (speaker_id,))
+        features = self.store.rows("SELECT * FROM features WHERE speaker_id=%s", (speaker_id,))
+        traits = self.store.rows("SELECT s.*,t.name,t.feature FROM session_traits s JOIN traits t ON t.id=s.trait_id WHERE s.speaker_id=%s", (speaker_id,))
         for trait in traits:
-            trait["evidence_ids"] = [r["evidence_id"] for r in self.store.rows("SELECT evidence_id FROM trait_evidence WHERE session_trait_id=?", (trait["id"],))]
+            trait["evidence_ids"] = [r["evidence_id"] for r in self.store.rows("SELECT evidence_id FROM trait_evidence WHERE session_trait_id=%s", (trait["id"],))]
         comparisons = compare_archetypes(self.store, session, speaker, features)
         with self.store.connect() as db:
-            db.execute("DELETE FROM comparisons WHERE speaker_id=?", (speaker_id,))
+            db.execute("DELETE FROM comparisons WHERE speaker_id=%s", (speaker_id,))
             for result in comparisons:
                 self.store.insert("comparisons", dict(id=uid(), session_id=session["id"], speaker_id=speaker_id,
                              archetype_id=result["archetype"]["id"], similarity=result["similarity"], method=result["method"],
                              dimensions=encode(result["dimensions"]), status=result["status"]), db)
         personal = baseline(self.store, session, speaker)
         changes = [dict(feature=k, **v) for k, v in personal["statistics"].items() if v["substantial_descriptive_deviation"]]
-        evidence = self.store.rows("SELECT * FROM evidence WHERE speaker_id=?", (speaker_id,))
+        evidence = self.store.rows("SELECT * FROM evidence WHERE speaker_id=%s", (speaker_id,))
         suggestions = {
             "interruption_candidate_rate": "If the overlap was an unwanted interruption, let the other speaker finish before offering the counterargument. Review the audio first; overlap does not establish intent.",
             "question_ratio": "If your goal is to invite more perspectives, ask an open clarification question before the next proposal.",
@@ -302,7 +363,7 @@ class Instrument:
                 coaching.append(dict(feature=r["feature"], observation=f"Current {r['current']:.3g}; historical median {r['median']:.3g} across {r['sample_count']} earlier sessions. Deviation is not inherently good or bad.",
                                      suggestion=suggestions.get(r["feature"], "Review the conversational examples and choose a specific adjustment appropriate to this setting."),
                                      confidence=r["confidence"], evidence_ids=refs))
-        target = self.store.one("SELECT target_archetype FROM profiles WHERE id=?", (speaker["profile_id"],))["target_archetype"] if speaker["profile_id"] else self.store.one("SELECT value FROM workspace_settings WHERE name='target_archetype'")["value"]
+        target = self.store.one("SELECT target_archetype FROM profiles WHERE id=%s", (speaker["profile_id"],))["target_archetype"] if speaker["profile_id"] else self.store.one("SELECT value FROM workspace_settings WHERE name='target_archetype'")["value"]
         archetype_coaching = []
         for comparison in comparisons:
             if comparison["status"] != "available" or not comparison["archetype"]["name"].startswith(target):
@@ -319,60 +380,98 @@ class Instrument:
                                  observation=f"Your {d['name'].replace('_', ' ')} dimension is below the exploratory {target} reference in the selected feature space.",
                                  suggestion=suggestions.get(feature, "Practice stating one proposal and its supporting reason, then invite a response. Treat this as a goal-specific experiment, not a personality change."),
                                  confidence="low", evidence_ids=refs, reference_id=comparison["archetype"]["id"]))
-        return dict(speaker=speaker, session_id=session["id"], features=features, traits=traits,
+        predictions=self.store.rows("SELECT DISTINCT ON (m.family,m.target) p.*,m.family,m.target,m.evaluation_status FROM model_predictions p JOIN model_versions m ON m.id=p.model_id WHERE p.speaker_id=%s AND p.input_revision=%s AND m.status='active' ORDER BY m.family,m.target,p.created_at DESC",(speaker_id,session['input_revision']))
+        for prediction in predictions:
+            prediction['evidence_ids']=[row['evidence_id'] for row in self.store.rows('SELECT evidence_id FROM prediction_evidence WHERE prediction_id=%s',(prediction['id'],))]
+        return dict(speaker=speaker, session_id=session["id"], features=features, traits=traits, supervised_predictions=predictions,
                     baseline=personal, global_baseline=baseline(self.store, session, speaker, False), deviations=changes,
                     archetypes=comparisons, coaching=coaching, archetype_coaching=archetype_coaching,
                     archetype_status="available" if comparisons else "missing_reference_data",
                     target_archetype=target,
                     status="measured and estimated indicators; interpretation is separate",
-                    llm_runs=self.store.rows("SELECT id,condition,status,model,error FROM llm_runs WHERE speaker_id=? ORDER BY created_at DESC", (speaker_id,)))
+                    llm_runs=self.store.rows("SELECT id,condition,status,model,error FROM llm_runs WHERE speaker_id=%s ORDER BY created_at DESC", (speaker_id,)))
 
     def map_speaker(self, speaker_id, body):
-        speaker = self.store.one("SELECT * FROM speakers WHERE id=?", (speaker_id,))
+        speaker = self.store.one("SELECT * FROM speakers WHERE id=%s", (speaker_id,))
         session = self.store.session(speaker["session_id"])
         if session["status"] == "processing":
             raise ValueError("Wait for processing to finish before editing mappings")
         profile_id = body.get("profile_id") or None
+        reviewer=str(body.get('reviewer_id','')).strip()
+        if profile_id!=speaker['profile_id'] and not reviewer:
+            raise ValueError('Changing personal history requires a reviewed participant mapping and reviewer code')
         if profile_id:
-            self.store.one("SELECT * FROM profiles WHERE id=?", (profile_id,))
-            conflicting = self.store.rows("SELECT s.split FROM sessions s JOIN speakers p ON p.session_id=s.id WHERE p.profile_id=?", (profile_id,))
+            self.store.one("SELECT * FROM profiles WHERE id=%s", (profile_id,))
+            if self.store.rows('SELECT id FROM speakers WHERE session_id=%s AND profile_id=%s AND id<>%s',(session['id'],profile_id,speaker_id)):
+                raise ValueError('A person can map to only one speaker cluster per session; use participant review to correct the association')
+            conflicting = self.store.rows("SELECT s.split FROM sessions s JOIN speakers p ON p.session_id=s.id WHERE p.profile_id=%s", (profile_id,))
             if any((s["split"] == "reference") != (session["split"] == "reference") for s in conflicting):
                 raise ValueError("A reference participant cannot also be an analysis participant")
         name = str(body.get("display_name", speaker["display_name"])).strip()
         if not name or len(name) > 100:
             raise ValueError("Speaker display name must contain 1–100 characters")
         try:
-            self.store.execute("UPDATE speakers SET display_name=?,profile_id=? WHERE id=?", (name, profile_id, speaker_id))
-        except sqlite3.IntegrityError as exc:
+            if profile_id!=speaker['profile_id']:
+                from .answers import add_participant,map_participant
+                with self.store.connect() as db:
+                    if profile_id:
+                        profile=db.execute('SELECT label FROM profiles WHERE id=%s',(profile_id,)).fetchone()
+                        db.execute("INSERT INTO people(id,owner_id,code) VALUES (%s,'local',%s) ON CONFLICT(id) DO NOTHING",(profile_id,profile['label']))
+                participants=self.store.rows('SELECT p.* FROM session_participants p WHERE session_id=%s AND person_id=%s',(session['id'],profile_id)) if profile_id else []
+                if not profile_id:
+                    participants=self.store.rows('SELECT p.* FROM session_participants p JOIN speaker_mappings m ON m.participant_id=p.id WHERE m.speaker_id=%s AND m.revision=(SELECT max(revision) FROM speaker_mappings x WHERE x.participant_id=p.id)',(speaker_id,))
+                participant=participants[0] if participants else add_participant(self.store,session['id'],dict(code='history-'+profile_id,person_id=profile_id)) if profile_id else None
+                if participant:
+                    map_participant(self.store,session['id'],participant['id'],dict(speaker_id=speaker_id if profile_id else None,status='confirmed' if profile_id else 'unmapped',reviewer_id=reviewer,reason=str(body.get('reason','Reviewed personal history association'))))
+            self.store.execute("UPDATE speakers SET display_name=%s,profile_id=%s WHERE id=%s", (name, profile_id, speaker_id))
+        except psycopg.IntegrityError as exc:
             raise ValueError("A person can map to only one speaker cluster in each session; review diarization first") from exc
         self.store.invalidate()
-        return self.store.one("SELECT * FROM speakers WHERE id=?", (speaker_id,))
+        return self.store.one("SELECT * FROM speakers WHERE id=%s", (speaker_id,))
 
     def delete(self, session_id):
-        row = self.store.one("SELECT * FROM sessions WHERE id=?", (session_id,))
+        row = self.store.one("SELECT * FROM sessions WHERE id=%s", (session_id,))
         if row["status"] == "processing":
             raise ValueError("Wait for processing to finish before deleting")
-        folder = Path(row["original_path"]).parent.resolve()
+        folder = self.store.local_path(row["original_path"]).parent
         expected = (self.store.root / "media" / session_id).resolve()
-        if folder != expected or not folder.is_relative_to(self.store.root / "media"):
-            raise ValueError("Media path is outside the session directory")
+        managed=folder==expected and folder.is_relative_to(self.store.root / 'media')
+        if not managed:
+            from .assets import resolve
+            if not row['asset_id'] or resolve(self.store,row['asset_id'])!=self.store.local_path(row['original_path']):
+                raise ValueError('External source is not registered; deletion cannot resolve its retention scope')
+        self.store.execute("UPDATE jobs SET status='canceled',finished_at=now() WHERE subject_id=%s AND status IN ('queued','running')",(session_id,))
+        from .deletion import delete_participant
+        for participant in self.store.rows('SELECT id FROM session_participants WHERE session_id=%s',(session_id,)):
+            delete_participant(self.store,session_id,participant['id'])
         # Media first: a failure remains visible and can be retried, never silently orphaned.
-        if folder.exists():
+        shared=self.store.rows('SELECT session_id FROM session_assets WHERE asset_id=%s AND session_id<>%s',(row['asset_id'],session_id))
+        if managed and folder.exists() and not shared:
             shutil.rmtree(folder)
+        else:
+            generated=self.store.root/'media'/session_id/'derived'
+            if generated.exists():shutil.rmtree(generated)
         references = self.store.rows("SELECT archetype_id,distribution FROM archetype_features WHERE distribution IS NOT NULL")
-        dependent = {r["archetype_id"] for r in references if session_id in {s["session_id"] for s in json.loads(r["distribution"])["sources"]}}
+        dependent = {r["archetype_id"] for r in references if session_id in {s["session_id"] for s in decode(r["distribution"])["sources"]}}
         with self.store.connect() as db:
+            db.execute("UPDATE assets SET state='deleted',retention='generated session audio deleted' WHERE id IN (SELECT asset_id FROM session_assets WHERE session_id=%s AND purpose='normalized playback') AND NOT EXISTS (SELECT 1 FROM session_assets other WHERE other.asset_id=assets.id AND other.session_id<>%s)",(session_id,session_id))
+            if managed and row['asset_id'] and not shared:
+                db.execute("UPDATE assets SET state='deleted',retention='session deleted' WHERE id=%s",(row['asset_id'],))
             for archetype_id in dependent:
-                db.execute("DELETE FROM comparisons WHERE archetype_id=?", (archetype_id,))
-                db.execute("DELETE FROM archetypes WHERE id=?", (archetype_id,))
-        self.store.execute("DELETE FROM sessions WHERE id=?", (session_id,))
+                db.execute("DELETE FROM comparisons WHERE archetype_id=%s", (archetype_id,))
+                db.execute("DELETE FROM archetypes WHERE id=%s", (archetype_id,))
+            db.execute("DELETE FROM sessions WHERE id=%s", (session_id,))
+            db.execute('INSERT INTO deletion_tombstones(id,subject_hash,kind,backup_policy) VALUES (%s,%s,%s,%s)',(uid(),hashlib.sha256(session_id.encode()).hexdigest(),'session','Purge affected backup generations; do not replay older SQLite sources'))
         self.store.invalidate()
 
     def profile(self, profile_id):
-        person = self.store.one("SELECT * FROM profiles WHERE id=?", (profile_id,))
+        person = self.store.one("SELECT * FROM profiles WHERE id=%s", (profile_id,))
         speakers = self.store.rows("SELECT p.*,s.recorded_at,s.context,s.filename FROM speakers p JOIN sessions s ON s.id=p.session_id "
-                                   "WHERE p.profile_id=? AND s.status='complete' AND s.split!='reference' ORDER BY s.recorded_at,s.created_at", (profile_id,))
+                                   "WHERE p.profile_id=%s AND s.status='complete' AND s.split!='reference' ORDER BY s.recorded_at,s.created_at", (profile_id,))
         series = [dict(speaker=s, report=self.report(s["id"])) for s in speakers]
+        from .provenance import source_groups
+        components=source_groups(self.store)
+        recording_count=len({components[s["session_id"]] for s in speakers})
         recurring = []
         for feature, (name, kind) in TRAIT_FEATURES.items():
             sessions = []
@@ -382,8 +481,8 @@ class Instrument:
                 if matches:
                     sessions.append(entry["speaker"]["session_id"])
                     refs.extend(matches[0]["evidence_ids"])
-            if len(set(sessions)) >= 3:
+            if len({components[sid] for sid in sessions}) >= 3:
                 recurring.append(dict(name=name, feature=feature, sessions=sessions, evidence_ids=refs, confidence="low",
                                       interpretation="Indicator appears in at least three independent recordings; magnitude and context must be reviewed."))
-        return dict(person=person, series=series, recurring_traits=recurring, session_count=len(speakers),
-                    maturity="limited history" if len(speakers) < 5 else "baseline eligible; validation pending")
+        return dict(person=person, series=series, recurring_traits=recurring, session_count=len(speakers), independent_recording_count=recording_count,
+                    maturity="limited history" if recording_count < 5 else "baseline eligible; validation pending")

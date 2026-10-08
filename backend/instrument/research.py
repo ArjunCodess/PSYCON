@@ -11,7 +11,7 @@ import statistics
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
-from .store import encode, uid, now
+from .store import decode, encode, uid, now
 from .profiles import DIMENSIONS, METHOD
 from .local_llm import local_models, LocalLLMError
 
@@ -24,6 +24,7 @@ Focus claims on communication patterns and the user's selected comparison goal, 
 For structured inputs, use the supplied feature values in observations and explain their context. Do not turn marker estimates into proven intent.
 When comparison values are supplied, explain the strongest overlaps and differences across those dimensions. Never invent comparison percentages.
 Do not diagnose, infer psychological states as facts, invent evidence, or treat archetype similarity as identity.
+Distinguish measured observations, human annotations, supervised predictions, and LLM interpretation. Predicted scores are uncertain model estimates, not observed facts; preserve abstention and model versions.
 Separate observation from inference, cite supplied evidence IDs belonging to the target speaker for every claim, and state uncertainty.
 Other speakers' words supply interaction context; they cannot be the only evidence for a claim about the target speaker.
 Use only the supplied historical baseline; absence means unavailable. Never imply causation from correlation.
@@ -43,6 +44,12 @@ OUTPUT_SCHEMA = {
         "summary": {"type": "string"}, "limitations": {"type": "array", "items": {"type": "string"}},
     },
 }
+
+
+class LocalGenerationError(ValueError):
+    def __init__(self,message,raw_output):
+        super().__init__(message)
+        self.raw_output=raw_output
 
 
 class Ollama:
@@ -80,15 +87,18 @@ class Ollama:
         with urlopen(Request(self.url+"/api/chat", encode(payload).encode(), {"Content-Type": "application/json"}), timeout=300) as response:
             result = json.load(response)
         if result.get("done_reason") == "length":
-            raise ValueError("Local LLM reached its output limit before completing the report; partial interpretation withheld")
-        return json.loads(result["message"]["content"])
+            raise LocalGenerationError("Local LLM reached its output limit before completing the report; partial interpretation withheld",result.get("message",{}).get("content"))
+        content=result["message"]["content"]
+        try:
+            value=decode(content);encode(value);return value
+        except (json.JSONDecodeError,ValueError):return content  # Retain malformed output as a failed generation, never as a report.
 
 
 def packets(instrument, speaker_id):
     report = instrument.report(speaker_id)
     store = instrument.store
     speaker = report["speaker"]
-    utterances = store.rows("SELECT * FROM utterances WHERE session_id=? ORDER BY start", (speaker["session_id"],))
+    utterances = store.rows("SELECT * FROM utterances WHERE session_id=%s ORDER BY start_s", (speaker["session_id"],))
     # Same deterministically selected transcript window in every condition.
     own = next((i for i, u in enumerate(utterances) if u["speaker_id"] == speaker_id), 0)
     selected = utterances[max(0, own-2):max(0, own-2)+40]
@@ -102,9 +112,19 @@ def packets(instrument, speaker_id):
     b = dict(**a, session_features=[{k: f[k] for k in ("name", "value", "unit", "confidence", "status", "denominator")} for f in report["features"]],
              context=dict(session={k: session[k] for k in ("id", "context", "topic", "recorded_at", "duration", "split")},
              exchanges=[dict(preceding=transcript[i-1], response=u) for i, u in enumerate(transcript) if i and u["speaker_id"] == speaker_id]))
+    b['supervised_predictions']=[]
+    for prediction in report['supervised_predictions']:
+        model=store.one('SELECT feature_schema,manifest,run_id FROM model_versions WHERE id=%s',(prediction['model_id'],))
+        lineage=store.one('SELECT s.id,s.sha256,s.manifest,t.form_id,f.version,f.source_hash FROM training_runs r JOIN training_snapshots s ON s.id=r.snapshot_id JOIN training_tasks t ON t.id=s.task_id JOIN form_definitions f ON f.id=t.form_id WHERE r.id=%s',(model['run_id'],))
+        entry={k:prediction[k] for k in ('id','model_id','family','target','score','distribution','uncertainty','abstention','evaluation_status','evidence_ids')}
+        rubric=lineage['manifest'].get('rubric') or dict(id=lineage['form_id'],version=lineage['version'],source_hash=lineage['source_hash'])
+        entry['lineage']=dict(feature_schema=model['feature_schema'],rubric_id=rubric['id'],rubric_version=rubric['version'],rubric_source_hash=rubric['source_hash'],snapshot_id=lineage['id'],snapshot_hash=lineage['sha256'],training_versions=model['manifest']['versions'])
+        b['supervised_predictions'].append(entry)
+    b['representation_versions']=dict(feature_extractor='conversation-1',supervised_models=sorted({r['model_id'] for r in report['supervised_predictions']}))
+    b['source_types']=dict(measured_features='observations/estimates',supervised_predictions='trained predictions, never human answers',interpretation='LLM inference')
     b["context"]["session"].pop("versions", None)
     selected_ids = {u["id"] for u in selected}
-    evidence = store.rows("SELECT * FROM evidence WHERE speaker_id=? ORDER BY start", (speaker_id,))
+    evidence = store.rows("SELECT * FROM evidence WHERE speaker_id=%s ORDER BY start_s", (speaker_id,))
     evidence = [e for e in evidence if e["utterance_id"] in selected_ids or e["feature"] == "overlap_entry"]
     # Retrieve across indicator types, instead of exhausting the budget on one repeated kind.
     by_kind = defaultdict(list)
@@ -112,7 +132,7 @@ def packets(instrument, speaker_id):
         by_kind[e["feature"]].append(e)
     evidence = [row for offset in range(3) for rows in by_kind.values() for row in rows[offset:offset+1]][:24]
     for row in evidence:
-        context = json.loads(row["context"])
+        context = decode(row["context"])
         for key in ("preceding", "following"):
             if context.get(key):
                 context[key] = {k: context[key][k] for k in ("id", "speaker_id", "start", "end", "text")}
@@ -139,7 +159,7 @@ def queue_runs(instrument, speaker_id, conditions=("A", "B", "C"), provider=None
         raise
     except Exception as exc:
         raise ValueError("Local LLM readiness could not be verified; no interpretation was generated") from exc
-    session_id = instrument.store.one("SELECT session_id FROM speakers WHERE id=?", (speaker_id,))["session_id"]
+    session_id = instrument.store.one("SELECT session_id FROM speakers WHERE id=%s", (speaker_id,))["session_id"]
     result = []
     with instrument.store.connect() as db:
         for condition in conditions:
@@ -151,6 +171,9 @@ def queue_runs(instrument, speaker_id, conditions=("A", "B", "C"), provider=None
                        configuration=encode(dict(**GENERATION_OPTIONS, think=False,
                                                  validation="Evidence ID integrity; semantic support requires independent review")))
             instrument.store.insert("llm_runs", row, db)
+            from .jobs import enqueue
+            revision=instrument.store.session(session_id)["input_revision"]
+            enqueue(instrument.store,"interpretation",row["id"],revision,db=db)
             result.append({k: v for k, v in row.items() if k != "input"})
     return result
 
@@ -183,36 +206,65 @@ def validate_output(value, packet, condition):
 def process_run(instrument, provider=None):
     store = instrument.store
     provider = provider or Ollama()
-    with store.connect() as db:
-        db.execute("BEGIN IMMEDIATE")
-        row = db.execute("SELECT * FROM llm_runs WHERE status='queued' ORDER BY created_at LIMIT 1").fetchone()
-        if row is None:
-            return None
-        row = dict(row)
-        db.execute("UPDATE llm_runs SET status='running' WHERE id=?", (row["id"],))
+    from .jobs import claim, lease, finish
+    from .store import StaleJob
+    job=claim(store,'interpretation')
+    if not job:
+        return None
+    row=store.one('SELECT * FROM llm_runs WHERE id=%s',(job['subject_id'],))
+    try:
+        with lease(store,job,gpu=True):
+            current=store.session(row['session_id'])
+            if current['input_revision']!=job['input_revision'] or row['status'] not in ('queued','running','failed'):
+                raise StaleJob('Interpretation inputs changed')
+            store.execute("UPDATE llm_runs SET status='running' WHERE id=%s",(row['id'],))
+            result=_interpret_claimed(store,row,provider)
+            finish(store,job,result=result,error=result.get('error'),retry=result.get('retryable',False))
+            return result
+    except StaleJob:
+        return None
+
+
+def _interpret_claimed(store,row,provider):
     output = None
     try:
         if row["model"] != provider.model:
             raise ValueError("Configured model differs from the queued model")
-        packet = json.loads(row["input"])
+        packet = decode(row["input"])
         if isinstance(provider, Ollama):
-            config = json.loads(row["configuration"]) if row.get("configuration") else {}
+            config = decode(row["configuration"]) if row.get("configuration") else {}
             options = {k: config[k] for k in ("temperature", "seed", "num_ctx", "num_predict") if k in config}
             output = provider.generate(packet, row["digest"], system_prompt=row.get("system_prompt"), options=options)
         else:
             output = provider.generate(packet, row["digest"])
         validate_output(output, packet, row["condition"])
-        store.execute("UPDATE llm_runs SET status='complete',output=?,error=NULL WHERE id=? AND status='running'", (encode(output), row["id"]))
+        with store.connect() as db:
+            store.insert("llm_generation_attempts",dict(id=uid(),run_id=row["id"],attempt=store.fence[2] if store.fence else 0,status="complete",output=encode(output),error=None),db)
+            db.execute("UPDATE llm_runs SET status='complete',output=%s,error=NULL WHERE id=%s AND status='running'", (encode(output),row['id']))
+            db.execute('DELETE FROM llm_claims WHERE run_id=%s',(row['id'],))
+            for index,claim_row in enumerate(output['claims']):
+                claim_id=uid()
+                store.insert('llm_claims',dict(id=claim_id,run_id=row['id'],claim_index=index,**{k:claim_row[k] for k in ('speaker_id','observation','inference','confidence','limitation','suggestion')}),db)
+                for ref in claim_row['evidence_ids']:
+                    is_evidence=db.execute('SELECT id FROM evidence WHERE id=%s',(ref,)).fetchone()
+                    store.insert('llm_claim_evidence',dict(claim_id=claim_id,evidence_id=ref if is_evidence else None,utterance_id=None if is_evidence else ref),db)
+    except __import__("backend.instrument.store",fromlist=["StaleJob"]).StaleJob:
+        raise
     except Exception as exc:
-        store.execute("UPDATE llm_runs SET status='failed',output=?,error=? WHERE id=? AND status='running'", (encode(output) if output is not None else None, str(exc)[:1000], row["id"]))
-    return store.one("SELECT id,status,error FROM llm_runs WHERE id=?", (row["id"],))
+        output=getattr(exc,"raw_output",output)
+        with store.connect() as db:
+            store.insert("llm_generation_attempts",dict(id=uid(),run_id=row["id"],attempt=store.fence[2] if store.fence else 0,status="failed",output=encode(output) if output is not None else None,error=str(exc)[:1000]),db)
+            db.execute("UPDATE llm_runs SET status='failed',output=%s,error=%s WHERE id=%s AND status='running'", (encode(output) if output is not None else None, str(exc)[:1000], row["id"]))
+        from .jobs import retryable
+        return dict(store.one('SELECT id,status,error FROM llm_runs WHERE id=%s',(row['id'],)),retryable=retryable(exc))
+    return store.one("SELECT id,status,error FROM llm_runs WHERE id=%s", (row["id"],))
 
 
 def annotate(store, blind_id, body):
-    run = store.one("SELECT * FROM llm_runs WHERE blind_id=? AND status='complete'", (blind_id,))
+    run = store.one("SELECT * FROM llm_runs WHERE blind_id=%s AND status='complete'", (blind_id,))
     reviewer = str(body.get("reviewer_id", "")).strip()
     index = body.get("claim_index")
-    if not reviewer or type(index) is not int or not -1 <= index < len(json.loads(run["output"])["claims"]):
+    if not reviewer or type(index) is not int or not -1 <= index < len(decode(run["output"])["claims"]):
         raise ValueError("Specify an independent reviewer and a valid claim index; -1 rates the complete report")
     scores = {}
     for criterion in CRITERIA:
@@ -221,7 +273,9 @@ def annotate(store, blind_id, body):
             raise ValueError("Each criterion requires an integer 0–4 rating")
         scores[criterion] = score
     with store.connect() as db:
-        db.execute("DELETE FROM reviewer_annotations WHERE run_id=? AND reviewer_id=? AND claim_index=?", (run["id"], reviewer, index))
+        previous=db.execute("SELECT * FROM reviewer_annotations WHERE run_id=%s AND reviewer_id=%s AND claim_index=%s FOR UPDATE",(run["id"],reviewer,index)).fetchone()
+        if previous:store.insert('report_review_revisions',dict(id=uid(),run_id=run['id'],previous_id=previous['id'],previous_annotation=dict(previous)),db)
+        db.execute("DELETE FROM reviewer_annotations WHERE run_id=%s AND reviewer_id=%s AND claim_index=%s", (run["id"], reviewer, index))
         store.insert("reviewer_annotations", dict(id=uid(), run_id=run["id"], reviewer_id=reviewer, claim_index=index,
                      **scores, notes=str(body.get("notes", ""))[:2000]), db)
 

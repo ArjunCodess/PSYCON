@@ -137,15 +137,19 @@ class WhisperAdapter:
             from faster_whisper.utils import download_model
             model_path = download_model(model_path, revision=self.config["transcription_revision"], use_auth_token=os.getenv("HF_TOKEN"))
         model = WhisperModel(model_path, device=self.config["device"],
-                             compute_type="float16" if self.config["device"] == "cuda" else "int8")
-        generated, info = model.transcribe(samples.astype(np.float32)/32768, language="en", beam_size=5,
-                                           vad_filter=True, word_timestamps=True, condition_on_previous_text=False)
-        segments = []
-        for segment in generated:
-            segments.append(dict(start=float(segment.start), end=float(segment.end), text=segment.text,
-                                 confidence=min(1., math.exp(segment.avg_logprob)),
-                                 words=[dict(start=float(w.start), end=float(w.end), text=w.word, confidence=float(w.probability))
-                                        for w in segment.words or []]))
+                             compute_type=self.config.get("transcription_compute_type", "int8_float16" if self.config["device"] == "cuda" else "int8"))
+        try:
+            generated, info = model.transcribe(samples.astype(np.float32)/32768, language="en", beam_size=5,
+                                               vad_filter=True, word_timestamps=True, condition_on_previous_text=False)
+            segments = []
+            for segment in generated:
+                segments.append(dict(start=float(segment.start), end=float(segment.end), text=segment.text,
+                                     confidence=min(1., math.exp(segment.avg_logprob)),
+                                     words=[dict(start=float(w.start), end=float(w.end), text=w.word, confidence=float(w.probability))
+                                            for w in segment.words or []]))
+        finally:
+            model.model.unload_model()
+
         return dict(segments=segments, language=info.language, language_confidence=info.language_probability,
                     engine=self.engine_name)
 
@@ -211,6 +215,7 @@ def model_versions(config):
                 "transcription_model": "faster-whisper/"+config["transcription_model"]}
     versions["transcription_revision"] = config.get("transcription_revision")
     versions["device"] = config["device"]
+    versions["transcription_compute_type"] = config.get("transcription_compute_type", "int8_float16" if config["device"] == "cuda" else "int8")
     for package in ("pyannote.audio", "faster-whisper", "av", "numpy", "torch"):
         try:
             versions[package] = version(package)
