@@ -5,6 +5,7 @@
   <title>PSYCON · Behavioral research</title>
   <link rel="preload" href="{{ url_for('static', filename='fonts/Geist-Variable.woff2') }}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{ url_for('static', filename='instrument.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='instrument_design.css') }}">
   <script defer src="{{ url_for('static', filename='instrument_reports.js') }}"></script>
   <script defer src="{{ url_for('static', filename='instrument_workflow.js') }}"></script>
   <script defer src="{{ url_for('static', filename='instrument.js') }}"></script>
@@ -22,18 +23,19 @@
 
     <a href="#evidence" data-page="evidence"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M15 15l6 6"/></svg> Evidence</a>
     <a href="#research" data-page="research"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 3h14M9 3v6l-5 10a2 2 0 002 2h12a2 2 0 002-2L15 9V3M7 15h10"/></svg> Research</a>
-    <a href="#training" data-page="training">Training & models</a>
+    <a href="#training" data-page="training"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19h16M6 15V9m6 6V4m6 11v-6"/><circle cx="6" cy="7" r="2"/><circle cx="12" cy="17" r="2"/><circle cx="18" cy="7" r="2"/></svg> Training &amp; models</a>
     <details class="secondary-navigation"><summary>Optional comparisons</summary><a href="#archetypes" data-page="archetypes"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 7h17l-4-4M21 17H4l4 4"/></svg> Reference comparisons</a></details>
   </nav>
   <div class="sidebar-note"><span class="dot"></span> Local audio-only prototype<p>Observable evidence first.<br>Interpretations remain reviewable.</p></div>
 </aside>
 <div class="workspace">
   <header class="toolbar">
+    <nav class="workspace-location" aria-label="Workspace location"><a href="#dashboard">Workspace</a><span aria-hidden="true">/</span><span id="breadcrumb">Dashboard</span></nav>
     <div class="toolbar-person"><label for="person-select">Person</label><select id="person-select"><option value="">Select a person</option></select><button id="add-person" class="quiet">+ Add</button></div>
     <details class="reference-options"><summary>Optional reference settings</summary><div class="target-selector"><label for="target-select">Exploratory comparison</label><select id="target-select"><option>Executive</option><option>Builder</option><option>Salesperson</option><option>Negotiator</option></select></div><p>Comparison goals supply no personality or training label.</p></details>
   </header>
   <main id="content" tabindex="-1">
-    <div class="page-heading"><div><p id="breadcrumb">Workspace / Dashboard</p><h1 id="page-title">Behavior in conversations</h1><p id="page-description">Inspect talking patterns, context, and reviewed human observations.</p></div><button id="upload-open" class="primary">+ Upload conversations</button></div>
+    <div class="page-heading"><div><h1 id="page-title">Behavior in conversations</h1><p id="page-description">Inspect talking patterns, context, and reviewed human observations.</p></div><button id="upload-open" class="primary">+ Upload conversations</button></div>
     <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
     <div id="view" aria-live="polite"><p class="loading">Loading the research workspace…</p></div>
   </main>

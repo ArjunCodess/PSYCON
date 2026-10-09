@@ -23,6 +23,7 @@ function routeState() {
   return {page, sessionId, pane: Object.hasOwn(paneNames, pane) ? pane : "overview"};
 }
 function applySessionPane() {
+  $("#view").dataset.section = sessionPane;
   document.querySelectorAll("[data-session-pane]").forEach(element => element.classList.toggle("active", element.dataset.sessionPane === sessionPane));
   const speakerFocus = $(".speaker-focus");
   if (speakerFocus) speakerFocus.hidden = !["measurements", "analysis"].includes(sessionPane);
@@ -167,7 +168,7 @@ async function archetypes() {
 }
 async function evidenceView() {
   const data = await api("/evidence");
-  return `<div class="controls"><input id="evidence-search" aria-label="Search evidence" placeholder="Search an excerpt or feature…"><button id="search-evidence">Search</button><small>Up to 500 matching records</small></div><section class="panel"><div id="evidence-results">${evidenceTable(data.evidence)}</div></section>`;
+  return `<div class="controls evidence-search-controls"><input id="evidence-search" aria-label="Search evidence" placeholder="Search an excerpt or feature…"><button id="search-evidence">Search</button><small>Up to 500 matching records</small></div><section class="panel"><div id="evidence-results">${evidenceTable(data.evidence)}</div></section>`;
 }
 function evidenceTable(rows) { return rows.length ? `<div class="table-wrap"><table><thead><tr><th>Speaker / session</th><th>Time</th><th>Feature</th><th>Excerpt</th><th></th></tr></thead><tbody>${rows.map(e => `<tr><td>${esc(e.display_name)}<small>${esc(e.filename)}</small></td><td class="mono">${time(e.start)}</td><td>${esc(nice(e.feature))}<small>${esc(e.level)}</small></td><td>${esc(e.text)}</td><td><button data-evidence="${esc(JSON.stringify([e.id]))}">Inspect →</button></td></tr>`).join("")}</tbody></table></div>` : empty("No matching evidence", "Evidence records appear after feature extraction succeeds. Search observable marker names or words from the transcript."); }
 function runsTable(rows) { return `<div class="table-wrap"><table><thead><tr><th>Condition</th><th>Model</th><th>Status</th><th>Result</th></tr></thead><tbody>${rows.map(r => `<tr><td>${esc(r.condition)}</td><td>${esc(r.model)}</td><td>${badge(r.status)}${r.error ? `<small>${esc(r.error)}</small>` : ""}</td><td><button data-run-view="${esc(r.id)}">Inspect run</button>${r.blind_id && r.status === "complete" ? ` <a href="/review/${esc(r.blind_id)}" target="_blank" rel="noopener">Blinded review ↗</a>` : ""}</td></tr>`).join("")}</tbody></table></div>`; }
@@ -189,13 +190,21 @@ async function render() {
   page = titles[route.page] ? route.page : "dashboard";
   selectedSession = page === "sessions" ? route.sessionId || null : null;
   sessionPane = route.pane;
-  $("#page-title").textContent = titles[page][0]; $("#page-description").textContent = titles[page][1]; $("#breadcrumb").textContent = `Workspace / ${nice(page)}`;
+  $("#page-title").textContent = titles[page][0]; $("#page-description").textContent = titles[page][1]; $("#breadcrumb").textContent = document.querySelector(`[data-page="${page}"]`)?.textContent.trim() || titles[page][0];
+  $("#view").dataset.page = page;
   document.querySelectorAll("[data-page]").forEach(a => { if (a.dataset.page === page) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
   $("#view").innerHTML = '<div class="skeleton" role="status" aria-label="Loading records"><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div>';
   try {
     const html = await ({dashboard, sessions, profile: () => profileView(), traits: () => profileView(true), archetypes, evidence: evidenceView, research, training: () => PSYCONWorkflow.training()}[page])();
     if (version === renderVersion) {
       $("#view").innerHTML = html;
+      if (["training","research","archetypes","profile"].includes(page)) {
+        const headings=[...$("#view").querySelectorAll(":scope > .panel > h2, :scope > .panel > .section-head h2")];
+        if (headings.length > 3) {
+          headings.forEach((heading,index) => {heading.id=`workspace-${page}-${index}`;heading.tabIndex=-1;});
+          $("#view").insertAdjacentHTML("afterbegin",`<nav class="workspace-outline" aria-label="Page sections">${headings.map(h => `<button type="button" data-scroll-section="${esc(h.id)}" aria-controls="${esc(h.id)}">${esc(h.textContent)}</button>`).join("")}</nav>`);
+        }
+      }
       document.querySelectorAll(".table-wrap, .timeline-shell").forEach(region => {
         region.tabIndex = 0;
         region.setAttribute("role", "region");
@@ -244,6 +253,11 @@ document.addEventListener("click", async event => {
   const button = event.target.closest("button,a[data-page],rect[data-seek]");
   if (!button) return;
   try {
+    if (button.dataset.scrollSection) {
+      const heading=document.getElementById(button.dataset.scrollSection);
+      heading?.scrollIntoView({block:"start",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+      heading?.focus({preventScroll:true});
+    }
     if (button.hasAttribute("data-dismiss-notice")) $("#notice").hidden = true;
     if (button.hasAttribute("data-clear-session-filters")) { sessionSearch = sessionStatus = sessionDataset = ""; await render(); }
     if (button.dataset.close) $("#" + button.dataset.close).close();
