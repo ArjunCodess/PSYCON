@@ -461,3 +461,16 @@ def test_behavior_report_never_reuses_superseded_mapping_or_withdrawn_answers(se
     answers.map_participant(service.store,sid,p['id'],dict(speaker_id=speaker['id'],status='confirmed',reviewer_id='mapper',reason='Synthetic re-review'))
     service.store.execute('UPDATE session_participants SET withdrawn_at=now() WHERE id=%s',(p['id'],))
     assert service.report(speaker['id'])['human_observations']==[]
+
+
+def test_training_choices_and_saved_review_state(service):
+    sid=add(service);participant,speaker=setup_participant(service,sid)
+    client=create_app(instrument=service,testing=True).test_client()
+    saved=client.get(f'/api/instrument/sessions/{sid}/participants').json
+    assert saved['mappings'][-1]['speaker_id']==speaker['id']
+    assert saved['consents'][-1]['training_allowed'] is True
+    choices=client.get('/api/instrument/training').json['prediction_speakers']
+    assert any(p['id']==speaker['id'] and p['session_id']==sid for p in choices)
+    service.store.execute("INSERT INTO users VALUES ('other','Synthetic other owner')")
+    service.store.execute("UPDATE sessions SET owner_id='other' WHERE id=%s",(sid,))
+    assert not client.get('/api/instrument/training').json['prediction_speakers']

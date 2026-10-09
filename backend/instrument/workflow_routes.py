@@ -87,7 +87,7 @@ def create_person():
 def participants(sid):
     store=instrument().store; store.session(sid)
     rows=store.rows("SELECT * FROM session_participants WHERE session_id=%s AND owner_id='local' ORDER BY created_at",(sid,))
-    return jsonify(participants=rows,mappings=store.rows('SELECT * FROM speaker_mappings WHERE session_id=%s ORDER BY revision',(sid,)),people=store.rows("SELECT * FROM people WHERE owner_id='local'"))
+    return jsonify(consents=store.rows("SELECT c.* FROM consent_records c JOIN session_participants p ON p.id=c.participant_id WHERE p.session_id=%s AND p.owner_id='local' ORDER BY c.created_at,c.id",(sid,)),participants=rows,mappings=store.rows('SELECT * FROM speaker_mappings WHERE session_id=%s ORDER BY revision',(sid,)),people=store.rows("SELECT * FROM people WHERE owner_id='local'"))
 
 
 @api.post('/sessions/<sid>/participants')
@@ -204,7 +204,10 @@ def queue_training():
 @api.get('/training')
 def training_state():
     store=instrument().store
-    return jsonify(tasks=store.rows('SELECT * FROM training_tasks'),snapshots=store.rows("SELECT * FROM training_snapshots WHERE owner_id='local' ORDER BY created_at DESC"),invalidations=store.rows("SELECT i.* FROM snapshot_invalidations i JOIN training_snapshots s ON s.id=i.snapshot_id WHERE s.owner_id='local'"),runs=store.rows("SELECT * FROM training_runs WHERE owner_id='local' ORDER BY created_at DESC"),events=store.rows("SELECT e.* FROM training_run_events e JOIN training_runs r ON r.id=e.run_id WHERE r.owner_id='local' ORDER BY e.created_at"),models=store.rows("SELECT m.* FROM model_versions m JOIN training_runs r ON r.id=m.run_id WHERE r.owner_id='local' ORDER BY m.created_at DESC"),evaluations=store.rows("SELECT e.* FROM model_evaluations e JOIN model_versions m ON m.id=e.model_id JOIN training_runs r ON r.id=m.run_id WHERE r.owner_id='local'"),deployments=store.rows("SELECT d.* FROM model_deployments d JOIN model_versions m ON m.id=d.model_id JOIN training_runs r ON r.id=m.run_id WHERE r.owner_id='local' ORDER BY d.created_at DESC"))
+    snapshots=store.rows("SELECT * FROM training_snapshots WHERE owner_id='local' ORDER BY created_at DESC")
+    for snapshot in snapshots:
+        snapshot['readiness']=training.snapshot_summary(snapshot)
+    return jsonify(prediction_speakers=store.rows("SELECT p.id,p.display_name,p.session_id,s.filename,s.recorded_at FROM speakers p JOIN sessions s ON s.id=p.session_id WHERE s.owner_id='local' AND s.status='complete' ORDER BY s.recorded_at DESC,p.label"),tasks=store.rows('SELECT * FROM training_tasks'),snapshots=snapshots,invalidations=store.rows("SELECT i.* FROM snapshot_invalidations i JOIN training_snapshots s ON s.id=i.snapshot_id WHERE s.owner_id='local'"),runs=store.rows("SELECT * FROM training_runs WHERE owner_id='local' ORDER BY created_at DESC"),events=store.rows("SELECT e.* FROM training_run_events e JOIN training_runs r ON r.id=e.run_id WHERE r.owner_id='local' ORDER BY e.created_at"),models=store.rows("SELECT m.* FROM model_versions m JOIN training_runs r ON r.id=m.run_id WHERE r.owner_id='local' ORDER BY m.created_at DESC"),evaluations=store.rows("SELECT e.* FROM model_evaluations e JOIN model_versions m ON m.id=e.model_id JOIN training_runs r ON r.id=m.run_id WHERE r.owner_id='local'"),deployments=store.rows("SELECT d.* FROM model_deployments d JOIN model_versions m ON m.id=d.model_id JOIN training_runs r ON r.id=m.run_id WHERE r.owner_id='local' ORDER BY d.created_at DESC"))
 
 
 @api.post('/jobs/<jid>/cancel')
