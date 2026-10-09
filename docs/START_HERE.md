@@ -24,7 +24,7 @@ Original media and model files remain local. PostgreSQL stores records, paths, h
 6. **Inspect before activation.** Compare each model's held-out results with its baseline and inspect limitations. A completed fit is not automatically evaluated or active. Activation and rollback record the operator and reason.
 7. **Review new predictions.** Predictions stay separate from human ratings and LLM interpretation. Use the speaker's measured patterns, context, evidence, and eligible earlier history to understand them. Archetype lenses are optional comparison tools.
 
-The current real records do not yet supply eligible, consented, independently reviewed human training labels. Synthetic test models are implementation checks, not participant results. [Stage 2 and Stage 3](PSYCON_VISION.md#staged-delivery) still cover behavioral interface emphasis and the complete import-to-training journey.
+The current real records do not yet supply eligible, consented, independently reviewed human training labels. Synthetic test models are implementation checks, not participant results. [Stage 3](PSYCON_VISION.md#staged-delivery) still covers the complete import-to-training journey review; Stage 2 behavioral interface emphasis is implemented.
 
 ## Correct, export, and delete
 

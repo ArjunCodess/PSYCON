@@ -42,9 +42,9 @@ Reports show observations, human ratings, predictions, and LLM interpretations a
 ## Staged delivery
 
 - [x] Stage 1: update current documentation to center behavioral evidence and psychologist-reviewed marksheet targets, and identify legacy instructions clearly.
-- [ ] Stage 2: review the application and reports so participant data, talking patterns, and marksheet relationships receive priority over archetype controls.
+- [x] Stage 2: review the application and reports so participant data, talking patterns, and marksheet relationships receive priority over archetype controls.
 - [ ] Stage 3: verify and complete the guided marksheet import, database save, readiness, snapshot, training-button, evaluation, and activation journey on Docker or the local worker.
 
-The current application already has participant CSV/XLSX import, review, readiness, frozen snapshots, durable fitting, and model lifecycle controls. Their existence does not mean the later-stage alignment or real human-data validation is complete. The current real dataset lacks eligible consented, independently reviewed labels. The coordinated original-media backup also still needs a destination with enough free space.
+The current application already has participant CSV/XLSX import, review, readiness, frozen snapshots, durable fitting, and model lifecycle controls. Stage 2 now puts speaker measurements and contextual human ratings first, with optional reference comparisons in disclosures. Stage 3 still requires the complete guided import-to-training journey review. Real human-data validation is not complete. The current real dataset lacks eligible consented, independently reviewed labels. The coordinated original-media backup also still needs a destination with enough free space.
 
-No Stage 1 document change alters stored answers, model targets, existing evidence identities, UI controls, or the original controlled experiment. Later stages must record protocol and implementation changes explicitly.
+The Stage 2 interface reads current reviewed human observations alongside measurements and predictions without adding those human answers to held-out A/B/C inputs. Existing model targets and evidence identities remain unchanged. Later protocol and implementation changes must be recorded explicitly.

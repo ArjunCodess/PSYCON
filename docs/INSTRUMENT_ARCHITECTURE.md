@@ -2,7 +2,7 @@
 
 PSYCON is a behavioral observation and communication research instrument. It connects a person's speaker-specific talking patterns and discussion context with psychologist-reviewed observations from the A-T marksheet. It preserves timestamped evidence and personal history, and trains supervised models to predict eligible contextual ratings from conversational data.
 
-Participant evidence and reviewed marksheet observations define the behavioral focus. Existing archetype controls remain optional exploratory comparisons pending the Stage 2 interface review. See [the staged behavioral direction](PSYCON_VISION.md).
+Participant evidence and reviewed marksheet observations define the behavioral focus. Existing archetype controls now appear as optional exploratory disclosures. Speaker reports additionally read current human observations through the latest confirmed participant mapping, excluding withdrawn people and participants. Those report-only annotation records do not change the controlled A/B/C packets. See [the staged behavioral direction](PSYCON_VISION.md).
 
 ## Runtime and persistence
 
