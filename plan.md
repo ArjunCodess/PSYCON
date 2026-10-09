@@ -1,6 +1,16 @@
 # PSYCON: PostgreSQL, participant annotations, and supervised training
 
-Planning audit: 2026-10-08. The checklist and execution record below describe the current build; the repository audit later in this file records the pre-implementation state. Small focused lowercase commits are now authorized; pushes remain deferred.
+Planning audit: 2026-10-08. The checklist and execution record below describe the current build; the repository audit later in this file records the pre-implementation state. Small focused lowercase commits and pushes of the current branch are now authorized.
+
+## Behavioral direction update, 2026-10-09
+
+The user requested a staged behavioral emphasis. Participant data, talking patterns, discussion context, and psychologist-reviewed A-T observations take priority. Optional archetype comparisons remain secondary and never supply labels or assign personality. A psychologist-reviewed profile means contextual ratings and evidence; predictive agreement needs independent evaluation and does not establish psychological validity.
+
+- [x] Stage 1: read the v4.0 marksheet and interpretation PDFs and their source files; update README, product direction, startup instructions, architecture, dataset framing, research entry point, and coverage; mark older workflows historical.
+- [ ] Stage 2: review and implement the person/evidence/marksheet emphasis in the current interface and reports, with archetype controls secondary.
+- [ ] Stage 3: verify and complete the guided spreadsheet-to-PostgreSQL-to-training-button journey on Docker or the local worker. Existing import, snapshot, training, evaluation, and model controls require a complete journey review rather than another storage path.
+
+Stage 1 changes documentation only. Existing answer definitions, citations, model targets, stored data, and controlled A/B/C conditions are preserved. The complete original-media backup and real eligible human training labels remain outstanding. Do not mark the later stages complete based on documentation or synthetic fixtures.
 
 ## Neon and Docker execution update
 
@@ -8,13 +18,13 @@ The configured Neon PostgreSQL 18 deployment was inspected before migration. Its
 
 Neon pooled connections now use transaction-local settings; heartbeat and resource cleanup use the same schema-aware connection path. Docker web and CUDA worker run against Neon. All 11 original group videos are registered with unchanged names and content hashes, mounted read only, and queued for separate idempotent analyses. Generated normalized playback is also registered with paths, hashes and session relationships; deletion marks generated audio unavailable without removing shared originals. GPU contention commits its requeue without consuming attempts. CUDA model memory is released between stages, and the selected Whisper precision is recorded explicitly. Previous citation identities remain intact. Native Windows paths resolve through an explicit Docker mount mapping; native launchers do not replace the configured database URL.
 
-The original-media backup still requires a destination with sufficient free space. New Docker processing is durable and running; queue registration is not a claim that every new analysis has completed. Missing human labels, consent or evaluation data remain visible exclusions. Commits are now authorized, with short lowercase messages; private data and runtime assets remain excluded, and no push is authorized.
+The original-media backup still requires a destination with sufficient free space. New Docker processing is durable and running; queue registration is not a claim that every new analysis has completed. Missing human labels, consent or evaluation data remain visible exclusions. Commits and pushes are now authorized, with short lowercase messages; private data and runtime assets remain excluded.
 
 Current verification: 50 focused PostgreSQL instrument tests pass. The complete suite passed 380 tests and skipped five optional checks; the backup/restore case refused C: after available space fell below its required reserve, and passed its explicit recheck on E:. Together these runs verified all 381 runnable tests; five optional integrations remain skipped. Frontend syntax/report checks, Python compilation and whitespace validation pass. Desktop native preview shows the 11 originals and their latest derived processing states; mobile resize still times out, with the earlier synthetic 390 x 844 journey recorded below. Real-media backup remains the open W05/W18 gate.
 
 ## Implementation checklist
 
-Status is recorded only after implementation and validation, not after schema creation. The implementation was delivered in 12 focused lowercase commits on feat/audio-research-instrument. The current request authorizes further relevant commits; pushes remain deferred.
+Status is recorded only after implementation and validation, not after schema creation. The implementation was delivered in 12 focused lowercase commits on feat/audio-research-instrument. The current request authorizes further relevant commits and pushes on this branch.
 
 - [x] W01 PostgreSQL environment, permissions, ordered migrations, readiness
 - [x] W02 Complete native PostgreSQL storage port and preserved reports
@@ -45,7 +55,7 @@ Open delivery gates:
 
 - W05: the actual database and read-only source are restore-verified, but the complete 15.13 GB original-media backup needs a separate destination with at least 20 GB free. The user-authorized old public-schema reset was completed only after its database restore verification; originals were preserved.
 - W17 validation passed in the project-native browser: desktop original-only dashboard, readiness, model inspection/exploratory activation, individual CSV preview and durable save for an unmapped participant, immutable correction, dialog focus restoration, and reviewed reanalysis completing all eight stages. Production audio loaded and seeking returned to ready state 4. Because native resize commands time out, an ignored synthetic-only same-origin test frame provided an actual 390 x 844 CSS-pixel viewport. It showed no page overflow, a fitting answer dialog, horizontally scrollable tables and Escape/focus restoration. This verifies narrow responsive browser behavior, not a physical phone or its touch/codec behavior.
-- W18: final delivery remains open for the complete original-media backup. The canonical Docker web and CUDA worker run on localhost:8008 against Neon, and all 11 originals have idempotent processing requests. Small lowercase implementation commits are authorized after validation; no push is authorized.
+- W18: final delivery remains open for the complete original-media backup. The canonical Docker web and CUDA worker run on localhost:8008 against Neon, and all 11 originals have idempotent processing requests. Small lowercase implementation commits and pushes on this branch are authorized after validation.
 
 Implemented W16 backup/restore procedures were exercised with PostgreSQL and synthetic registered local assets; this does not substitute for the real-media backup gate in W05. Real supervised training remains honestly unavailable until actual participant consent, mappings and independently reviewed annotations are supplied.
 
@@ -333,7 +343,7 @@ All current instrument sessions say `not documented` for consent. They must not 
 | 5. Actual supervised training | W12–W13, Training/Models UI | Both target families, real jobs, local registered artifacts, held-out results or explicit insufficiency, deliberate activation. |
 | 6. Grounded prediction and research | W14, remaining W15–W17 | New conversations use eligible models with evidence lineage; original A/B/C methodology remains controlled. |
 
-The current user instruction authorizes implementation, explicit migration, synthetic validation and small lowercase commits; pushes remain deferred. Stay on feat/audio-research-instrument. No source recordings, private answers, credentials, runtime caches or backup dumps are versioned. Small lowercase implementation commits are authorized after validation.
+The current user instruction authorizes implementation, explicit migration, synthetic validation and small lowercase commits and pushes on this branch. Stay on feat/audio-research-instrument. No source recordings, private answers, credentials, runtime caches or backup dumps are versioned. Small lowercase implementation commits are authorized after validation.
 
 ## Completion criteria
 

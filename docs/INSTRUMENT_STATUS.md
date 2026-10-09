@@ -1,6 +1,6 @@
 # Current specification coverage
 
-This records implementation scope, not scientific success. The user's audio-first specification supersedes the previous wearable/coaching product direction.
+This records implementation scope, not scientific success. The current [behavioral direction](PSYCON_VISION.md) centers participant talking patterns, contextual evidence, and psychologist-reviewed A-T ratings. It supersedes the previous wearable/coaching product direction. Stage 1 documentation is complete; Stage 2 interface emphasis and Stage 3 import-to-training journey review remain pending. Existing archetype controls and comparisons are retained exploratory tools, not personality assessments.
 
 | Area | Implemented behavior | Remaining validation or limitation |
 | --- | --- | --- |
