@@ -426,3 +426,38 @@ def test_session_report_reads_do_not_scale_with_anonymous_speaker_count(service,
     assert len([q for q in calls if 'FROM trait_evidence' in q])==1
     assert service.store.one('SELECT count(*) n FROM comparisons WHERE session_id=%s',(sid,))['n']==sum(len(r['archetypes']) for r in detail['reports'])
     assert {e for report in detail['reports'] for trait in report['traits'] for e in trait['evidence_ids']} <= {e['id'] for e in detail['evidence']}
+
+
+def test_behavior_report_preserves_states_reviewers_and_research_inputs(service):
+    from backend.instrument.research import packets
+    from backend.instrument.store import uid
+    sid=add(service);p,speaker=setup_participant(service,sid)
+    before=packets(service,speaker['id'])
+    options=dict(participant_id=p['id'],reviewer_id='psychologist')
+    preview=answers.preview(service.store,sid,b'item,score,fair_opportunity,confidence\nA,0,yes,3\nB,N/O,no,1\nC,,,\n','synthetic-sheet.csv',options)
+    saved=answers.commit(service.store,sid,preview['import_id'])
+    service.store.insert('annotation_reviews',dict(id=uid(),submission_id=saved['submissions'][0],reviewer_id='second-reviewer',decision='approved',notes='Synthetic fixture'))
+    report=service.report(speaker['id'])
+    observed={r['item_key']:r for r in report['human_observations']}
+    assert observed['A']['score']==0 and observed['B']['state']=='not_observed' and observed['C']['state']=='missing'
+    assert all(r['reviewer_id']=='psychologist' and r['independent_reviewer_id']=='second-reviewer' and r['review_status']=='approved' for r in observed.values())
+    assert all(r['description'] for r in observed.values())
+    assert packets(service,speaker['id'])==before  # Human report data never enter held-out A/B/C inputs.
+    correction=answers.preview(service.store,sid,b'item,score\nA,2\n','synthetic-correction.csv',options)
+    answers.commit(service.store,sid,correction['import_id'],'Synthetic reviewed correction')
+    report=service.report(speaker['id'])
+    assert len(report['human_observations'])==3
+    assert next(r for r in report['human_observations'] if r['item_key']=='A')['score']==2
+    assert all(r['label_revision']==2 and r['review_status']=='needs_review' for r in report['human_observations'])
+
+
+def test_behavior_report_never_reuses_superseded_mapping_or_withdrawn_answers(service):
+    sid=add(service);p,speaker=setup_participant(service,sid)
+    upload(service.store,sid,p['id'])
+    assert service.report(speaker['id'])['human_observations']
+    answers.map_participant(service.store,sid,p['id'],dict(speaker_id=speaker['id'],status='uncertain',reviewer_id='mapper',reason='Synthetic uncertainty'))
+    assert service.report(speaker['id'])['human_observations']==[]
+    assert service.store.rows('SELECT * FROM annotation_answers')
+    answers.map_participant(service.store,sid,p['id'],dict(speaker_id=speaker['id'],status='confirmed',reviewer_id='mapper',reason='Synthetic re-review'))
+    service.store.execute('UPDATE session_participants SET withdrawn_at=now() WHERE id=%s',(p['id'],))
+    assert service.report(speaker['id'])['human_observations']==[]

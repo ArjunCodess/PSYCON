@@ -354,6 +354,8 @@ class Instrument:
             evidence_ids={}
             for link in links:evidence_ids.setdefault(link['prediction_id'],[]).append(link['evidence_id'])
             for prediction in context['predictions']:prediction['evidence_ids']=evidence_ids.get(prediction['id'],[])
+        from .behavior import observations
+        context['human_observations']=observations(self.store,sid)
         context['runs']=self.store.rows('SELECT id,speaker_id,condition,status,model,error FROM llm_runs WHERE session_id=%s ORDER BY created_at DESC',(sid,))
         return context
 
@@ -416,6 +418,7 @@ class Instrument:
                                  confidence="low", evidence_ids=refs, reference_id=comparison["archetype"]["id"]))
         predictions=[r for r in context['predictions'] if r['speaker_id']==speaker_id]
         result=dict(speaker=speaker, session_id=session["id"], features=features, traits=traits, supervised_predictions=predictions,
+                    human_observations=[r for r in context['human_observations'] if r['speaker_id']==speaker_id],
                     baseline=personal, global_baseline=baseline(self.store, session, speaker, False), deviations=changes,
                     archetypes=comparisons, coaching=coaching, archetype_coaching=archetype_coaching,
                     archetype_status="available" if comparisons else "missing_reference_data",
