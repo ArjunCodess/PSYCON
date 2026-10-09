@@ -86,6 +86,8 @@ LLM inputs use a documented bounded transcript window and retrieved evidence. A 
 
 ## Verify
 
+The research workspace keeps its restrained green design across session inspection, participant answers, evidence, reports, research, and training. Long views include keyboard-accessible section navigation; wide tables scroll within their panels. Interface conventions and browser verification limits are recorded in [DESIGN.md](DESIGN.md).
+
 ```powershell
 $env:PSYCON_TEST_DATABASE_URL = "postgresql://psycon:psycon@127.0.0.1:5432/psycon"
 .runtime/venv/Scripts/python.exe -m pytest tests -o addopts= -q

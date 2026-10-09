@@ -22,6 +22,16 @@ Do not show a global communication score. Separate measured, estimated, reviewed
 
 Legacy pages continue to use their earlier shared styles; their hardware/coaching navigation does not define this workspace.
 
+## Research-workbench refinement
+
+The shared `instrument_design.css` layer preserves the green palette and locally hosted Geist. Body text is 15px, section headings are 20px, and page headings are 32px. Reports have a 70-character reading measure, measurements use compact tabular values, and forms retain visible labels and native controls. The toolbar carries a linked workspace location instead of repeating it above the page heading.
+
+Long research, training, history, and reference views offer section buttons that scroll and focus their headings without changing the page route. Participant review and training show the actual workflow as numbered steps. Withdrawal controls remain in a separate disclosure. Tables scroll inside their panels; touch controls remain at least 44px tall.
+
+The October 9 refinement was checked in the collaborative browser across all eight workspace pages, five session sections, the answer editor, populated training records, and a saved blinded review. Isolated same-origin rendering frames at 390, 768, and 1280px showed no page overflow after styles loaded. Native viewport resizing remains unavailable, so these checks do not establish physical-phone behavior. Section navigation preserves its route and focuses the requested heading; session sections preserve the same audio element and its playback position. Synthetic training records were inspected only in the isolated validation database, with no writes to participant answers or model activation.
+
+Both frontend rendering suites, JavaScript syntax checks, and three focused PostgreSQL tests passed. The Impeccable scan could not resolve Jinja stylesheet links and reported default-size typography warnings; browser-computed sizes confirmed the intended hierarchy. No backend or stored scientific results changed in this refinement.
+
 ## Verification
 
 The seven primary views were exercised in the collaborative browser at 390px, 768px, and 1280px using isolated same-origin rendering frames. No page overflow or visible application errors occurred in those 21 checks. Session inspection, the evidence dialog, and blinded review were checked at 390px, including long claim selectors and source links. Visible research text passed a computed contrast check. Screenshot capture and native viewport resize were unavailable in this preview session, so these checks do not constitute a complete visual or assistive-technology audit.
