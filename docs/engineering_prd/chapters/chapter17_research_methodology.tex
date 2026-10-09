@@ -8,7 +8,19 @@
 \subsection{Research Objective}
 \label{sec:research-objective}
 
-The objective of PSYCON is to investigate whether multimodal physiological and speech-derived features can be combined to estimate indicators relevant to psychological well-being in a research setting. The system is intended as a research and screening prototype, not a diagnostic medical device.
+The current PSYCON instrument studies observable communication from speaker-specific audio and transcript evidence. It predicts eligible contextual A--T observer ratings and independently annotated communication traits, without physiological inputs, face recognition, identity embeddings, or diagnostic claims. The PostgreSQL dataset protocol and root implementation plan govern this audio-first implementation.
+
+\subsection{Audio-first evaluation amendment, October 2026}
+
+Reviewed anonymous participant-to-speaker mappings, documented training consent, source ancestry and independently reviewed human annotations are required before training. Missing answers, N/O and zero remain distinct. Event-linked ratings preserve event and response windows; the guide's earlier same-session baseline is separate from historical personalization. Frozen manifests retain rubric and source hashes, answer and mapping revisions, measured feature versions and recorded split assignments. Confirmed people and shared recording sources remain in one split; longitudinal evaluation moves strictly forward in time.
+
+Each supported target compares a training-median baseline with regularized multinomial logistic regression as an explicit ordinal approximation. Training-only preprocessing and validation-only model selection precede untouched final evaluation. Per-target MAE, class metrics, actual counts, uncalibrated probability error and group uncertainty are reported when available. Insufficient data remain unavailable. A fitted or exploratory model does not establish psychological validity.
+
+The transcript-only, structured-context and full-PSYCON conditions use the same transcript window, local model digest, prompt and generation settings. Structured and full conditions receive identical frozen supervised predictions and lineage; only the full condition adds personal history and reference comparisons. Evaluate the supervised predictor separately so model changes do not confound this personalization experiment. No human scientific results are supplied by synthetic implementation tests.
+
+\subsection{Historical device comparison protocol}
+
+The remaining hardware-oriented sections describe the earlier device experiment. They do not add physiological or face dependencies to the current audio-first application.
 
 \subsection{Research Questions}
 \label{sec:research-questions}

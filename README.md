@@ -1,134 +1,193 @@
 # PSYCON
 
-PSYCON is a personal communication coach designed to grow into a wearable AI system. It connects a person's conversations over time, measures how they speak in comparable situations, and helps them practice specific adjustments with evidence they can inspect.
+PSYCON is a behavioral observation and communication research instrument. It connects a person's speaker-specific talking patterns and discussion context with psychologist-reviewed observations from the A-T marksheet. It preserves timestamped evidence and personal history, and trains supervised models to predict eligible contextual ratings from conversational data.
 
-The first product is a local, English-language private pilot using uploaded recordings. Its software reuses the speech models, research console, backend, and device protocol already in this repository. Continuous wearable capture feeds the same conversation model once physical transport and attribution have been validated.
+The current ISEF prototype uses audio and transcripts. Its focus is what a person said and did in a particular exchange, how that relates to reviewed human observations, and how patterns differ across comparable conversations. The [v4.0 psychologist marksheet](docs/PSYCON_Psychologist_Observation_Mark_Sheet.pdf) and [answer interpretation guide](docs/PSYCON_Tendency_Flag_Guide.pdf) define the observation targets. Their [marksheet source](docs/PSYCON_Psychologist_Observation_Mark_Sheet.tex) and [guide source](docs/PSYCON_Tendency_Flag_Guide.tex) retain the exact definitions.
 
-Start with [the access and running guide](docs/START_HERE.md). It covers startup, accounts, the coaching flow, sharing, and common problems. The [user-system design](docs/USER_SYSTEM.md) describes the simpler experience to build next.
+A psychologist-reviewed profile here means a set of contextual ratings, evidence, confidence, and review records. It does not establish a personality type or diagnosis. Model agreement with those ratings needs held-out evaluation. See [the behavioral direction](docs/PSYCON_VISION.md) for the staged work and [current coverage](docs/INSTRUMENT_STATUS.md) for implementation limits.
 
-## Vision and theory
+## Research question
 
-Communication changes with the setting, the relationship, the objective, and the person speaking. A long explanation in a presentation has a different purpose from the same explanation during a sales discovery call. PSYCON therefore compares a person with their own history under comparable conditions rather than assigning a universal communication score.
+**To what extent can speaker-specific talking patterns and discussion context predict contextual A-T ratings reviewed by school psychologists on held-out participants and recordings, and does adding strictly earlier personal history improve the evidence support and usefulness of the resulting communication reports?**
 
-The central loop is **observation → personal baseline → repeated change → evidence review → practical adjustment → later comparison**. Acoustic features establish measured facts such as speaking share or pace. Conversation context and reviewed semantic events can support interpretations such as acknowledgement or clarification. Those layers stay distinct: simultaneous speech establishes overlap, but it does not establish that someone intended to interrupt or was defensive.
+The study has two separate evaluations. The supervised predictor learns the relationship between conversational measurements and reviewed human ratings, then measures per-item agreement on data excluded from fitting. The report experiment compares transcript-only, structured-context, and full-PSYCON inputs using the same speaker, local language model, and generation settings. The structured-context and full-PSYCON conditions share frozen supervised predictions so a changed predictor cannot be mistaken for an improvement from personal history.
 
-A recurring observation needs several independent conversations. Coaching presents a possible effect and one adjustment, with uncertainty and retained timing references. Later measurements can show change, but they cannot establish that coaching caused it or that an audience understood an explanation. PSYCON does not infer a diagnosis or a fixed personality from speech.
+The question is about observable behavior in context. A correlation between a speaking pattern and a psychologist's rating does not establish a cause, a psychological state, or a permanent characteristic of the person. Success requires supported evidence, reproducible human judgments, performance against simple prediction baselines, and independent review of the reports. A completed software pipeline alone cannot answer the research question.
 
-The longer-term vision is an authorized context layer for another AI application: supported communication patterns, current goals, evidence counts, dates, uncertainty, and relevant session context. The current product exports that context through an API; it does not add a new chat application. See [the full vision and reasoning](docs/PSYCON_VISION.md).
+## Psychology and the school psychologists' data
 
-## Project progress
+The study's human reference is the marksheet data provided and reviewed by psychologists from the project author's school. Their role is to judge recorded behavior against the item definitions, check the surrounding exchange, and retain evidence for their judgments. PSYCON connects those observations to the correct participant's audio and transcript. It does not generate the psychologist's answers or treat its own predictions as human validation.
 
-The recordings workflow is implemented: private profiles, queued voice enrollment, uploads, explicit research-source links, wearer observations, baseline progress, recurring deviations, role coaching, goals, access grants, context export, and deletion. A synthesized-speech run exercised the real local speech and LLM path. Audio firmware implements continuous DMA capture and Protocol v2 Wi-Fi transport; wrist firmware remains a sensor scaffold.
+Each marksheet describes one participant in one discussion. The five observation areas cover following the discussion, structuring contributions, sharing turns, responding to challenge, and delivery changes after an identifiable event. The psychological interpretation stays tied to what the recording supports. For example, reduced participation after a challenge needs evidence of the challenge, earlier participation, later behavior, and an opportunity to speak; a short contribution by itself cannot establish withdrawal or anxiety.
 
-This is not a completed product release. The two-person private pilot, independently annotated semantic evaluation, physical device transport and power measurements, real wrist sensing, and hosted personal deployment remain open. Detailed coverage and verification evidence live in [implementation status](docs/IMPLEMENTATION_STATUS.md), so this README does not use a misleading overall completion percentage.
+The rating scale preserves the psychologist's distinctions:
 
-## How it works
-
-1. **Create a private profile and enroll a voice.** An operator provisions a wearer token, the wearer selects a role and permits processing, and three 5–10 second clips create an encrypted voice embedding on the worker. A research participant enters a history only through an explicit identity link.
-2. **Add a conversation and its context.** Upload WAV, MP3, or OGG audio and enter its date, setting, conversation type, microphone, topic, relationship, and objective. Original media hashes identify duplicate uploads; original timestamps remain the timing reference.
-3. **Measure the wearer's speech.** Local quality checks, Whisper transcription, Community-1 diarization, and SpeechBrain verification identify usable wearer intervals. Analysis measures speech share, turn length, pauses, response gaps, pace, vocabulary diversity, pitch, level, overlap, and voice-quality estimates. Uncertain identity is excluded from personal baselines.
-4. **Build a comparable baseline.** The default pilot rule requires five eligible conversations across three days and 30 minutes of usable wearer speech. Each conversation contributes one summary to median and median absolute deviation statistics. Language, conversation type, microphone, and setting define separate cohorts.
-5. **Review repeated changes and practice.** Later sessions compare with an earlier reference. At least three later independent conversations must support a deviation before it appears as recurring. Role coaching combines the measurement, context, reference, evidence, possible effect, uncertainty, and a practical adjustment. A selected goal freezes its pre-goal reference.
-6. **Export supported context or delete history.** The wearer can grant seven-day read-only reviewer access or context-only access. Context excludes recordings, embeddings, and evidence text. Corrections and deletion invalidate derived reports and goals whose reference changed; cleanup retries remove remaining personal raw files.
-
-The [architecture and API reference](docs/COMMUNICATION_ARCHITECTURE.md) describes the records, algorithms, state transitions, and failure behavior behind this flow.
-
-## Technical architecture
-
-The start page, coach, research console, and device console share one Jinja page template and CSS design system. All use the existing Flask, HTML, CSS, and plain JavaScript stack. [Design conventions](DESIGN.md) document the shared colors, typography, controls, and responsive layouts.
-
-| Component | Implementation and responsibility |
+| Answer | Meaning in the v4.0 marksheet |
 | --- | --- |
-| Web and API | Flask serves the `/` start page, `/coach`, the existing `/group` research console, the `/devices` dashboard, and `/api/v1/communication`. Wearer APIs require scoped bearer credentials. |
-| Persistence | PostgreSQL stores personal documents in additive migrations alongside existing research tables. S3-compatible storage retains research objects; a separate encrypted spool holds temporary personal uploads. |
-| Speech analysis | Existing NumPy quality/acoustic extraction, faster-whisper, pyannote Community-1, SpeechBrain ECAPA, and Praat voice-quality code run locally. |
-| Longitudinal coaching | A dedicated communication service owns eligibility, robust baselines, content-addressed snapshots, repeated deviations, role lenses, goals, and evidence lineage. |
-| Local interpretation | Ollama runs `qwen3.5:4b` with a pinned digest, an 8K context limit, bounded windows, and evidence-reference validation. There is no automatic cloud fallback. |
-| Processing | One inference worker handles the pilot sequentially and releases speech models before LLM interpretation. A separate device-only CPU worker can serve existing ingestion work. |
-| Wearable transport | ESP32 I2S/DMA captures 16 kHz PCM in 0.5-second Protocol v2 chunks. Wi-Fi carries audio; authenticated BLE provisions the device and controls pause/resume. |
-| Research | Guarded face-linked group analysis, A–T psychologist marksheets, participant-safe evaluation, WESAD experiments, and exports remain separate from coaching. |
+| 0 | The behavior was not observed despite a fair opportunity |
+| 1 | One weak or brief occurrence |
+| 2 | Repeated or noticeable behavior with limited effect |
+| 3 | Clear and repeated behavior, or an effect on the exchange |
+| 4 | Sustained behavior or a strong effect on the exchange |
+| N/O | No fair opportunity, or a recording that cannot support a rating |
+| Missing | No answer was supplied |
 
-The role rubrics cover general communication, leadership, sales, teaching, law, debate, negotiation, medicine, student communication, and presentations. They combine shared measurements with evidence-linked behavior proposals and explicit response-opportunity denominators. Jargon, explanation structure, supported reasoning, concessions, and responses remain unavailable automatically until independent evaluation passes; audience understanding is never inferred. See [role definitions and opportunity rules](docs/COMMUNICATION_ROLE_RUBRICS.md).
+Scores above zero require timestamps and the surrounding event. The interpretation guide treats 1 as a weak moment, 2 as a possible one-session pattern needing more evidence, and 3 or 4 as support for a contextual description. Reviewers also record confidence, recording quality, language access, overlap, moderation, unequal participation, sensitive topics, and accommodations. These conditions can change what a rating means.
 
-```mermaid
-flowchart LR
-    U[Personal uploads] --> C[Unified conversation]
-    G[Confirmed group sources] --> C
-    W[Validated wearable sessions] --> C
-    C --> S[Local quality and wearer speech analysis]
-    S --> O[Measured observations and retained evidence]
-    S --> L[Local evidence-linked interpreter]
-    L --> V[Semantic validation gate]
-    V --> O
-    O --> B[Comparable personal baseline]
-    B --> P[Repeated changes and role coaching]
-    P --> H[Coach console and frozen goals]
-    P --> E[Authorized AI context]
-```
+The app preserves the observer's original answer, independent review, disagreements, adjudication, and later corrections as separate records. Self-reports also remain separate from observer ratings. Reviewer agreement tests whether people apply the rubric consistently; model agreement tests whether conversational inputs predict their reviewed answers. Neither makes the marksheet a diagnostic instrument or establishes broader psychological validity.
 
-## Privacy and evidence
+Psychologist-reviewed school data can be retained before it is ready for training. Training additionally requires documented permission, a reviewed participant-to-speaker mapping, applicable opportunity, supported evidence, source review, and independent answer review. The current application records do not yet contain eligible, consented, independently reviewed human labels. The software has been exercised with isolated synthetic studies; those checks are engineering tests and are not results from school participants.
 
-New personal media and enrollment clips are encrypted while queued. Successful processing deletes raw media and full transcripts; failed raw uploads expire after 24 hours. Derived measurements, anonymous timing records, and bounded redacted evidence excerpts remain until the wearer deletes them. Redaction reduces exposure but is not a guarantee of perfect anonymization. Existing research recordings retain their existing consent and retention policy.
+## Current scope: software active, hardware paused
 
-LLM output must reference supplied evidence IDs. Automated semantic types remain unavailable until a matching model evaluation contains at least 50 independent annotated exchanges, covers every role, and reaches at least 90% precision for each enabled type. Wearer corrections take precedence. Missing data, uncertain identity, incompatible microphones, and isolated incidents must remain visible limitations rather than becoming scores or psychological claims.
+Hardware development is paused for now. The active work is the recording-to-evidence pipeline, psychologist marksheet intake and review, supervised behavioral prediction, personal history, and report evaluation in the software application. No wearable, physiological sensor, face recognition, voice enrollment, or identity embedding is required to run this workflow. Earlier hardware and coaching material is retained in [the archived README](docs/LEGACY_PRODUCT_README.md).
 
-## Open the web app
+## Run the research instrument
 
-These steps use the runtime and models already installed in this folder. Open Docker Desktop and wait for its engine to start. Then open PowerShell and run these commands in order.
-
-The first command starts the database and object store. The second starts the local AI. The third starts the web server, so leave this terminal open.
+Run this one command from the repository root in PowerShell, with Docker Desktop running and the PostgreSQL URL in the ignored `.env`:
 
 ```powershell
-cd C:\Users\USER\Desktop\code\PSYCON
-powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 services
+.runtime\venv\Scripts\python.exe run_psycon.py docker
+```
+
+Open http://localhost:8008. Docker starts the web app, CUDA speech worker, and independent CPU trainer concurrently after applying migrations and idempotently queuing the original-video batch. All services use the configured PostgreSQL, including Neon pooled URLs. Startup never substitutes the old local database. The Docker image extends the installed `psycon-week4-worker:latest` speech runtime; build that runtime first on a fresh machine. Registered Windows paths are explicitly mapped to the mounted workspace, and originals are mounted read only.
+
+PostgreSQL is the only application database; a connection failure never creates another store. Original media and generated models stay in registered local paths; answers, bounded source spreadsheets, evidence, jobs, model manifests, and results live in PostgreSQL. The application remains a local single-user research instrument.
+
+Session **Participants & answers** supports anonymous participants, reviewed speaker mappings, individual/batch CSV and XLSX previews, source downloads, direct entry, immutable corrections, independent review, and consent records. **Training & models** shows explicit exclusions, frozen snapshots, queued supervised fitting, held-out evaluations, exploratory limitations, deliberate activation, rollback, and predictions. Saving a sheet does not grant consent or establish training eligibility. A-T uses the actual v4.0 marksheet; independent communication labels use [the annotation guidelines](docs/COMMUNICATION_ANNOTATION_GUIDELINES.md).
+
+The training dashboard shows per-target training, validation, and final-evaluation records and independent source-group counts before fitting. Start training is disabled for snapshots that cannot fit any target. Jobs update automatically, and fitted models remain candidates until you deliberately activate them. Choose a processed recording and speaker to inspect predictions without copying database IDs. The trainer also commits queued spreadsheet imports independently of speech processing, using the worker database role for imports and the trainer role for fitting.
+
+To run without Docker, use this one PowerShell command after installing the project runtime and configuring PostgreSQL:
+
+```powershell
+npx.cmd --yes concurrently@9.2.1 --kill-others --names web,media,trainer ".runtime\venv\Scripts\python.exe run_psycon.py web --port 8008" ".runtime\venv\Scripts\python.exe run_psycon.py worker" ".runtime\venv\Scripts\python.exe run_psycon.py trainer"
+```
+
+Read [the storage and training runbook](docs/POSTGRES_TRAINING_RUNBOOK.md) for migrations, least-privilege roles, snapshots, workers, exports, coordinated backups/restoration, and deletion. The retained legacy source is read only by the one-time migration command. `run_backend.py` and the local-runtime web/worker commands launch the same canonical application.
+
+When an interpretation is requested, PSYCON reuses the configured local Ollama service. If the loopback service is stopped and the bundled `.runtime/ollama` executable exists, it starts that executable in the background with the project-local model directory and cloud access disabled. No model is downloaded, substituted, or repinned automatically. Container endpoints and independently installed runtimes must be started separately. You can also start the bundled runtime manually:
+
+```powershell
 powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 ollama
-powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 web
 ```
 
-Open a second PowerShell terminal and start the processing worker. Leave it open so enrollment and uploads can finish.
+The app uses Community-1 diarization and faster-whisper large-v3 through replaceable adapters. The launcher selects the available CUDA device or CPU and uses project-local model caches. The diarization model requires the applicable Hugging Face model access and `HF_TOKEN`. The local interpreter uses the configured Ollama model and records its actual digest. Missing models and rejected evidence references produce explicit failures, never substitute profiles.
+
+Interpretation failures identify whether the service is unreachable, the selected model is absent, or its digest differs from `PSYCON_OLLAMA_DIGEST`. Digest mismatches remain blocked. Background-service logs are in `.runtime/logs/ollama-stdout.log` and `ollama-stderr.log`. Interpretation cites only the target speaker's supplied evidence IDs while retaining other speakers' words as interaction context, and truncated model responses are withheld.
+
+## Use it
+
+1. **Upload conversations.** Supply actual recording times, context, participant IDs, dataset role, and consent status. Each file becomes its own session, and originals keep their exact filenames.
+2. **Inspect speaker evidence.** Review quality diagnostics, processing stages, the timeline, attributed transcript, measured talking patterns, and surrounding exchanges. Ambiguous overlapping words remain unattributed.
+3. **Connect the correct person.** Keep longitudinal people, session participants, and speaker clusters separate. Confirm the participant-to-speaker mapping through a reviewer before linking answers to features. Names and identity embeddings are unnecessary.
+4. **Save and review marksheets.** In Participants & answers, preview individual or batch CSV/XLSX files, map columns and participant codes, and save normalized answers to PostgreSQL. Retain the psychologist's identity, context, opportunity, confidence, timestamps, and independent review. Zero, N/O, and missing answers have different meanings.
+5. **Examine contextual patterns.** Compare measured participation, timing, responses, and evidence with reviewed A-T observations and strictly earlier personal history. The Q-T event baseline comes from earlier in the same discussion; it is separate from the historical baseline. Optional archetype comparisons are exploratory reference tools.
+6. **Train eligible targets.** Training & models shows data readiness and exclusion reasons. Freeze a versioned dataset, queue training on the Docker or local worker, inspect per-item held-out evaluation, and activate a compatible model deliberately. Saving a spreadsheet alone does not authorize training. Models learn from approved examples, rather than indiscriminately using every stored record.
+7. **Interpret and evaluate.** Reports distinguish measurements, human annotations, supervised predictions, and LLM interpretation. Review cited audio before acting on suggestions. Evaluate supervised prediction separately from the controlled transcript-only, structured-context, and full-PSYCON comparison. Missing evaluation remains unavailable.
+8. **Export or delete.** Exports retain actual processing states, annotations, revisions, and model provenance. Corrections, withdrawals, and deletion invalidate affected datasets and results and flag dependent models for retirement or retraining.
+
+## How the software works
+
+### From a recording to participant evidence
+
+The launcher registers the 11 original files in `group_discussions` idempotently and queues their analysis in PostgreSQL. Uploaded recordings use the same processing workflow. Each session retains its exact original filename, file hash, recording time, context, ownership, and processing configuration. Registration and queuing do not imply that processing has succeeded.
+
+The media worker extracts audio to a separate normalized playback file, checks recording quality, identifies anonymous speaker intervals with Community-1, and transcribes speech with faster-whisper large-v3. It keeps source timestamps and assigns words conservatively: ambiguous overlapping speech remains unattributed. Segmentation then creates turns, utterances, and surrounding exchanges for speaker-specific feature extraction.
+
+Measurements include speaking time and share, turn count, words per minute, overlap candidates, and supported transcript markers. Every feature records its definition, unit, source, version, and limitations. An overlap candidate is not a confirmed intentional interruption, and a rule-based transcript marker is not a psychologist's judgment. Quality failures withhold unsupported analysis while preserving available stage outputs. Evidence links connect a result to the correct speaker, source excerpt, context, and playback time.
+
+### From a marksheet to a trained predictor
+
+Participants & answers previews CSV/XLSX files before saving, supports column and anonymous-code mapping, checks duplicates and invalid rows, and saves valid batches atomically. Direct entry follows the same versioned form definitions. PostgreSQL retains normalized answers, permitted source files, reviewer records, evidence windows, and immutable correction history. The current speaker mapping determines whether those answers can be joined to measured features.
+
+Training & models explains exclusions before fitting. A frozen snapshot records label and mapping revisions, consent, source hashes, feature versions, and split assignments. Shared participants, duplicate recordings, and related recording sources cannot cross the split boundary. Historical inputs use only permitted earlier sessions, and preprocessing learns its parameters from training records alone.
+
+The CPU trainer fits a separate supported target using median imputation, missing-value indicators, scaling, and class-balanced logistic regression. Validation selects the model configuration; final evaluation remains separate. The dashboard reports per-target sample counts, prediction errors, classification metrics, and a training-median prediction baseline where available. Small or unsupported targets remain unavailable or exploratory. This trains the supervised behavioral predictor; it does not fine-tune Whisper, diarization, or the LLM.
+
+Generated model files stay local with their hashes, manifests, evaluations, and training lineage registered in PostgreSQL. A fitted model remains a candidate until an operator activates it. Activation and rollback are recorded, and predictions retain the exact model and input lineage. Corrections or withdrawals invalidate affected snapshots and outputs and identify dependent models that need retirement or retraining.
+
+### From participant evidence to a report
+
+The application keeps four layers visible: measured observations, human annotations, supervised predictions, and LLM interpretations. When available, the local LLM receives structured predictions with model versions, uncertainty, abstention, and evidence references, alongside measured features and interaction context. Personal history uses strictly earlier comparable sessions; pressure-event comparisons use an earlier baseline within the same discussion. Those baselines answer different questions and remain separate.
+
+The report preserves its input, prompt, decoding settings, local model digest, output, citation checks, and processing attempts. Generated text from the video/session workflow is logged in PostgreSQL, including failed attempts. Invented or wrong-speaker citations and truncated responses are withheld. Reports offer qualified interpretations and evidence-backed communication suggestions, while measurements, human observations, and playback remain useful without a trained model or available LLM.
+
+### Pages and services
+
+| Application area | What it lets the researcher do |
+| --- | --- |
+| Dashboard | Check the original group-discussion videos and their latest analysis states |
+| Sessions | Inspect processing, participants and answers, transcript, measurements, and reports; play or export evidence |
+| People & history | Link anonymous people across reviewed session mappings and compare eligible earlier conversations |
+| Talking patterns | Inspect recurring conversational indicators with evidence and historical limits |
+| Evidence | Search saved speaker-specific excerpts and inspect their context and timestamps |
+| Research | Run the controlled three-way report comparison and inspect independent reviewer results |
+| Training & models | Review data readiness, freeze datasets, train, evaluate, activate, roll back, and inspect predictions |
+| Blinded review | Rate a saved report and its cited sources without seeing its system or model label |
+
+Optional reference comparisons remain secondary exploratory tools. They do not assign personality or provide training labels.
+
+The web service uses Flask, Jinja templates, and plain JavaScript. The media worker handles recording analysis and local interpretation; the independent CPU trainer handles fitting and queued spreadsheet intake without waiting for speech processing. PostgreSQL owns durable jobs, claims, leases, retries, cancellation, and protection against stale completion writes, so a browser request does not have to remain open while work runs.
+
+| Software component | Main source |
+| --- | --- |
+| Launcher and Docker services | [`run_psycon.py`](run_psycon.py), [`docker-compose.instrument.yml`](docker-compose.instrument.yml) |
+| Web application and APIs | [`app.py`](backend/instrument/app.py), [`routes.py`](backend/instrument/routes.py), [`workflow_routes.py`](backend/instrument/workflow_routes.py) |
+| Recording processing and features | [`service.py`](backend/instrument/service.py), [`audio.py`](backend/instrument/audio.py), [`features.py`](backend/instrument/features.py) |
+| Human forms, answers, and eligibility | [`forms.py`](backend/instrument/forms.py), [`answers.py`](backend/instrument/answers.py), [`annotations.py`](backend/instrument/annotations.py) |
+| Snapshots and supervised models | [`datasets.py`](backend/instrument/datasets.py), [`training.py`](backend/instrument/training.py) |
+| History and controlled report research | [`profiles.py`](backend/instrument/profiles.py), [`research.py`](backend/instrument/research.py) |
+| PostgreSQL, jobs, and workers | [`store.py`](backend/instrument/store.py), [`jobs.py`](backend/instrument/jobs.py), [`worker.py`](backend/instrument/worker.py) |
+| Exports, backups, and deletion | [`exports.py`](backend/instrument/exports.py), [`backup.py`](backend/instrument/backup.py), [`deletion.py`](backend/instrument/deletion.py) |
+
+The [architecture and research protocol](docs/INSTRUMENT_ARCHITECTURE.md) records feature calculations, quality gates, historical rules, and experimental controls. The [PostgreSQL and training runbook](docs/POSTGRES_TRAINING_RUNBOOK.md) covers configuration, migration, file registration, exports, coordinated database/local-file backup and verified restoration. The complete original-media backup still needs a destination with sufficient free space; database verification does not stand in for that media backup.
+
+## Marksheet targets and training limits
+
+| Observation area | Items | Focus |
+| --- | --- | --- |
+| Discussion tracking | A-D | Following the current point, answering it, adapting to changes, and needing repetition |
+| Contribution structure | E-H | Idea order, requested support, completing a point, and task relevance |
+| Turn-taking and reciprocity | I-L | Turn entry, continuing overlap, sharing cues, and acknowledging a direct contribution |
+| Response to challenge | M-P | Observable changes after disagreement, their duration, participation changes, and response to feedback |
+| Pressure-linked delivery change | Q-T | Event-linked changes in rate, hesitation, vocal delivery, movement, or participation against an earlier same-session baseline |
+
+These are the marksheet's observation areas, not a total personality score. A rating above zero needs contextual evidence. N/O means the recording or opportunity cannot support a conclusion; missing means no answer was supplied. A model must abstain when its target or input evidence is unsupported. Visual-only evidence cannot train the current audio-based predictor. Item S remains excluded until supported vocal-change window features exist; T can use supported participation change, while visual-only answers remain saved and excluded.
+
+Training uses reviewed human ratings as separate per-item targets. Feature/label associations are descriptive, and prediction is evaluated on held-out people and source groups with recorded counts and baseline comparisons. Neither an association nor a fitted model establishes psychological validity. Independently defined communication ratings have their own [annotation guidelines](docs/COMMUNICATION_ANNOTATION_GUIDELINES.md); they are session-level behavioral labels and do not come from archetype choices or model outputs. The current real records do not yet provide eligible, consented, independently reviewed training labels.
+
+## Optional reference comparisons
+
+Saved guarded group analysis can be imported without rerunning face recognition; PostgreSQL must be available:
 
 ```powershell
-cd C:\Users\USER\Desktop\code\PSYCON
-powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 worker
+.runtime/venv/Scripts/python.exe run_psycon.py import-groups
+.runtime/venv/Scripts/python.exe run_psycon.py build-references
 ```
 
-Open [PSYCON](http://127.0.0.1:8000/) in your browser. The start page links to every workspace.
+The importer uses retained word timestamps and guarded speaker intervals. Imported transcripts are partial, their original Whisper-small provenance remains visible, and absent word confidences stay null. It reads recording times from the original video's metadata; missing times cause an explicit skip. Consent remains `not documented` unless independently established and supplied with `--consent documented`. Do not change that field merely to hide a limitation.
 
-| Page | Use it for |
-| --- | --- |
-| [Personal coach](http://127.0.0.1:8000/coach) | Connect your wearer token, enroll with three voice clips, upload English recordings, and review your progress. |
-| [Group research](http://127.0.0.1:8000/group) | Analyze discussion videos and review participant marksheets. |
-| [Device console](http://127.0.0.1:8000/devices) | Inspect device sessions, worker status, and exports with your operator credential. |
+Group-derived Executive, Builder, Salesperson, and Negotiator lenses use an explicit project-defined selection framework and actual recording-level feature distributions. They are exploratory behavioral subsets, not empirically validated occupational archetypes. The corpus is not labeled with occupational identities, and A–T behavioral scores are not converted into role ground truth. Users can also construct a custom empirical reference from selected speakers in at least three reference recordings. Reference participants must be disjoint from analysis participants when their identities are known.
 
-Each workspace has a Home link. If the server is already running, open it instead of starting another copy on port 8000. Press `Ctrl+C` in the web and worker terminals to stop them.
+## Implementation and research limits
 
-For your first account, follow [the wearer setup guide](docs/START_HERE.md). It covers account creation, enrollment, uploads, sharing, deletion, and troubleshooting. The [technical runbook](docs/COMMUNICATION_COACH.md) covers model pinning and Compose alternatives. Runtime files and service data stay inside `.runtime`; Docker Desktop and the GPU driver are system prerequisites. Keep secrets in the ignored root `.env` file.
+The pipeline, storage, baseline statistics, comparisons, exports, worker recovery, local reasoning, and evaluation workflow are implemented. Marker extraction is a transparent, unvalidated ruleset, not a validated semantic classifier. Topic control, interruption intent, paraphrasing, and other complex behaviors require manual review; manual event rates are explicitly labeled as partial annotation coverage. No participant counts, accuracies, reviewer scores, confidence intervals, or statistical significance are invented.
 
-## Build and verify
+LLM inputs use a documented bounded transcript window and retrieved evidence. A valid evidence ID does not prove that a citation supports a claim; independent reviewers evaluate that separately. The current dataset does not establish longitudinal validity or validated prediction of psychologist ratings. See [the architecture and research protocol](docs/INSTRUMENT_ARCHITECTURE.md) and [requirement coverage](docs/INSTRUMENT_STATUS.md).
 
-Group recordings now continue from spreadsheet upload to per-person feedback under shared discussion context. Human ratings stay separate from AI practice suggestions. Run `powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 train-group` to train and save PSYCON's group rating models from PostgreSQL. See [group feedback and training](docs/GROUP_FEEDBACK_AND_TRAINING.md) for the full flow and data requirements.
+## Verify
+
+The research workspace keeps its restrained green design across session inspection, participant answers, evidence, reports, research, and training. Long views include keyboard-accessible section navigation; wide tables scroll within their panels. Interface conventions and browser verification limits are recorded in [DESIGN.md](DESIGN.md).
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 test
-powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 protocol-test
-.runtime/node/node.exe .runtime/node/npm/bin/npm-cli.js --prefix protocol run typecheck
-powershell -ExecutionPolicy Bypass -File release_tools/local-runtime.ps1 firmware-build
-docker compose -f docker-compose.yml -f docker-compose.local.yml build api worker minio
+$env:PSYCON_TEST_DATABASE_URL = "postgresql://psycon:psycon@127.0.0.1:5432/psycon"
+.runtime/venv/Scripts/python.exe -m pytest tests -o addopts= -q
+.runtime/node/node.exe --check backend/static/instrument.js
+.runtime/node/node.exe --check backend/static/instrument_review.js
+.runtime/node/node.exe --check backend/static/instrument_reports.js
+.runtime/node/node.exe tests/frontend/instrument_reports.cjs
+.runtime/node/node.exe tests/frontend/instrument_workflow.cjs
 ```
 
-The PostgreSQL lifecycle test is opt-in through `PSYCON_COMMUNICATION_TEST_DATABASE`; it creates and removes its own synthetic records. Human semantic annotation and physical measurements are separate release checks. The [reproducibility matrix](docs/REPRODUCIBILITY.md) lists the remaining research, demo, protocol, and validation commands.
-
-## Repository and documentation
-
-| Path | Purpose |
-| --- | --- |
-| `backend/communication/` | Personal profiles, recording jobs, observations, baselines, interpretation, coaching, source adapters, and APIs. |
-| `backend/group/`, `research/` | Existing group-video workflow, marksheets, evaluation, and research exports. |
-| `ml/src/` | Shared audio, transcription, speaker verification, voice quality, language, wrist features, and research models. |
-| `firmware/ear/`, `firmware/wrist/` | Continuous audio transport and the optional wrist bring-up scaffold. |
-| `protocol/` | Canonical Protocol v2 fixtures and Python, TypeScript, and C++ contracts. |
-| `tests/`, `validation/` | Software regression, semantic evaluation, integration scenarios, and evidence-gated physical procedures. |
-
-Read [vision](docs/PSYCON_VISION.md) for the product theory, [architecture](docs/COMMUNICATION_ARCHITECTURE.md) for the implementation, [pilot operations](docs/COMMUNICATION_COACH.md) for running it, and [status](docs/IMPLEMENTATION_STATUS.md) for what is built and what remains. [Backend](docs/BACKEND.md), [audio](docs/AUDIO_PIPELINE.md), and [device features](docs/DEVICE_FEATURES.md) retain the shared technical contracts.
-
-The [historical research overview](docs/RESEARCH_LEGACY.md), [34-chapter engineering PRD](docs/engineering_prd/), [group benchmark report](docs/group_discussions_final_report.md), and [physical validation runbook](docs/validation/WEEK_6_RUNBOOK.md) preserve the work PSYCON builds on. The new communication documents govern the personal product direction; the older PRD still supplies hardware, electrical, study, and safety requirements. Historical reports do not establish longitudinal coaching validity.
+The previous coaching, wearable, physiology, and face-linked workflows remain as legacy code. Their documentation is archived in [the previous README](docs/LEGACY_PRODUCT_README.md); they do not define the current prototype. The legacy Flask app also exposes this workspace at `/instrument`, but its startup still requires its original external services.

@@ -1,3 +1,15 @@
+# Current audio-first application
+
+The active application uses only PostgreSQL. Install `requirements-instrument.txt`, configure the ignored `PSYCON_DATABASE_URL`, run `python run_psycon.py migrate`, then run `python run_psycon.py web` and `python run_psycon.py worker`. The local managed interpreter is `.runtime/venv/Scripts/python.exe`. No application/test SQLite fallback exists; `migrate-source` is the one-time read-only importer.
+
+Run `python -m pytest tests/backend/test_instrument.py tests/backend/test_instrument_training.py tests/backend/test_instrument_workflow.py` against an available local PostgreSQL database. These fixtures create disposable `psycon_test_*` schemas, run real fitting with explicitly synthetic labels and remove their records. They exercise imports and revisions, source ancestry, mappings, frozen splits, roles, leases, retries, cancellation, generation attempts, portable models, deployment, withdrawal, exports and coordinated database/local-file restoration. Run `python -m pytest` for the broader compatibility suite. Optional external-service and licensed-data tests may skip; record those skips separately.
+
+Check vanilla browser scripts with `node --check backend/static/instrument.js` and `node --check backend/static/instrument_workflow.js`. Inspect the current interface through the project-native browser on desktop and mobile; HTTP checks alone do not certify interaction. Use a separately labeled synthetic database for UI model demonstrations.
+
+Freeze [dataset protocol](DATASET_PROTOCOL.md) and the exact model/snapshot versions before an evaluation. Model training and the matched A/B/C LLM experiment are separate analyses. Export and restore through the [operator runbook](POSTGRES_TRAINING_RUNBOOK.md); private exports contain human answers, source documents and metadata, so they are not public artifacts.
+
+The matrix below describes historical hardware and compatibility checks. It does not reintroduce physiology or face dependencies into the active application.
+
 # Reproducibility Matrix
 
 This matrix defines the software checks required from a clean checkout. Hardware measurements are tracked separately in the seven-week plan.

@@ -1,0 +1,57 @@
+name: psycon-instrument
+x-runtime: &runtime
+  image: psycon-instrument:local
+  build:
+    context: .
+    dockerfile: Dockerfile.instrument
+  env_file: .env
+  environment: &environment
+    PSYCON_INSTRUMENT_ROOT: /app/instance/instrument
+    PSYCON_PATH_MAP: ${PSYCON_PATH_MAP:?Use the docker command in run_psycon.py}
+    PSYCON_LOCAL_NETWORKS: 172.16.0.0/12,192.168.65.0/24
+    HF_HOME: /app/.runtime/models/huggingface
+    TORCH_HOME: /app/.runtime/models/torch
+    PSYCON_OLLAMA_URL: http://host.docker.internal:11434
+  volumes:
+    - .:/app
+    - ./group_discussions:/app/group_discussions:ro
+services:
+  init:
+    <<: *runtime
+    command: [python, run_psycon.py, queue-videos]
+  web:
+    <<: *runtime
+    command: [gunicorn, --bind, '0.0.0.0:8001', --workers, '1', --threads, '4', --timeout, '120', 'backend.instrument.app:create_app()']
+    environment:
+      <<: *environment
+      PSYCON_DATABASE_ROLE: psycon_web
+    ports:
+      - '127.0.0.1:8008:8001'
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+  worker:
+    <<: *runtime
+    command: [python, run_psycon.py, worker]
+    environment:
+      <<: *environment
+      PSYCON_DATABASE_ROLE: psycon_worker
+      PSYCON_INSTRUMENT_DEVICE: cuda
+    gpus: all
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+  trainer:
+    <<: *runtime
+    command: [python, run_psycon.py, trainer]
+    environment:
+      <<: *environment
+      PSYCON_DATABASE_ROLE: psycon_trainer
+      OPENBLAS_NUM_THREADS: '2'
+      OMP_NUM_THREADS: '2'
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    restart: unless-stopped

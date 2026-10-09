@@ -4,11 +4,12 @@
 {% block content %}
 <section class="intro"><div><p class="eyebrow">Local workspace</p><h1>Where do you want to start?</h1></div></section>
 <nav class="workspace-links" aria-label="Workspaces">
-      <a class="workspace-link primary" href="/coach"><span class="label">Personal coach</span><span>Enroll your voice, upload a conversation, and review your progress.</span><span class="access">Use your wearer token</span></a>
+      <a class="workspace-link primary" href="/instrument"><span class="label">PSYCON research instrument</span><span>Measure speaker-specific communication, inspect evidence, and compare personal history and reference profiles.</span><span class="access">Audio-only longitudinal prototype</span></a>
+      <a class="workspace-link" href="/coach"><span class="label">Legacy personal coach</span><span>Previous enrollment-based pilot.</span><span class="access">Legacy workflow</span></a>
       <a class="workspace-link" href="/group"><span class="label">Group research</span><span>Analyze discussion videos and review participant marksheets.</span><span class="access">For research sessions</span></a>
       <a class="workspace-link" href="{{ url_for('pages.dashboard') }}"><span class="label">Device console</span><span>Check device sessions, worker status, and exports.</span><span class="access">Use your operator credential</span></a>
     </nav>
-    <section class="start-usage" aria-labelledby="usage"><h2 id="usage">Your first conversation</h2><p>Open Personal coach. Connect your token, enroll with three voice clips, then upload an English recording. Review the evidence and pick one adjustment to practice.</p></section>
+    <section class="start-usage" aria-labelledby="usage"><h2 id="usage">Your first conversation</h2><p>Open the research instrument, upload a conversation, inspect the speaker-attributed transcript, and map the same person across recordings to establish their historical baseline.</p></section>
     <footer class="page-footer">Keep the web server and processing worker running while you use PSYCON.</footer>
 
 {% endblock %}

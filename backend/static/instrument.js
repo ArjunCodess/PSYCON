@@ -1,0 +1,354 @@
+"use strict";
+const $ = (selector, root = document) => root.querySelector(selector);
+const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const nice = value => String(value).replaceAll("_", " ");
+const number = (value, digits = 2) => value === null || value === undefined ? "Unavailable" : Number(value).toLocaleString(undefined, {maximumFractionDigits: digits});
+const time = value => { const seconds = Math.floor(value || 0); return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`; };
+const badge = value => `<span class="badge ${esc(value)}">${esc(nice(value))}</span>`;
+const empty = (title, text, action = "") => `<div class="empty"><h2>${esc(title)}</h2><p>${esc(text)}</p>${action}</div>`;
+let state = {sessions: [], profiles: []};
+let selectedPerson = sessionStorage.getItem("psycon-person") || "";
+let selectedSession = null;
+let activeSpeaker = null;
+let currentDetail = null;
+let page = "dashboard";
+let renderVersion = 0;
+let sessionPane = "overview";
+let sessionSearch = "";
+let sessionStatus = "";
+let sessionDataset = "";
+const paneNames = {overview:"Overview",participants:"Participants & answers", transcript:"Transcript", measurements:"Measurements", analysis:"Report"};
+function routeState() {
+  const [page="dashboard", sessionId="", pane="overview"] = location.hash.slice(1).split("/");
+  return {page, sessionId, pane: Object.hasOwn(paneNames, pane) ? pane : "overview"};
+}
+function applySessionPane() {
+  $("#view").dataset.section = sessionPane;
+  document.querySelectorAll("[data-session-pane]").forEach(element => element.classList.toggle("active", element.dataset.sessionPane === sessionPane));
+  const speakerFocus = $(".speaker-focus");
+  if (speakerFocus) speakerFocus.hidden = !["measurements", "analysis"].includes(sessionPane);
+  document.querySelectorAll(".session-tabs a").forEach(link => {
+    if (link.dataset.pane === sessionPane) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  });
+}
+function filteredSessions() {
+  const query = sessionSearch.toLowerCase().trim();
+  return state.sessions.filter(session => (!sessionStatus || session.status === sessionStatus) && (!sessionDataset || session.dataset === sessionDataset) && (!query || [session.filename, session.context, session.dataset].join(" ").toLowerCase().includes(query)));
+}
+function updateSessionList() {
+  const records = filteredSessions();
+  $("#session-table").innerHTML = records.length ? sessionRows(records) : empty("No matching recordings", "Try another search or clear the filters.", '<button data-clear-session-filters>Clear filters</button>');
+  $("#session-count").textContent = `${records.length} of ${state.sessions.length} recordings`;
+}
+
+const titles = {
+  dashboard: ["Behavior in conversations", "Inspect talking patterns, context, and reviewed human observations."],
+  sessions: ["Conversation sessions", "Original audio, speaker timelines, transcripts, and every processing stage."],
+  profile: ["People and conversation history", "Recurring indicators and deviations from strictly earlier comparable sessions."],
+  traits: ["Recurring talking patterns", "Every interpretation starts with an observable indicator and retained evidence."],
+  archetypes: ["Optional reference comparisons", "Choose a comparison goal. Inspect how each reference was constructed."],
+  evidence: ["Conversational evidence", "Search speaker-specific excerpts and return to their original audio time."],
+  training: ["Training & models", "Review data readiness, freeze datasets, fit supervised models, and inspect their evaluation."],
+  research: ["Research & benchmark", "Transcript-only, structured context, and full PSYCON under a matched experiment."],
+};
+async function api(path, options = {}) {
+  const response = await fetch(`/api/instrument${path}`, {...options, headers: {"X-PSYCON-Request":"research-instrument", ...(options.body && !(options.body instanceof FormData) ? {"Content-Type":"application/json"} : {}), ...options.headers}});
+  let result;
+  try { result = await response.json(); } catch { throw new Error(`Server returned ${response.status}; the operation did not produce a readable result.`); }
+  if (!response.ok) throw new Error(result.error || result.errors?.map(e => e.error).join("; ") || `Request failed (${response.status})`);
+  return result;
+}
+function notice(message, error = false) { $("#notice").hidden = false; $("#notice").classList.toggle("error", error); $("#notice").innerHTML = `<span>${esc(message)}</span><button data-dismiss-notice aria-label="Dismiss message">&#215;</button>`; }
+async function refreshState() {
+  state = await api("/state");
+  if (!state.profiles.some(p => p.id === selectedPerson)) selectedPerson = state.profiles[0]?.id || "";
+  $("#person-select").innerHTML = `<option value="">Select a person</option>` + state.profiles.map(p => `<option value="${esc(p.id)}">${esc(p.label)}</option>`).join("");
+  $("#person-select").value = selectedPerson;
+  $("#target-select").value = state.profiles.find(p => p.id === selectedPerson)?.target_archetype || state.target_archetype || "Executive";
+  sessionStorage.setItem("psycon-person", selectedPerson);
+}
+function sessionRows(sessions) {
+  return `<div class="table-wrap" tabindex="0" role="region" aria-label="Scrollable recordings"><table><thead><tr><th>Recording</th><th>Recorded</th><th>Context / split</th><th>Duration</th><th>Processing</th><th></th></tr></thead><tbody>${sessions.map(s => `<tr><td><span class="recording-name">${esc(s.filename)}</span><small>${esc(s.dataset)}</small></td><td>${esc(new Date(s.recorded_at).toLocaleDateString())}</td><td>${esc(s.context)}<small>${esc(s.split)}</small></td><td class="mono">${s.duration === null ? "Pending" : time(s.duration)}</td><td>${badge(s.status)}${s.error ? `<small>${esc(s.error)}</small>` : ""}</td><td><button data-session="${esc(s.id)}">Inspect →</button></td></tr>`).join("")}</tbody></table></div>`;
+}
+function traitRows(traits, recurring = false) {
+  return traits.map(t => `<div class="trait-row"><div><h3>${esc(t.name)}</h3><p>${esc(t.observation || t.interpretation)}</p><small>${recurring ? `${t.sessions.length} sessions · ` : ""}${esc(t.confidence)} confidence · ${t.evidence_ids.length} evidence records</small>${t.inference ? `<p>${esc(t.inference)}</p>` : ""}</div><button data-evidence="${esc(JSON.stringify(t.evidence_ids))}">View evidence →</button></div>`).join("");
+}
+async function dashboard() {
+  const originals = state.sessions.filter(session=>session.dataset === "Group discussion videos - full audio pipeline" && /\.(mp4|mov|m4v|avi|mkv)$/i.test(session.filename));
+  const recordings = originals.map(original => state.sessions.filter(session=>session.analysis_parent === original.id).sort((a,b)=>b.created_at.localeCompare(a.created_at))[0] || original);
+  let body = `<div class="stat-strip"><div class="stat"><span>Group discussion videos</span><strong>${recordings.length}</strong><small>${recordings.filter(s => s.status === "complete").length} complete</small></div><div class="stat"><span>Analyzed duration</span><strong>${time(recordings.filter(s=>s.status === "complete").reduce((total,s)=>total+(s.duration||0),0))}</strong><small>Completed sessions only</small></div><div class="stat"><span>Awaiting analysis</span><strong>${recordings.filter(s=>["queued","processing"].includes(s.status)).length}</strong><small>Processing and queued videos</small></div><div class="stat"><span>Scientific validation</span><strong>Pending</strong><small>Independent evaluation required</small></div></div>`;
+  const processing = recordings.filter(s=>s.status === "processing");
+  const queued = recordings.filter(s=>s.status === "queued");
+  const failed = recordings.filter(s=>s.status === "failed");
+  if (processing.length || queued.length || failed.length) body += `<div class="queue-summary"><div><p><strong>${processing.length} processing</strong> / ${queued.length} queued${failed.length ? ` / ${failed.length} need attention` : ""}</p><small>Processing states are live. Open a session to inspect its current stage.</small></div><a href="${failed.length ? `#sessions/${esc(failed[0].id)}/overview` : "#sessions"}">${failed.length ? "Inspect processing issue" : "Review recordings"} &rarr;</a></div>`;
+  if (!recordings.length) body += `<div class="empty"><h2>Start with a real conversation.</h2><p>Upload a meeting, interview, or group discussion. PSYCON separates speakers, measures conversational behavior, and keeps the evidence behind every interpretation.</p><button class="primary" data-upload>Upload your first recording</button><div class="flow"><span>Audio</span><span>Speaker evidence</span><span>Reviewed human observations</span><span>Personal history</span><span>Interpretation</span></div></div>`;
+  let person = null;
+  if (selectedPerson) person = await api(`/profiles/${selectedPerson}`);
+  if (recordings.length && !person?.series.length) {
+    const completed = recordings.find(s=>s.status === "complete");
+    body += `<section class="next-step"><div><h2>${selectedPerson ? "Connect this person's conversations" : "Your evidence is ready to explore"}</h2><p>${selectedPerson ? "Open a completed session and map the person's speaker label. Personal history uses analysis recordings; reference recordings stay separate." : "Inspect a completed recording to review speaker-attributed evidence. Add a person when you're ready to connect their history across conversations."}</p></div>${completed ? `<button data-session="${esc(completed.id)}">Inspect a recording &rarr;</button>` : '<button data-add-person>Add a person</button>'}</section>`;
+  }
+  body += `<div class="two-column"><section class="panel"><div class="section-head"><div><h2>Recurring patterns</h2><p>Indicators repeated across independent recordings</p></div></div>${person?.recurring_traits.length ? traitRows(person.recurring_traits.slice(0, 4), true) : `<p class="muted">No recurring patterns established yet. Map the same person across at least three sessions; five comparable previous sessions are required for a personal baseline.</p>`}</section><section class="panel"><div class="section-head"><div><h2>Human observation data</h2><p>Connect reviewed A-T ratings with participant evidence</p></div></div><p>Review discussion tracking, contribution structure, turn-taking, response to challenge, and event-linked delivery changes.</p><p class="muted">Uploaded answers retain their human source. Mapping, consent, evidence, and review determine training readiness; no personality score is assigned.</p><div class="controls"><a class="button-link" href="#sessions">Review participants and marksheets</a><a class="button-link" href="#training">Inspect data readiness</a></div></section></div>`;
+  body += `<section class="panel"><div class="section-head"><h2>Recent sessions</h2><a href="#sessions">All sessions →</a></div>${recordings.length ? sessionRows(recordings.slice(0, 5)) : `<p class="muted">No recordings uploaded. Failed or incomplete sessions will show their actual processing state.</p>`}</section>`;
+  return body;
+}
+function comparisonBars(archetypes) {
+  if (!archetypes.length) return '<p class="muted">Reference profile data are unavailable. No similarity has been fabricated.</p>';
+  return `<div class="bars">${archetypes.map(r => `<div><div class="bar-row"><span>${esc(r.archetype.name)}</span><div class="bar-track"><div class="bar-fill" style="width:${r.similarity || 0}%"></div></div><strong>${r.similarity === null ? "N/A" : number(r.similarity, 1) + "%"}</strong></div><small>${esc(r.archetype.status)} · ${r.selected_dimension_count}/${r.reference_dimension_count} dimensions</small></div>`).join("")}</div>`;
+}
+function timeline(detail) {
+  const width = 900, left = 100, duration = detail.session.duration || 1;
+  return `<div class="timeline-shell"><svg class="timeline" role="group" aria-label="Speaker-attributed timeline; exact intervals are available in the transcript and export" viewBox="0 0 ${width} ${detail.speakers.length * 35 + 30}">${detail.speakers.map((s, i) => `<text x="0" y="${i * 35 + 19}">${esc(s.display_name.slice(0, 16))}</text>${detail.turns.filter(t => t.speaker_id === s.id).map(t => `<rect role="button" tabindex="0" aria-label="Play ${esc(s.display_name)} from ${time(t.start)}" data-seek="${t.start}" data-source="${esc(detail.session.id)}" x="${left + t.start / duration * 780}" y="${i * 35 + 5}" width="${Math.max(1, (t.end - t.start) / duration * 780)}" height="20" rx="2"><title>${esc(s.display_name)}: ${time(t.start)}–${time(t.end)}</title></rect>`).join("")}`).join("")}<text class="time-tick" x="${left}" y="${detail.speakers.length * 35 + 20}">0:00</text><text class="time-tick" x="845" y="${detail.speakers.length * 35 + 20}">${time(duration)}</text></svg></div>`;
+}
+function transcriptRows(utterances, speakers) {
+  return `<div class="transcript">${utterances.map(u => `<div class="utterance"><button data-seek="${u.start}" data-source="${esc(u.session_id)}" aria-label="Play from ${time(u.start)}">${time(u.start)}</button><span class="speaker">${esc(speakers.find(s => s.id === u.speaker_id)?.display_name || "Unattributed")}</span><div><p>${esc(u.text)}</p><small>${esc(u.attribution)} · model confidence ${number(u.confidence)}</small></div></div>`).join("")}</div>`;
+}
+function featuresTable(features) {
+  return `<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Value</th><th>Unit</th><th>Evidence type</th><th>Confidence</th></tr></thead><tbody>${features.map(f => `<tr><td>${esc(nice(f.name))}<small>${esc(f.source)}</small></td><td class="mono">${number(f.value)}</td><td>${esc(f.unit)}</td><td>${badge(f.status)}</td><td>${esc(f.confidence)}</td></tr>`).join("")}</tbody></table></div>`;
+}
+function interactionGraph(detail) {
+  const counts = new Map();
+  for (const i of detail.interactions) { const key = `${i.source}|${i.target}|${i.kind}`; counts.set(key, (counts.get(key) || 0) + 1); }
+  const points = detail.speakers.map((s, i) => ({...s, x: 110 + 75 * Math.cos(i / detail.speakers.length * Math.PI * 2), y: 110 + 75 * Math.sin(i / detail.speakers.length * Math.PI * 2)}));
+  const edges = [...counts].map(([key, count]) => { const [source, target, kind] = key.split("|"); return {source, target, kind, count}; });
+  return `<div class="graph"><svg role="img" aria-label="Speaker interaction graph; directions and counts are listed in the adjacent table" viewBox="0 0 220 220">${edges.map(e => { const a = points.find(p => p.id === e.source), b = points.find(p => p.id === e.target); return a && b ? `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>` : ""; }).join("")}${points.map(p => `<circle cx="${p.x}" cy="${p.y}" r="20"/><text x="${p.x}" y="${p.y + 4}" text-anchor="middle">${esc(p.display_name.slice(0, 12))}</text>`).join("")}</svg><div class="table-wrap"><table><thead><tr><th>From → to</th><th>Interaction</th><th>Count</th></tr></thead><tbody>${edges.map(e => `<tr><td>${esc(points.find(p => p.id === e.source)?.display_name)} → ${esc(points.find(p => p.id === e.target)?.display_name)}</td><td>${esc(nice(e.kind))}</td><td>${e.count}</td></tr>`).join("")}</tbody></table></div></div><p class="muted">Response direction is estimated from adjacent turns. Overlap-entry candidates do not establish interruption intent.</p>`;
+}
+async function sessions() {
+  if (!selectedSession) return `<div class="controls session-list-controls"><input id="session-search" type="search" aria-label="Search recordings" placeholder="Find a recording, context, or dataset" value="${esc(sessionSearch)}"><label>Processing<select id="status-filter"><option value="">All states</option>${["complete","queued","processing","failed"].map(status=>`<option ${status===sessionStatus?"selected":""}>${status}</option>`).join("")}</select></label><label>Dataset<select id="dataset-filter"><option value="">All datasets</option>${[...new Set(state.sessions.map(s=>s.dataset))].map(dataset=>`<option ${dataset===sessionDataset?"selected":""}>${esc(dataset)}</option>`).join("")}</select></label></div><p class="results-count" id="session-count" role="status">${filteredSessions().length} of ${state.sessions.length} recordings</p><section class="panel" id="session-table">${state.sessions.length ? (filteredSessions().length ? sessionRows(filteredSessions()) : empty("No matching recordings", "Try another search or clear the filters.", '<button data-clear-session-filters>Clear filters</button>')) : empty("No sessions yet", "Upload one or several conversations to start measuring speaker-specific evidence.", '<button class="primary" data-upload>Upload conversations</button>')}</section>`;
+  const detail = await api(`/sessions/${selectedSession}`);
+  currentDetail = detail;
+  const session = detail.session;
+  if (!detail.speakers.some(s => s.id === activeSpeaker)) activeSpeaker = detail.speakers[0]?.id;
+  const report = detail.reports.find(r => r.speaker.id === activeSpeaker);
+  const finished = detail.stages.filter(stage=>stage.status === "complete").length;
+  const available = {overview:true,participants:true,transcript:detail.utterances.length>0,measurements:!!report,analysis:!!report};
+  if (!available[sessionPane]) sessionPane = "overview";
+  let body = `<div class="session-toolbar"><a class="button-link" href="#sessions">&larr; Sessions</a><div class="session-title"><h2>${esc(session.filename)}</h2><p>${esc(new Date(session.recorded_at).toLocaleDateString())} / ${esc(session.context)} / ${time(session.duration)}</p></div>${badge(session.status)}${session.status === "failed" ? `<button data-retry="${esc(session.id)}">Retry processing</button>` : ""}<button class="quiet danger" data-delete="${esc(session.id)}">Delete</button></div><div class="session-progress"><progress value="${finished}" max="${detail.stages.length}" aria-label="Completed processing stages"></progress><span>${finished} / ${detail.stages.length} stages complete</span></div><nav class="session-tabs" aria-label="Session sections">${Object.entries(paneNames).map(([key,label])=>`<a data-pane="${key}" ${available[key] ? `href="#sessions/${esc(session.id)}/${key}"` : 'aria-disabled="true"'}>${label}</a>`).join("")}</nav>`;
+  if (detail.reports.length) body += `<section class="panel session-pane" data-session-pane="overview"><div class="section-head"><div><h2>Participant conversation data</h2><p>Speaker-specific measurements and confirmed human answer links</p></div><a href="#sessions/${esc(session.id)}/measurements">Inspect talking patterns &rarr;</a></div><div class="table-wrap"><table><thead><tr><th>Speaker</th><th>Attributed speaking time</th><th>Talking pace</th><th>Human observation records</th></tr></thead><tbody>${detail.reports.map(r => { const speaking=r.features.find(f => f.name === "speaking_time"); const pace=r.features.find(f => f.name === "words_per_minute"); const human=r.human_observations || []; return `<tr><td>${esc(r.speaker.display_name)}</td><td>${speaking?.value == null ? "Unavailable" : time(speaking.value)}</td><td>${number(pace?.value)} words/min</td><td>${human.length ? `${human.length} current answers / ${human.filter(a => a.review_status === "approved").length} independently approved` : "No confirmed human answer links"}</td></tr>`; }).join("")}</tbody></table></div><p class="muted">Speaker clusters are session-specific until reviewed mapping connects them to participants. Human answers retain each source, reviewer, and revision.</p></section>`;
+  body += await PSYCONWorkflow.participants(detail);
+  if (session.error) body += `<div class="notice error">${esc(session.error)}</div>`;
+  body += `<section class="panel session-pane" data-session-pane="overview"><div class="section-head"><h2>Processing record</h2><span class="muted">${esc(session.context)} · ${esc(session.split)}</span></div><div class="stage-list">${detail.stages.map(s => `<details><summary>${esc(nice(s.name))} ${badge(s.status)}</summary><pre>${esc(JSON.stringify(s.output || {error: s.error}, null, 2))}</pre></details>`).join("")}</div><details><summary>Original metadata, model versions, and configuration</summary><pre>${esc(JSON.stringify(session, null, 2))}</pre></details></section>`;
+  if (detail.stages.some(s => s.name === "preprocessing" && s.status === "complete")) body += `<section class="panel session-player"><div class="player-head"><h2>Conversation audio</h2><a href="/api/instrument/sessions/${esc(session.id)}/audio?original=1">Original file</a></div><audio id="session-audio" controls preload="metadata" src="/api/instrument/sessions/${esc(session.id)}/audio"></audio><details><summary>Speaker timeline</summary>${timeline(detail)}</details></section>`;
+  if (detail.speakers.length) body += `<section class="panel session-pane" data-session-pane="overview"><div class="section-head"><div><h2>Speaker mapping</h2><p>Map the same person across sessions to build their baseline.</p></div></div><details><summary>Edit speaker names and connect personal history</summary><div class="mapping-list">${detail.speakers.map(s => `<form class="mapping-form" data-speaker-form="${esc(s.id)}"><h3>${esc(s.label)}</h3><label>Display name<input name="display_name" value="${esc(s.display_name)}" maxlength="100" required></label><label>Longitudinal person<select name="profile_id"><option value="">Unmapped</option>${state.profiles.map(p => `<option value="${esc(p.id)}" ${p.id === s.profile_id ? "selected" : ""}>${esc(p.label)}</option>`).join("")}</select></label><label>Mapping reviewer code<input name="reviewer_id" placeholder="Required when changing personal history"></label><button type="submit">Save reviewed mapping</button></form>`).join("")}</div></details></section>`;
+  if (detail.utterances.length) body += `<section class="panel session-pane" data-session-pane="transcript"><div class="section-head"><h2>Speaker-attributed transcript</h2><a href="/api/instrument/sessions/${esc(session.id)}/export/transcript">Export transcript</a></div><div class="controls transcript-filter"><input type="search" id="transcript-search" aria-label="Search transcript" placeholder="Find words in this conversation"><span class="transcript-count" id="transcript-count" role="status">${detail.utterances.length} excerpts</span></div><div id="transcript-results">${transcriptRows(detail.utterances, detail.speakers)}</div></section>`;
+
+  if (report) body += `<div class="controls speaker-focus"><label>Speaker<select id="analysis-speaker">${detail.speakers.map(s => `<option value="${esc(s.id)}" ${s.id === activeSpeaker ? "selected" : ""}>${esc(s.display_name)}</option>`).join("")}</select></label><span class="speaker-focus-note">Talking patterns, human observations, and predictions follow your selected speaker.</span></div><div class="session-pane" data-session-pane="measurements">${talkingPatterns(report)}${marksheetComparison(report)}</div><div class="two-column session-pane" data-session-pane="measurements"><section class="panel"><div class="section-head"><h2>Estimated behavior indicators</h2>${badge("estimated")}</div>${traitRows(report.traits) || '<p class="muted">No supported trait indicators.</p>'}</section><section class="panel"><h2>Personal changes</h2><p class="muted">${esc(report.baseline.reason)}</p><p>Eligible previous sessions: ${report.baseline.sample_count}</p>${report.deviations.length ? deviationsTable(report.deviations) : '<p class="muted">No substantial descriptive deviations established.</p>'}<details><summary>Inspect context-specific baseline statistics</summary><pre>${esc(JSON.stringify(report.baseline, null, 2))}</pre></details><details><summary>Inspect global baseline</summary><pre>${esc(JSON.stringify(report.global_baseline, null, 2))}</pre></details></section></div><div class="two-column session-pane" data-session-pane="measurements"><section class="panel"><details class="optional-comparison"><summary>Optional exploratory reference comparison</summary><div class="section-head"><h2>Reference comparison</h2><span class="muted">Selected goal: ${esc(report.target_archetype)}</span></div>${comparisonBars(report.archetypes)}<details><summary>Calculation, dimensions, and reference provenance</summary><pre>${esc(JSON.stringify(report.archetypes, null, 2))}</pre></details></details></section><section class="panel"><h2>Group interaction map</h2>${interactionGraph(detail)}</section></div><section class="panel session-pane" data-session-pane="measurements"><div class="section-head"><h2>Speaker feature table</h2><a href="#archetypes">Feature definitions →</a></div>${featuresTable(report.features)}</section>${PSYCONWorkflow.predictions(report)}${await speakerReportWorkspace(report)}`;
+  body += `<section class="panel session-pane" data-session-pane="overview"><h2>Export & reproduce</h2><p class="muted">Exports include actual stage states. An incomplete session never becomes a fabricated report.</p><div class="controls">${["json", "csv", "rttm", "transcript", "zip"].map(format => `<a class="button-link" href="/api/instrument/sessions/${esc(session.id)}/export/${format}">${esc(format.toUpperCase())}</a>`).join("")}</div></section>`;
+  return body;
+}
+function deviationsTable(rows) { return `<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Historical median</th><th>Current</th><th>History</th></tr></thead><tbody>${rows.map(r => `<tr><td>${esc(nice(r.feature))}</td><td>${number(r.median)}</td><td>${number(r.current)}</td><td>${r.sample_count} sessions · ${esc(r.confidence)} confidence</td></tr>`).join("")}</tbody></table></div><p class="muted">A deviation is a descriptive difference, not a judgment or proof of improvement.</p>`; }
+function lineChart(series, feature) {
+  const values = series.map((s, i) => ({x: 55 + i / Math.max(1, series.length - 1) * 730, value: s.report.features.find(f => f.name === feature)?.value, label: s.speaker.filename})).filter(p => p.value !== null && p.value !== undefined);
+  if (!values.length) return "";
+  const min = Math.min(0, ...values.map(p => p.value)), max = Math.max(1, ...values.map(p => p.value));
+  const y = v => 155 - (v - min) / (max - min) * 120;
+  return `<svg class="chart" viewBox="0 0 820 190" role="img" aria-label="${esc(nice(feature))} across chronological sessions; exact values in the table"><text x="8" y="38">${number(max)}</text><text x="8" y="158">${number(min)}</text><polyline points="${values.map(p => `${p.x},${y(p.value)}`).join(" ")}"/>${values.map((p, i) => `<circle cx="${p.x}" cy="${y(p.value)}" r="4"><title>${esc(p.label)}: ${number(p.value)}</title></circle><text x="${p.x}" y="180" text-anchor="middle">${i + 1}</text>`).join("")}</svg>`;
+}
+async function profileView(traitsOnly = false) {
+  if (!selectedPerson) return empty("Connect a person to their conversations", "Add a person and map their speaker label in each processed session. The same person needs several independent recordings to establish recurring patterns and a baseline.", '<button class="primary" data-add-person>Add a person</button>');
+  const person = await api(`/profiles/${selectedPerson}`);
+  if (traitsOnly) return `<section class="panel"><div class="section-head"><h2>${esc(person.person.label)} · recurring traits</h2>${badge(person.maturity)}</div>${traitRows(person.recurring_traits, true) || empty("Evidence is still accumulating", "An observable indicator must occur in at least three independent sessions. Five prior comparable conversations are required for a baseline.")}</section>`;
+  if (!person.series.length) return empty("No linked sessions yet", "Open a processed session and map its speaker label to this person. Anonymous speakers remain session-specific until explicitly mapped.", '<a class="button-link" href="#sessions">Open sessions</a>');
+  const features = ["speaking_share", "question_rate", "acknowledgement_ratio", "hedging_ratio", "proposal_rate", "interruption_candidate_rate"];
+  const latest = person.series.at(-1).report;
+  return `<div class="stat-strip"><div class="stat"><span>Person</span><strong>${esc(person.person.label)}</strong></div><div class="stat"><span>Linked conversations</span><strong>${person.session_count}</strong></div><div class="stat"><span>Previous comparable sessions</span><strong>${latest.baseline.sample_count}</strong><small>${esc(latest.baseline.status)}</small></div></div><div class="two-column"><section class="panel"><h2>Recurring indicators</h2>${traitRows(person.recurring_traits, true) || '<p class="muted">No recurring indicators established.</p>'}</section><section class="panel"><h2>Latest deviations</h2>${latest.deviations.length ? deviationsTable(latest.deviations) : `<p class="muted">${esc(latest.baseline.reason)}</p>`}</section></div><section class="panel"><div class="section-head"><h2>Longitudinal measurements</h2><label>Feature <select id="longitudinal-feature">${features.map(f => `<option value="${f}">${esc(nice(f))}</option>`).join("")}</select></label></div><div id="longitudinal-chart">${lineChart(person.series, features[0])}</div><div class="table-wrap"><table><thead><tr><th>Session</th><th>Context</th>${features.map(f => `<th>${esc(nice(f))}</th>`).join("")}</tr></thead><tbody>${person.series.map(s => `<tr><td><button data-session="${esc(s.speaker.session_id)}">${esc(s.speaker.filename)}</button><small>${esc(new Date(s.speaker.recorded_at).toLocaleDateString())}</small></td><td>${esc(s.speaker.context)}</td>${features.map(f => `<td>${number(s.report.features.find(m => m.name === f)?.value)}</td>`).join("")}</tr>`).join("")}</tbody></table></div></section><section class="panel"><h2>Compare two sessions</h2><div class="controls"><label>Earlier<select id="compare-a">${person.series.map(s => `<option value="${esc(s.speaker.id)}">${esc(s.speaker.filename)}</option>`).join("")}</select></label><label>Later<select id="compare-b">${person.series.map((s, i) => `<option value="${esc(s.speaker.id)}" ${i === person.series.length - 1 ? "selected" : ""}>${esc(s.speaker.filename)}</option>`).join("")}</select></label><button id="compare-sessions">Compare measurements</button></div><div id="comparison-result"></div><p class="muted">Each session keeps its own historical baseline. Differences alone do not establish causation.</p></section>`;
+}
+async function archetypes() {
+  const data = await api("/archetypes");
+  const dictionary = await api("/dictionary");
+  let latest = null;
+  if (selectedPerson) { const person = await api(`/profiles/${selectedPerson}`); latest = person.series.at(-1)?.report; }
+  let body = `<div class="notice">The selected target is a user-defined comparison goal. Exploratory frameworks are not validated occupational profiles. Group-derived references preserve corpus provenance and recording counts.</div>`;
+  const target = $("#target-select").value;
+  const ordered = [...data.archetypes].sort((a, b) => b.name.startsWith(target) - a.name.startsWith(target));
+  body += ordered.map(a => { const comparison = latest?.archetypes.find(r => r.archetype.id === a.id); return `<section class="panel"><div class="section-head"><div><h2>${esc(a.name)}${a.name.startsWith(target) ? " · selected target" : ""}</h2><p>${esc(a.source)} · ${a.sample_count} independent recordings · version ${esc(a.version)}</p></div>${badge(a.status)}</div><p class="muted">${esc(a.limitations)}</p><div class="legend"><span>Your latest profile</span><span class="reference">Reference profile</span></div><div class="bars">${a.features.map(f => { const d = comparison?.dimensions.find(d => d.name === f.name); return `<div class="bar-row"><span>${esc(nice(f.name))}</span><div><div class="bar-track"><div class="bar-fill" style="width:${(d?.person || 0) * 100}%"></div></div><div class="bar-track ref-track"><div class="bar-fill" style="width:${f.center * 100}%"></div></div></div><strong>${d ? number(d.person) : "N/A"} / ${number(f.center)}</strong></div>`; }).join("")}</div><p class="muted">${comparison?.similarity != null ? `${number(comparison.similarity, 1)}% similarity across ${comparison.selected_dimension_count} selected dimensions. ` : "No eligible personal comparison available. "}Similarity depends on the selected feature space and its prototype normalization.</p><details><summary>Reference feature distributions and source records</summary><pre>${esc(JSON.stringify(a, null, 2))}</pre></details></section>`; }).join("");
+  body += `<section class="panel"><h2>Construct a group-discussion reference</h2><p class="muted">Select speakers from at least three independent recordings in the reference split. The result uses actual feature distributions and remains exploratory.</p><form id="reference-form"><div class="form-grid"><label>Reference name<input name="name" required placeholder="Proposal-oriented group discussion reference"></label><label>Selection framework / corpus source<input name="source" required placeholder="Group corpus v1, selection criteria…"></label></div><div class="checkbox-list">${data.reference_speakers.length ? data.reference_speakers.map(s => `<label><input type="checkbox" name="speaker_ids" value="${esc(s.id)}">${esc(s.display_name)} · ${esc(s.filename)}</label>`).join("") : '<p class="muted">Upload reference recordings or import existing group analysis first.</p>'}</div><button class="primary" type="submit">Build empirical reference</button></form></section><section class="panel"><h2>Feature dictionary & mathematical method</h2><p class="mono">${esc(data.method)}</p><p class="muted">Unavailable dimensions are omitted. At least three shared dimensions are required; missing values never become zero.</p><details><summary>Normalization definitions</summary><pre>${esc(JSON.stringify(data.normalization, null, 2))}</pre></details><div class="table-wrap"><table><thead><tr><th>Feature</th><th>Definition / calculation</th><th>Unit</th><th>Confidence</th></tr></thead><tbody>${Object.entries(dictionary.features).map(([name, d]) => `<tr><td>${esc(nice(name))}</td><td>${esc(d.description)}<small>${esc(d.calculation)}</small></td><td>${esc(d.unit)}</td><td>${esc(d.confidence)}</td></tr>`).join("")}</tbody></table></div></section>`;
+  return body;
+}
+async function evidenceView() {
+  const data = await api("/evidence");
+  return `<div class="controls evidence-search-controls"><input id="evidence-search" aria-label="Search evidence" placeholder="Search an excerpt or feature…"><button id="search-evidence">Search</button><small>Up to 500 matching records</small></div><section class="panel"><div id="evidence-results">${evidenceTable(data.evidence)}</div></section>`;
+}
+function evidenceTable(rows) { return rows.length ? `<div class="table-wrap"><table><thead><tr><th>Speaker / session</th><th>Time</th><th>Feature</th><th>Excerpt</th><th></th></tr></thead><tbody>${rows.map(e => `<tr><td>${esc(e.display_name)}<small>${esc(e.filename)}</small></td><td class="mono">${time(e.start)}</td><td>${esc(nice(e.feature))}<small>${esc(e.level)}</small></td><td>${esc(e.text)}</td><td><button data-evidence="${esc(JSON.stringify([e.id]))}">Inspect →</button></td></tr>`).join("")}</tbody></table></div>` : empty("No matching evidence", "Evidence records appear after feature extraction succeeds. Search observable marker names or words from the transcript."); }
+function runsTable(rows) { return `<div class="table-wrap"><table><thead><tr><th>Condition</th><th>Model</th><th>Status</th><th>Result</th></tr></thead><tbody>${rows.map(r => `<tr><td>${esc(r.condition)}</td><td>${esc(r.model)}</td><td>${badge(r.status)}${r.error ? `<small>${esc(r.error)}</small>` : ""}</td><td><button data-run-view="${esc(r.id)}">Inspect run</button>${r.blind_id && r.status === "complete" ? ` <a href="/review/${esc(r.blind_id)}" target="_blank" rel="noopener">Blinded review ↗</a>` : ""}</td></tr>`).join("")}</tbody></table></div>`; }
+async function research() {
+  const data = await api("/research");
+  const complete = state.sessions.filter(s => s.status === "complete" && s.split !== "reference");
+  const reviewed = data.systems.filter(s => s.metrics.grounding !== null);
+  const chart = document.createElement("section");
+  chart.className = "panel";
+  chart.innerHTML = `<h2>Reviewer grounding ratings</h2><p class="muted">Mean ordinal rating from independent annotations, on a 0–4 scale. These ratings do not establish scientific validity.</p>${reviewed.length ? `<div class="bars">${reviewed.map(s => `<div class="bar-row"><span>${esc(s.name)}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.max(0, Math.min(100, s.metrics.grounding / 4 * 100))}%"></div></div><strong>${number(s.metrics.grounding)} / 4</strong></div>`).join("")}</div>` : '<p class="muted">Not evaluated yet. The chart will appear after reviewers submit ratings.</p>'}`;
+  const chartHtml = chart.outerHTML;
+  return `<section class="panel"><div class="section-head"><div><h2>Three-way system comparison</h2><p>Same speaker, transcript window, model digest, and decoding configuration</p></div><a href="/api/instrument/research/export">Export evaluation data →</a></div><div class="table-wrap"><table><thead><tr><th>System</th><th>Grounding</th><th>Unsupported claims</th><th>Attribution</th><th>Context</th><th>Archetype agreement</th><th>Usefulness</th><th>Reviewers</th></tr></thead><tbody>${data.systems.map(s => `<tr><td>${esc(s.name)}<small>${esc(s.status)} · ${s.complete}/${s.runs} completed runs</small></td><td>${s.metrics.grounding === null ? "Not evaluated yet" : number(s.metrics.grounding) + " / 4"}</td><td>${s.unsupported_claim_proportion === null ? "Not evaluated yet" : number(s.unsupported_claim_proportion * 100) + "%"}</td><td>${number(s.metrics.attribution)}</td><td>${number(s.metrics.contextual_appropriateness)}</td><td>${number(s.metrics.archetype_agreement)}</td><td>${number(s.metrics.usefulness)}</td><td>${s.reviewers}</td></tr>`).join("")}</tbody></table></div><p class="muted">${esc(data.metric_definition)}</p></section>${chartHtml}<section class="panel"><h2>Queue a matched comparison</h2><div class="controls"><label>Session<select id="research-session"><option value="">Select a completed analysis session</option>${complete.map(s => `<option value="${esc(s.id)}">${esc(s.filename)}</option>`).join("")}</select></label><label>Speaker<select id="research-speaker"><option value="">Select session first</option></select></label><button class="primary" id="research-run">Run A / B / C</button></div><p class="muted">The processing worker performs real local LLM calls. Failed or rejected outputs are retained for audit and excluded from valid reports.</p></section><section class="panel"><h2>Experiments</h2><div class="table-wrap"><table><thead><tr><th>Experiment</th><th>Comparison</th><th>State</th></tr></thead><tbody>${data.experiments.map(e => `<tr><td>${esc(e.name)}</td><td>${esc(e.comparison)}</td><td>${esc(e.status)}</td></tr>`).join("")}</tbody></table></div><p class="muted">${esc(data.split_strategy)}</p></section><section class="panel"><h2>Interpretation runs & blinded review</h2>${data.runs.length ? runsTable(data.runs.filter(r=>["complete","queued","running"].includes(r.status))) + (data.runs.some(r=>["failed","stale"].includes(r.status)) ? `<details><summary>Earlier failed and superseded runs</summary>${runsTable(data.runs.filter(r=>["failed","stale"].includes(r.status)))}</details>` : "") : '<p class="muted">No benchmark runs yet. Independent reviewers will receive reports without system labels.</p>'}</section><section class="panel"><h2>Inter-rater agreement</h2>${data.agreement.length ? `<div class="table-wrap"><table><thead><tr><th>Reviewers</th><th>Criterion</th><th>Paired ratings</th><th>Quadratic weighted κ</th></tr></thead><tbody>${data.agreement.map(r => `<tr><td>${esc(r.reviewers.join(" / "))}</td><td>${esc(nice(r.criterion))}</td><td>${r.paired_items}</td><td>${number(r.quadratic_weighted_cohen_kappa)}<small>${esc(r.status)}</small></td></tr>`).join("")}</tbody></table></div>` : '<p class="muted">Not evaluated yet. At least two independent reviewers must rate common items; invariant ratings cannot establish a meaningful kappa.</p>'}</section><section class="panel"><h2>Feature reliability</h2>${data.feature_reliability.length ? `<pre>${esc(JSON.stringify(data.feature_reliability, null, 2))}</pre>` : '<p class="muted">Not evaluated yet. Add independently annotated numeric feature values to calculate absolute error.</p>'}<form id="feature-annotation-form"><div class="form-grid"><label>Speaker ID<input name="speaker_id" required placeholder="Copy from the session speaker metadata"></label><label>Reviewer ID<input name="reviewer_id" required></label><label>Feature<input name="feature" required placeholder="speaking_share"></label><label>Human reference value<input type="number" step="any" name="expected" required></label></div><button type="submit">Save independent annotation</button></form></section>`;
+}
+async function render() {
+  const version = ++renderVersion;
+  const retainedAudio = $("#session-audio");
+  const resumeAudio = retainedAudio && !retainedAudio.paused;
+  const route = routeState();
+  page = titles[route.page] ? route.page : "dashboard";
+  selectedSession = page === "sessions" ? route.sessionId || null : null;
+  sessionPane = route.pane;
+  $("#page-title").textContent = titles[page][0]; $("#page-description").textContent = titles[page][1]; $("#breadcrumb").textContent = document.querySelector(`[data-page="${page}"]`)?.textContent.trim() || titles[page][0];
+  $("#view").dataset.page = page;
+  document.querySelectorAll("[data-page]").forEach(a => { if (a.dataset.page === page) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+  $("#view").innerHTML = '<div class="skeleton" role="status" aria-label="Loading records"><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div>';
+  try {
+    const html = await ({dashboard, sessions, profile: () => profileView(), traits: () => profileView(true), archetypes, evidence: evidenceView, research, training: () => PSYCONWorkflow.training()}[page])();
+    if (version === renderVersion) {
+      $("#view").innerHTML = html;
+      if (["training","research","archetypes","profile"].includes(page)) {
+        const headings=[...$("#view").querySelectorAll(":scope > .panel > h2, :scope > .panel > .section-head h2")];
+        if (headings.length > 3) {
+          headings.forEach((heading,index) => {heading.id=`workspace-${page}-${index}`;heading.tabIndex=-1;});
+          $("#view").insertAdjacentHTML("afterbegin",`<nav class="workspace-outline" aria-label="Page sections">${headings.map(h => `<button type="button" data-scroll-section="${esc(h.id)}" aria-controls="${esc(h.id)}">${esc(h.textContent)}</button>`).join("")}</nav>`);
+        }
+      }
+      document.querySelectorAll(".table-wrap, .timeline-shell").forEach(region => {
+        region.tabIndex = 0;
+        region.setAttribute("role", "region");
+        region.setAttribute("aria-label", (region.closest(".panel")?.querySelector("h2")?.textContent || "Data") + " - scrollable view");
+      });
+      if (page === "sessions" && currentDetail && selectedSession) {
+        const session = currentDetail.session;
+        $("#view").insertAdjacentHTML("beforeend", `<section class="panel session-pane" data-session-pane="overview"><details><summary>Edit session metadata</summary><p class="muted">Correct individual recording dates after a batch upload. Changing dates, context, or identities invalidates historical comparisons.</p><form id="metadata-form" data-session-id="${esc(session.id)}"><div class="form-grid"><label>Actual recording time<input name="recorded_at" value="${esc(session.recorded_at)}" required></label><label>Context<input name="context" value="${esc(session.context)}" required></label><label>Topic<input name="topic" value="${esc(session.topic)}"></label><label>Dataset<input name="dataset" value="${esc(session.dataset)}" required></label><label>Data split<select name="split">${["development","validation","evaluation","reference"].map(s=>`<option value="${s}" ${session.split===s?'selected':''}>${s}</option>`).join("")}</select></label><label>Consent status<select name="consent">${["not documented","documented","public licensed","self recording"].map(s=>`<option value="${s}" ${session.consent===s?'selected':''}>${s}</option>`).join("")}</select></label></div><label>Anonymous participant IDs<input name="participant_ids" value="${esc(session.participant_ids.join(", "))}"></label><label>Recording conditions<textarea name="conditions">${esc(session.conditions)}</textarea></label><button type="submit">Save session metadata</button></form></details></section>`);
+        const report = currentDetail.reports.find(r=>r.speaker.id===activeSpeaker);
+        if (report && (report.coaching.length || report.archetype_coaching.length)) $("#view").insertAdjacentHTML("beforeend", `<details class="panel session-pane measured-adjustments" data-session-pane="analysis"><summary>Measured changes and goal-specific adjustments</summary>${[...report.coaching,...report.archetype_coaching].map(c=>`<div class="trait-row"><div><p>${esc(c.observation)}</p><p>Possible adjustment: ${esc(c.suggestion)}</p><small>${esc(c.confidence)} confidence · goal/context dependent</small></div><button data-evidence="${esc(JSON.stringify(c.evidence_ids))}">Inspect evidence</button></div>`).join("")}</details>`);
+      }
+      const nextAudio = $("#session-audio");
+      if (retainedAudio && nextAudio?.getAttribute("src") === retainedAudio.getAttribute("src")) {
+        nextAudio.replaceWith(retainedAudio);
+        if (resumeAudio) retainedAudio.play().catch(() => {});
+      } else retainedAudio?.pause();
+      applySessionPane();
+    }
+  } catch (error) { if (version === renderVersion) { $("#view").innerHTML = empty("This view could not load", error.message); notice(error.message, true); } }
+}
+async function showEvidence(ids) {
+  $("#evidence-detail").innerHTML = '<p class="loading">Retrieving source evidence…</p>'; $("#evidence-dialog").showModal();
+  try {
+    const records = await Promise.all(ids.slice(0, 30).map(id => api(`/evidence/${encodeURIComponent(id)}`)));
+    $("#evidence-detail").innerHTML = `<p class="muted">${ids.length} linked records. Showing ${records.length}. Marker estimates and inferences remain distinct from observations.</p>` + records.map(e => `<div class="evidence-quote"><div class="controls">${badge(e.level)}<span>${esc(e.display_name)} · ${esc(e.filename)}</span><span class="mono">${time(e.start)}–${time(e.end)}</span></div><blockquote>${esc(e.text)}</blockquote><small>${esc(nice(e.feature))} · ${esc(e.confidence)} confidence</small><div class="context"><strong>Conversation context</strong><p>${esc(e.context.session_context || "not supplied")} · Topic: ${esc(e.context.topic || "not annotated")} · Overlap: ${esc(e.context.overlap ?? "not annotated")}</p>${e.context.preceding ? `<p>Before (${esc(e.context.preceding.display_name || "Unattributed")}): ${esc(e.context.preceding.text)}</p>` : ""}${e.context.following ? `<p>After (${esc(e.context.following.display_name || "Unattributed")}): ${esc(e.context.following.text)}</p>` : ""}</div><audio controls preload="none" src="/api/instrument/sessions/${esc(e.session_id)}/audio#t=${e.start},${e.end}"></audio><button data-session="${esc(e.session_id)}">Inspect source session →</button><details class="evidence-id"><summary>Source record ID</summary><small class="mono">${esc(e.id)}</small></details></div>`).join("");
+    const reviewable = records.filter(e => e.behavior_types);
+    if (reviewable.length) $("#evidence-detail").insertAdjacentHTML("beforeend", `<details><summary>Annotate an observable event</summary><p class="muted">Manual annotations extend the feature layer. Their rates are labeled as partial annotation coverage.</p><form id="behavior-review-form"><label>Source excerpt<select name="evidence_id">${reviewable.map(e => `<option value="${esc(e.id)}">${time(e.start)} · ${esc(e.text.slice(0, 80))}</option>`).join("")}</select></label><div class="form-grid"><label>Event type<select name="kind">${reviewable[0].behavior_types.map(k => `<option value="${esc(k)}">${esc(nice(k))}</option>`).join("")}</select></label><label>Reviewer ID<input name="reviewer_id" required></label><label>Interaction target<select name="target_speaker_id"><option value="">No directed target</option>${reviewable[0].session_speakers.map(s => `<option value="${esc(s.id)}">${esc(s.display_name)}</option>`).join("")}</select></label><label>Conversational phase<input name="phase" placeholder="Disagreement, proposal, decision…"></label></div><label>Topic<input name="topic" placeholder="Topic during this exchange"></label><label>Observation notes<textarea name="notes"></textarea></label><button type="submit" class="primary">Save observable event</button></form></details>`);
+  } catch (error) { $("#evidence-detail").textContent = error.message; }
+}
+async function showRun(id) {
+  $("#run-detail").innerHTML = '<p class="loading">Loading report...</p>'; $("#run-dialog").showModal();
+  try {
+    const run = await api(`/runs/${id}`);
+    const speakerName = currentDetail?.speakers.find(s => s.id === run.speaker_id)?.display_name || "Selected speaker";
+    const names = {A:"Transcript-only comparison", B:"Structured-context comparison", C:"Full PSYCON report"};
+    $("#run-title").textContent = run.status === "complete" ? "Communication report" : "Report attempt";
+    $("#run-detail").innerHTML = `<p class="report-scope">${esc(names[run.condition])} / ${esc(nice(run.status))}</p>${run.status === "complete" ? `<audio class="report-audio" controls preload="metadata" src="/api/instrument/sessions/${esc(run.session_id)}/audio"></audio>${communicationReportContent(run, speakerName)}` : `<div class="report-start"><h3>${run.status === "stale" ? "This report is no longer current." : ["queued","running"].includes(run.status) ? "This report is being prepared." : "A report could not be created."}</h3><p>${esc(run.error || "Return to the speaker's Report section to check its progress.")}</p></div>`}<details class="report-history"><summary>Research details and raw data</summary><p>Model: ${esc(run.model)}. This generated interpretation still needs independent review of its evidence support.</p>${run.blind_id && run.status === "complete" ? `<a href="/review/${esc(run.blind_id)}" target="_blank" rel="noopener">Independent reviewer form &nearr;</a>` : ""}<pre>${esc(JSON.stringify(run, null, 2))}</pre></details>`;
+  } catch (error) { $("#run-detail").innerHTML = empty("The report could not be loaded", error.message); }
+}
+async function queue(speakerId, condition) {
+  if (!speakerId) throw new Error("Select a speaker first");
+  const result = await api(`/speakers/${speakerId}/runs`, {method:"POST", body:JSON.stringify({conditions:condition === "ABC" ? ["A","B","C"] : [condition]})});
+  notice(condition === "ABC" ? "Research comparison queued. You can follow its progress in Research or report history." : "Your communication report is queued. It will appear here when the local worker finishes."); await render();
+}
+document.addEventListener("click", async event => {
+  const button = event.target.closest("button,a[data-page],rect[data-seek]");
+  if (!button) return;
+  try {
+    if (button.dataset.scrollSection) {
+      const heading=document.getElementById(button.dataset.scrollSection);
+      heading?.scrollIntoView({block:"start",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+      heading?.focus({preventScroll:true});
+    }
+    if (button.hasAttribute("data-dismiss-notice")) $("#notice").hidden = true;
+    if (button.hasAttribute("data-clear-session-filters")) { sessionSearch = sessionStatus = sessionDataset = ""; await render(); }
+    if (button.dataset.close) $("#" + button.dataset.close).close();
+    if (button.id === "upload-open" || button.hasAttribute("data-upload")) $("#upload-dialog").showModal();
+    if (button.id === "add-person" || button.hasAttribute("data-add-person")) $("#person-dialog").showModal();
+    if (button.dataset.page === "sessions") selectedSession = null;
+    if (button.dataset.session) { document.querySelectorAll("dialog[open]").forEach(d => d.close()); activeSpeaker = null; const target = `sessions/${button.dataset.session}/overview`; if (location.hash.slice(1) === target) await render(); else location.hash = target; }
+    if (button.hasAttribute("data-back-sessions")) location.hash = "sessions";
+    if (button.dataset.seek) { const audio = button.closest("#run-dialog")?.querySelector("audio") || $("#session-audio"); if (audio) { audio.currentTime = Number(button.dataset.seek); await audio.play(); } }
+    if (button.dataset.evidence) await showEvidence(JSON.parse(button.dataset.evidence));
+    if (button.dataset.runView) await showRun(button.dataset.runView);
+    if (button.dataset.run) { button.disabled = true; button.setAttribute("aria-busy", "true"); await queue(button.dataset.run, button.dataset.condition); }
+    if (button.id === "research-run") { button.disabled = true; button.setAttribute("aria-busy", "true"); await queue($("#research-speaker").value, "ABC"); }
+    if (button.dataset.retry) { await api(`/sessions/${button.dataset.retry}/retry`, {method:"POST"}); notice("Session queued for retry; completed speech model outputs will be reused."); await refreshState(); await render(); }
+    if (button.dataset.delete && confirm("Delete this session's original media, transcript, evidence, and derived analysis? This cannot be undone.")) { await api(`/sessions/${button.dataset.delete}`, {method:"DELETE"}); selectedSession = null; notice("Session deleted. Historical baselines and derived comparisons were invalidated."); await refreshState(); await render(); }
+    if (button.id === "search-evidence") { const result = await api(`/evidence?q=${encodeURIComponent($("#evidence-search").value)}`); $("#evidence-results").innerHTML = evidenceTable(result.evidence); }
+    if (button.id === "compare-sessions") {
+      const person = await api(`/profiles/${selectedPerson}`), a = person.series.find(s => s.speaker.id === $("#compare-a").value), b = person.series.find(s => s.speaker.id === $("#compare-b").value);
+      $("#comparison-result").innerHTML = `<div class="table-wrap"><table><thead><tr><th>Feature</th><th>Session A</th><th>Session B</th><th>Difference B − A</th></tr></thead><tbody>${a.report.features.filter(f => f.value !== null).map(f => { const v = b.report.features.find(r => r.name === f.name)?.value; return `<tr><td>${esc(nice(f.name))}</td><td>${number(f.value)}</td><td>${number(v)}</td><td>${v === null || v === undefined ? "Unavailable" : number(v - f.value)}</td></tr>`; }).join("")}</tbody></table></div><div class="controls"><button data-run="${esc(b.speaker.id)}" data-condition="C">Interpret later session against its prior baseline</button><button data-session="${esc(a.speaker.session_id)}">Inspect A evidence</button><button data-session="${esc(b.speaker.session_id)}">Inspect B evidence</button></div>`;
+    }
+  } catch (error) { notice(error.message, true); } finally { if (button.isConnected) { button.disabled = false; button.removeAttribute("aria-busy"); } }
+});
+document.addEventListener("change", async event => {
+  try {
+    if (event.target.id === "person-select") { selectedPerson = event.target.value; await refreshState(); await render(); }
+    if (event.target.id === "target-select") { const role = event.target.value; await api("/settings", {method:"PATCH", body:JSON.stringify({target_archetype:role})}); if (selectedPerson) await api(`/profiles/${selectedPerson}`, {method:"PATCH", body:JSON.stringify({target_archetype:role})}); await refreshState(); notice(`Comparison goal set to ${role}; this is not an identity label.`); await render(); }
+    if (event.target.id === "analysis-speaker") { activeSpeaker = event.target.value; await render(); $("#analysis-speaker")?.focus(); }
+    if (event.target.id === "status-filter") { sessionStatus = event.target.value; updateSessionList(); }
+    if (event.target.id === "dataset-filter") { sessionDataset = event.target.value; updateSessionList(); }
+    if (event.target.id === "longitudinal-feature") { const person = await api(`/profiles/${selectedPerson}`); $("#longitudinal-chart").innerHTML = lineChart(person.series, event.target.value); }
+    if (event.target.id === "research-session") { const session = await api(`/sessions/${event.target.value}`); $("#research-speaker").innerHTML = session.speakers.map(s => `<option value="${esc(s.id)}">${esc(s.display_name)}</option>`).join(""); }
+  } catch (error) { notice(error.message, true); }
+});
+document.addEventListener("submit", async event => {
+  const form = event.target; event.preventDefault(); const button = $("button[type=submit]", form); if (button) { button.disabled = true; button.setAttribute("aria-busy", "true"); }
+  try {
+    const data = new FormData(form);
+    if (form.id === "upload-form") { const metadata = Object.fromEntries(data.entries()); delete metadata.recordings; metadata.recorded_at = new Date(metadata.recorded_at).toISOString(); metadata.participant_ids = metadata.participant_ids.split(",").map(s => s.trim()).filter(Boolean); const upload = new FormData(); for (const file of data.getAll("recordings")) upload.append("recordings", file); upload.append("metadata", JSON.stringify(metadata)); const result = await api("/sessions", {method:"POST", body:upload}); $("#upload-dialog").close(); notice(`${result.sessions.length} session(s) queued.${result.errors.length ? "\n" + result.errors.map(e => `${e.filename}: ${e.error}`).join("\n") : ""}`); selectedSession = null; location.hash = "sessions"; await refreshState(); await render(); }
+    if (form.id === "person-form") { const result = await api("/profiles", {method:"POST", body:JSON.stringify(Object.fromEntries(data))}); selectedPerson = result.id; $("#person-dialog").close(); form.reset(); await refreshState(); await render(); notice("Person created. Map their speaker label in each session to connect history."); }
+    if (form.dataset.speakerForm) { await api(`/speakers/${form.dataset.speakerForm}`, {method:"PATCH", body:JSON.stringify(Object.fromEntries(data))}); await render(); notice("Speaker mapping saved. Derived history will be rebuilt from eligible previous sessions."); }
+    if (form.id === "reference-form") { await api("/archetypes", {method:"POST", body:JSON.stringify({name:data.get("name"), source:data.get("source"), speaker_ids:data.getAll("speaker_ids")})}); await render(); notice("Exploratory reference constructed from actual recording-level feature distributions."); }
+    if (form.id === "feature-annotation-form") { const body = Object.fromEntries(data); body.expected = Number(body.expected); await api("/feature-annotations", {method:"POST", body:JSON.stringify(body)}); await render(); notice("Independent numeric feature annotation saved."); }
+    if (form.id === "behavior-review-form") { const body = Object.fromEntries(data); const evidenceId = body.evidence_id; delete body.evidence_id; await api(`/evidence/${evidenceId}/annotations`, {method:"POST", body:JSON.stringify(body)}); notice("Observable event saved with partial annotation coverage. Historical comparisons were invalidated."); $("#evidence-dialog").close(); await render(); }
+    if (form.id === "metadata-form") { const body = Object.fromEntries(data); body.participant_ids = body.participant_ids.split(",").map(s=>s.trim()).filter(Boolean); await api(`/sessions/${form.dataset.sessionId}`, {method:"PATCH", body:JSON.stringify(body)}); await refreshState(); await render(); notice("Metadata updated. Historical and contextual comparisons will be rebuilt."); }
+  } catch (error) { notice(error.message, true); } finally { if (button?.isConnected) { button.disabled = false; button.removeAttribute("aria-busy"); } }
+});
+window.addEventListener("hashchange", () => {
+  document.querySelectorAll("dialog[open]").forEach(d => d.close());
+  const route = routeState();
+  if (route.page === "sessions" && route.sessionId && route.sessionId === selectedSession && currentDetail?.session.id === route.sessionId) {
+    const allowed = ["overview", "participants"].includes(route.pane) || route.pane === "transcript" && currentDetail.utterances.length || ["measurements","analysis"].includes(route.pane) && currentDetail.reports.length;
+    sessionPane = allowed ? route.pane : "overview";
+    applySessionPane();
+  } else render();
+});
+document.addEventListener("input", event => {
+  if (event.target.id === "session-search") { sessionSearch = event.target.value; updateSessionList(); }
+  if (event.target.id === "transcript-search") {
+    const query = event.target.value.toLowerCase().trim();
+    const matches = currentDetail.utterances.filter(u=>u.text.toLowerCase().includes(query));
+    $("#transcript-results").innerHTML = matches.length ? transcriptRows(matches, currentDetail.speakers) : '<p class="muted">No matching excerpts. Try another word.</p>';
+    $("#transcript-count").textContent = `${matches.length} of ${currentDetail.utterances.length} excerpts`;
+  }
+});
+document.addEventListener("keydown", event => {
+  if (event.target.matches("rect[data-seek]") && ["Enter", " "].includes(event.key)) {
+    event.preventDefault(); event.target.dispatchEvent(new MouseEvent("click", {bubbles: true}));
+  }
+  if (event.target.id === "evidence-search" && event.key === "Enter") {
+    event.preventDefault(); $("#search-evidence").click();
+  }
+});
+$("#upload-form input[name=recorded_at]").value = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+refreshState().then(render).catch(error => notice(error.message, true));
+let lastRunState = "";
+setInterval(async () => {
+  if (document.hidden || document.querySelector("dialog[open]") || document.activeElement?.matches("input,select,textarea") || $("#session-audio") && !$("#session-audio").paused) return;
+  try {
+    const before = JSON.stringify(state.sessions.map(s=>[s.id,s.status]));
+    const previousSelected = state.sessions.find(s=>s.id === selectedSession)?.status;
+    await refreshState();
+    const changed = JSON.stringify(state.sessions.map(s=>[s.id,s.status])) !== before;
+    if (selectedSession) {
+      const selected = state.sessions.find(s=>s.id === selectedSession);
+      if (selected?.status !== previousSelected || selected?.status === "processing") await render();
+    } else if (changed) await render();
+    if (page === "research" || selectedSession) {
+      const data = await api("/research");
+      const signature = JSON.stringify(data.runs.filter(run=>!selectedSession || run.session_id===selectedSession).map(run=>[run.id,run.status]));
+      if (lastRunState && signature !== lastRunState) await render();
+      lastRunState = signature;
+    }
+  } catch { /* Retain readable results while the server is temporarily unavailable. */ }
+}, 8000);

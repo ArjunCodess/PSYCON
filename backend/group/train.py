@@ -14,7 +14,6 @@ from backend.db import Database
 from .errors import GroupError
 from .memory import MemoryGroupStore
 from .postgres import _public
-from .service import GroupObservationService, LOCAL_ACCOUNT_ID
 
 
 def database_snapshot(database):
@@ -51,7 +50,8 @@ def database_snapshot(database):
     return store
 
 
-def main():
+def legacy_main():
+    from .service import GroupObservationService, LOCAL_ACCOUNT_ID
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-root", type=Path, default=PROJECT_ROOT / ".runtime" / "models" / "psycon-group")
     parser.add_argument("--seed", type=int, default=42)
@@ -76,6 +76,26 @@ def main():
         return 2
     finally:
         database.close()
+
+
+def main():
+    """Compatibility command for the canonical audio/transcript snapshot trainer."""
+    import os
+    from backend.instrument.store import Store,encode
+    from backend.instrument.training import queue,process_training
+    parser=argparse.ArgumentParser(description='Fit canonical PostgreSQL participant annotation snapshots')
+    parser.add_argument('--root',default='instance/instrument')
+    parser.add_argument('--snapshot')
+    args=parser.parse_args()
+    load_project_environment(override=False)
+    store=Store(args.root,database_url=os.getenv('PSYCON_TRAINER_DATABASE_URL'),role='psycon_trainer')
+    try:
+        if args.snapshot:print(encode(queue(store,args.snapshot)))
+        result=process_training(store)
+        print(encode(result) if result else 'No queued training job')
+        return 0 if result is None or result['status']=='complete' else 2
+    finally:
+        store.pool.close()
 
 
 if __name__ == "__main__":

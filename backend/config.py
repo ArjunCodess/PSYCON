@@ -24,7 +24,7 @@ class Settings:
     @classmethod
     def from_env(cls, *, testing: bool = False) -> "Settings":
         defaults = {
-            "database_url": "postgresql://psycon:psycon@localhost:5432/psycon",
+            "database_url": "",
             "s3_endpoint_url": "http://localhost:9000",
             "s3_public_endpoint_url": "http://localhost:9000",
             "s3_access_key": "psycon",
@@ -39,6 +39,8 @@ class Settings:
             key: os.getenv(f"PSYCON_{key.upper()}", default)
             for key, default in defaults.items()
         }
+        if not values['database_url'] and not testing:
+            raise RuntimeError('PSYCON_DATABASE_URL is required; application storage is PostgreSQL only')
         upload_limit = int(os.getenv("PSYCON_MAX_GROUP_VIDEO_BYTES", str(cls.max_group_video_bytes)))
         if not 65_576 <= upload_limit <= cls.max_group_video_bytes:
             raise ValueError("PSYCON_MAX_GROUP_VIDEO_BYTES must be between 65576 and 2147483648")

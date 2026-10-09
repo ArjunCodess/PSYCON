@@ -19,7 +19,7 @@
     <header class="masthead">
       <a class="brand" href="/" aria-label="PSYCON home"><span class="brand-mark" aria-hidden="true"></span><span>PSYCON</span></a>
       <nav class="site-nav" aria-label="Main navigation">
-        {% for path, label in [('/', 'Home'), ('/coach', 'Coach'), ('/group', 'Research'), ('/devices', 'Devices')] %}
+        {% for path, label in [('/', 'Home'), ('/instrument', 'PSYCON'), ('/coach', 'Legacy coach'), ('/group', 'Research'), ('/devices', 'Legacy devices')] %}
         <a href="{{ path }}"{% if request.path == path %} aria-current="page"{% endif %}>{{ label }}</a>
         {% endfor %}
       </nav>

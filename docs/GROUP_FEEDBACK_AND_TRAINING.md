@@ -1,5 +1,7 @@
 # Group feedback and PSYCON training
 
+Historical workflow. This document records the earlier implementation and does not define the current behavioral instrument. Use [the current startup guide](START_HERE.md), [behavioral direction](PSYCON_VISION.md), [instrument architecture](INSTRUMENT_ARCHITECTURE.md), and [coverage record](INSTRUMENT_STATUS.md) for new work.
+
 Upload a discussion video, review its speaker assignments, and submit its spreadsheet. PSYCON saves the data, then prepares feedback for each participant. Training runs separately, when you choose to run it.
 
 ## Use the group page
