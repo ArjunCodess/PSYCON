@@ -2,6 +2,26 @@
 import time
 
 
+def run_trainer(store, once=False, imports=None):
+    """Fit durable CPU jobs independently of the long-running media queue."""
+    from .training import process_training
+    from .import_jobs import process_import
+    try:
+        while True:
+            imported = process_import(imports) if imports is not None else None
+            result = process_training(store)
+            if result:
+                print("Training:", result["id"], result["status"], flush=True)
+            if once:
+                return result or imported
+            if result is None and imported is None:
+                time.sleep(1)
+    finally:
+        store.pool.close()
+        if imports is not None:
+            imports.pool.close()
+
+
 def run(service,once=False):
     from .research import process_run
     from .training import process_training

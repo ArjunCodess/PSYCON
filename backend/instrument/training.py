@@ -14,6 +14,33 @@ from .jobs import enqueue, claim, lease, finish
 from .store import uid, encode, StaleJob
 
 
+def runtime_versions():
+    versions=dict(python=platform.python_version(),numpy=np.__version__,sklearn=importlib.metadata.version('scikit-learn'))
+    revision=subprocess.run(['git','rev-parse','HEAD'],capture_output=True,text=True,check=True).stdout.strip()
+    versions['code_revision']=revision
+    versions['code_hash']=hashlib.sha256(b''.join(p.read_bytes() for p in sorted(Path(__file__).parent.glob('*.py')))).hexdigest()
+    return versions
+
+
+def snapshot_summary(snapshot):
+    """Describe frozen target splits without fitting or consulting live labels."""
+    examples=snapshot['manifest']['examples']; targets={}
+    for target in sorted({t for e in examples for t in e['labels']}):
+        rows=[e for e in examples if target in e['labels']]
+        splits={}
+        for split in ('train','validation','test'):
+            selected=[e for e in rows if e['split']==split]
+            splits[split]=dict(records=len(selected),groups=len({e['component'] for e in selected}),classes=sorted({e['labels'][target]['score'] for e in selected}))
+        train=splits['train']; reasons=[]
+        if train['records']<12 or train['groups']<3 or len(train['classes'])<2:
+            reasons.append('Requires 12 training examples, three independent groups, and two observed classes')
+        if not any(f['value'] is not None and ('__' not in n or n.startswith(target+'__')) for e in rows if e['split']=='train' for n,f in e['features'].items()):
+            reasons.append('No supported measured predictors')
+        targets[target]=dict(splits=splits,can_fit=not reasons,reasons=reasons)
+    can_fit=any(t['can_fit'] for t in targets.values())
+    return dict(targets=targets,can_fit=can_fit,status='Ready to fit' if can_fit else 'Insufficient training data')
+
+
 def queue(store,snapshot_id,configuration=None):
     snapshot=store.one("SELECT * FROM training_snapshots WHERE id=%s AND owner_id='local'",(snapshot_id,))
     if store.rows('SELECT id FROM snapshot_invalidations WHERE snapshot_id=%s',(snapshot_id,)):
@@ -25,11 +52,7 @@ def queue(store,snapshot_id,configuration=None):
     if not isinstance(values,list) or not values or any(type(x) not in (int,float) or not 0<x<=100 for x in values):
         raise ValueError('Regularization values must be finite numbers in (0,100]')
     key=uid()
-    versions=dict(python=platform.python_version(),numpy=np.__version__,sklearn=importlib.metadata.version('scikit-learn'))
-    revision=subprocess.run(['git','rev-parse','HEAD'],capture_output=True,text=True,check=True).stdout.strip()
-    versions['code_revision']=revision
-    # Bind source modules even for an uncommitted implementation; do not export private working-tree contents.
-    versions['code_hash']=hashlib.sha256(b''.join(p.read_bytes() for p in sorted(Path(__file__).parent.glob('*.py')))).hexdigest()
+    versions=runtime_versions()
     with store.connect() as db:
         job=enqueue(store,'training',key,1,db=db)
         store.insert('training_runs',dict(id=key,snapshot_id=snapshot_id,owner_id='local',job_id=job['id'],status='queued',configuration=dict(regularization=values,allow_exploratory=bool(config.get('allow_exploratory')),seed=snapshot['seed']),versions=versions),db)
@@ -152,22 +175,30 @@ def fit(store,run):
 
 
 def process_training(store):
+    store.execute("UPDATE training_runs r SET status=j.status,error=COALESCE(j.error,r.error) FROM jobs j WHERE r.job_id=j.id AND r.owner_id='local' AND r.status IN ('queued','training') AND j.status IN ('failed','canceled')")
     job=claim(store,'training')
     if not job: return None
     run=store.one('SELECT * FROM training_runs WHERE id=%s',(job['subject_id'],))
     try:
         with lease(store,job):
-            store.execute("UPDATE training_runs SET status='training' WHERE id=%s",(run['id'],))
             try:
+                actual=runtime_versions(); previous=run['versions']
+                if previous.get('execution_runtime') and previous['execution_runtime']!=actual:
+                    raise ValueError('Retry runtime differs from the original fitting runtime; queue a new reproducible run')
+                versions=dict(actual,enqueue_runtime=previous.get('enqueue_runtime',previous),execution_runtime=actual)
+                run['versions']=versions
+                store.execute("UPDATE training_runs SET status='training',versions=%s,error=NULL WHERE id=%s",(Jsonb(versions),run['id']))
                 result=fit(store,run)
                 store.execute('UPDATE training_runs SET status=%s WHERE id=%s',(result['status'],run['id']))
                 store.insert('training_run_events',dict(id=uid(),run_id=run['id'],message=encode(result)))
                 finish(store,job,result)
             except StaleJob: raise
             except Exception as exc:
-                store.execute("UPDATE training_runs SET status='failed',error=%s WHERE id=%s",(str(exc)[:1500],run['id']))
                 from .jobs import retryable
-                finish(store,job,error=str(exc)[:1500],retry=retryable(exc))
+                retry=retryable(exc)
+                status='queued' if retry and job['attempt']<job['max_attempts'] else 'failed'
+                store.execute('UPDATE training_runs SET status=%s,error=%s WHERE id=%s',(status,str(exc)[:1500],run['id']))
+                finish(store,job,error=str(exc)[:1500],retry=retry)
     except StaleJob:
         return None
     return store.one('SELECT * FROM training_runs WHERE id=%s',(run['id'],))
@@ -243,5 +274,5 @@ def predict(store,speaker_id,context_windows=None):
             store.insert('model_predictions',row,db)
             for e in db.execute('SELECT id FROM evidence WHERE speaker_id=%s ORDER BY start_s LIMIT 24',(speaker_id,)):
                 store.insert('prediction_evidence',dict(prediction_id=row['id'],evidence_id=e['id']),db)
-        results.append(row)
+        results.append(dict(row,family=model['family'],target=model['target'],evaluation_status=model['evaluation_status'],lineage=dict(snapshot_hash=model['manifest']['snapshot_hash'],feature_schema=model['feature_schema'],versions=model['manifest']['versions'])))
     return dict(status='available' if models else 'No active trained model',predictions=results)

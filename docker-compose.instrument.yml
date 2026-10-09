@@ -43,3 +43,15 @@ services:
       init:
         condition: service_completed_successfully
     restart: unless-stopped
+  trainer:
+    <<: *runtime
+    command: [python, run_psycon.py, trainer]
+    environment:
+      <<: *environment
+      PSYCON_DATABASE_ROLE: psycon_trainer
+      OPENBLAS_NUM_THREADS: '2'
+      OMP_NUM_THREADS: '2'
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    restart: unless-stopped

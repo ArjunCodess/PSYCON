@@ -15,7 +15,7 @@ def main():
         os.environ.setdefault("TORCH_HOME", str(runtime/"models"/"torch"))
         os.environ["PATH"] = str(runtime/"bin")+os.pathsep+os.environ.get("PATH", "")
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("web", "worker", "import-groups", "build-references", "migrate", "inventory", "migrate-source", "register-videos", "backup", "restore", "train", "queue-videos", "docker"))
+    parser.add_argument("command", choices=("web", "worker", "trainer", "import-groups", "build-references", "migrate", "inventory", "migrate-source", "register-videos", "backup", "restore", "train", "queue-videos", "docker"))
     parser.add_argument("--root", default=os.getenv("PSYCON_INSTRUMENT_ROOT", "instance/instrument"))
     parser.add_argument("--port", type=int, default=8001)
     parser.add_argument("--once", action="store_true")
@@ -40,9 +40,9 @@ def main():
             time.sleep(1)
         else:
             raise RuntimeError('Docker started but PostgreSQL readiness failed. Inspect docker compose -f docker-compose.instrument.yml logs.')
-        print('PSYCON: http://localhost:8008 (web and GPU worker use the configured PostgreSQL)')
+        print('PSYCON: http://localhost:8008 (web, GPU worker and independent CPU trainer use the configured PostgreSQL)')
         return
-    role={'web':'psycon_web','worker':'psycon_worker','train':'psycon_trainer'}.get(args.command)
+    role={'web':'psycon_web','worker':'psycon_worker','train':'psycon_trainer','trainer':'psycon_trainer'}.get(args.command)
     if role:
         os.environ.setdefault('PSYCON_DATABASE_ROLE',role)
         actor_url=os.getenv('PSYCON_'+role.removeprefix('psycon_').upper()+'_DATABASE_URL')
@@ -91,7 +91,12 @@ def main():
         finally:
             store.pool.close()
         return
-    if args.command == "web":
+    if args.command == "trainer":
+        from backend.instrument.store import Store
+        from backend.instrument.worker import run_trainer
+        imports=Store(args.root,database_url=os.getenv('PSYCON_WORKER_DATABASE_URL') or os.getenv('PSYCON_DATABASE_URL'),role='psycon_worker')
+        run_trainer(Store(args.root), once=args.once, imports=imports)
+    elif args.command == "web":
         from backend.instrument.app import create_app
         create_app(args.root).run(host="127.0.0.1", port=args.port, debug=False)
     elif args.command in ("import-groups", "build-references"):
