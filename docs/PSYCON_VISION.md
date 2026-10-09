@@ -29,7 +29,7 @@ Trigger-dependent items need the preceding event and response windows. Q-T addit
 
 Snapshots freeze answer and mapping revisions, feature versions, source hashes, consent, and split assignments. Shared participants and recording ancestry stay in the same split component. Training-only preprocessing, held-out baseline comparisons, per-item metrics, and separate final evaluation prevent apparent progress caused by leakage. A completed fit remains exploratory when sufficient independent evaluation is unavailable.
 
-The Docker or local worker runs durable supervised training jobs. This updates the behavior predictor; it does not automatically fine-tune the speech models or LLM. PostgreSQL records job state, snapshots, evaluations, artifact manifests, activation, rollback, and prediction lineage. Original media and generated models keep registered local files. Models do not activate automatically.
+The independent Docker or local CPU trainer runs durable supervised training jobs and commits queued imports without waiting for speech processing. This updates the behavior predictor; it does not automatically fine-tune the speech models or LLM. PostgreSQL records job state, snapshots, evaluations, artifact manifests, activation, rollback, and prediction lineage. Original media and generated models keep registered local files. Models do not activate automatically.
 
 ## Personal history, references, and reports
 
@@ -43,8 +43,8 @@ Reports show observations, human ratings, predictions, and LLM interpretations a
 
 - [x] Stage 1: update current documentation to center behavioral evidence and psychologist-reviewed marksheet targets, and identify legacy instructions clearly.
 - [x] Stage 2: review the application and reports so participant data, talking patterns, and marksheet relationships receive priority over archetype controls.
-- [ ] Stage 3: verify and complete the guided marksheet import, database save, readiness, snapshot, training-button, evaluation, and activation journey on Docker or the local worker.
+- [x] Stage 3: complete and verify the guided marksheet import, database save, readiness, snapshot, training-button, evaluation, activation, rollback, and speaker prediction journey through PostgreSQL tests and the application browser, with independent Docker/local CPU training and intake.
 
-The current application already has participant CSV/XLSX import, review, readiness, frozen snapshots, durable fitting, and model lifecycle controls. Stage 2 now puts speaker measurements and contextual human ratings first, with optional reference comparisons in disclosures. Stage 3 still requires the complete guided import-to-training journey review. Real human-data validation is not complete. The current real dataset lacks eligible consented, independently reviewed labels. The coordinated original-media backup also still needs a destination with enough free space.
+The current application already has participant CSV/XLSX import, review, readiness, frozen snapshots, durable fitting, and model lifecycle controls. Stage 2 now puts speaker measurements and contextual human ratings first, with optional reference comparisons in disclosures. Stage 3 verifies that journey in the application with a disposable synthetic PostgreSQL study, not real participant outcomes. Real human-data validation is not complete. The current real dataset lacks eligible consented, independently reviewed labels. The coordinated original-media backup also still needs a destination with enough free space.
 
 The Stage 2 interface reads current reviewed human observations alongside measurements and predictions without adding those human answers to held-out A/B/C inputs. Existing model targets and evidence identities remain unchanged. Later protocol and implementation changes must be recorded explicitly.

@@ -14,11 +14,19 @@ Run this one command from the repository root in PowerShell, with Docker Desktop
 .runtime\venv\Scripts\python.exe run_psycon.py docker
 ```
 
-Open http://localhost:8008. Docker starts the web app and CUDA worker concurrently after applying migrations and idempotently queuing the original-video batch. Both services use the configured PostgreSQL, including Neon pooled URLs. Startup never substitutes the old local database. The Docker image extends the installed `psycon-week4-worker:latest` speech runtime; build that runtime first on a fresh machine. Registered Windows paths are explicitly mapped to the mounted workspace, and originals are mounted read only.
+Open http://localhost:8008. Docker starts the web app, CUDA speech worker, and independent CPU trainer concurrently after applying migrations and idempotently queuing the original-video batch. All services use the configured PostgreSQL, including Neon pooled URLs. Startup never substitutes the old local database. The Docker image extends the installed `psycon-week4-worker:latest` speech runtime; build that runtime first on a fresh machine. Registered Windows paths are explicitly mapped to the mounted workspace, and originals are mounted read only.
 
 PostgreSQL is the only application database; a connection failure never creates another store. Original media and generated models stay in registered local paths; answers, bounded source spreadsheets, evidence, jobs, model manifests, and results live in PostgreSQL. The application remains a local single-user research instrument.
 
 Session **Participants & answers** supports anonymous participants, reviewed speaker mappings, individual/batch CSV and XLSX previews, source downloads, direct entry, immutable corrections, independent review, and consent records. **Training & models** shows explicit exclusions, frozen snapshots, queued supervised fitting, held-out evaluations, exploratory limitations, deliberate activation, rollback, and predictions. Saving a sheet does not grant consent or establish training eligibility. A-T uses the actual v4.0 marksheet; independent communication labels use [the annotation guidelines](docs/COMMUNICATION_ANNOTATION_GUIDELINES.md).
+
+The training dashboard shows per-target training, validation, and final-evaluation records and independent source-group counts before fitting. Start training is disabled for snapshots that cannot fit any target. Jobs update automatically, and fitted models remain candidates until you deliberately activate them. Choose a processed recording and speaker to inspect predictions without copying database IDs. The trainer also commits queued spreadsheet imports independently of speech processing, using the worker database role for imports and the trainer role for fitting.
+
+To run without Docker, use this one PowerShell command after installing the project runtime and configuring PostgreSQL:
+
+```powershell
+npx.cmd --yes concurrently@9.2.1 --kill-others --names web,media,trainer ".runtime\venv\Scripts\python.exe run_psycon.py web --port 8008" ".runtime\venv\Scripts\python.exe run_psycon.py worker" ".runtime\venv\Scripts\python.exe run_psycon.py trainer"
+```
 
 Read [the storage and training runbook](docs/POSTGRES_TRAINING_RUNBOOK.md) for migrations, least-privilege roles, snapshots, workers, exports, coordinated backups/restoration, and deletion. The retained legacy source is read only by the one-time migration command. `run_backend.py` and the local-runtime web/worker commands launch the same canonical application.
 
@@ -85,6 +93,7 @@ $env:PSYCON_TEST_DATABASE_URL = "postgresql://psycon:psycon@127.0.0.1:5432/psyco
 .runtime/node/node.exe --check backend/static/instrument_review.js
 .runtime/node/node.exe --check backend/static/instrument_reports.js
 .runtime/node/node.exe tests/frontend/instrument_reports.cjs
+.runtime/node/node.exe tests/frontend/instrument_workflow.cjs
 ```
 
 The previous coaching, wearable, physiology, and face-linked workflows remain as legacy code. Their documentation is archived in [the previous README](docs/LEGACY_PRODUCT_README.md); they do not define the current prototype. The legacy Flask app also exposes this workspace at `/instrument`, but its startup still requires its original external services.
