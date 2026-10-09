@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PSYCON · Communication research</title>
+  <title>PSYCON · Behavioral research</title>
   <link rel="preload" href="{{ url_for('static', filename='fonts/Geist-Variable.woff2') }}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{{ url_for('static', filename='instrument.css') }}">
   <script defer src="{{ url_for('static', filename='instrument_reports.js') }}"></script>
@@ -17,22 +17,23 @@
   <nav aria-label="Main navigation">
     <a href="#dashboard" data-page="dashboard"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Dashboard</a>
     <a href="#sessions" data-page="sessions"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h1M3 12h1M3 18h1"/></svg> Sessions</a>
-    <a href="#profile" data-page="profile"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 19l6-7 5 3 7-11M15 4h6v6"/></svg> Profile</a>
-    <a href="#traits" data-page="traits"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3l9 9-9 9-9-9z"/></svg> Traits</a>
-    <a href="#archetypes" data-page="archetypes"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 7h17l-4-4M21 17H4l4 4"/></svg> Archetypes</a>
+    <a href="#profile" data-page="profile"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 19l6-7 5 3 7-11M15 4h6v6"/></svg> People &amp; history</a>
+    <a href="#traits" data-page="traits"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3l9 9-9 9-9-9z"/></svg> Talking patterns</a>
+
     <a href="#evidence" data-page="evidence"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M15 15l6 6"/></svg> Evidence</a>
     <a href="#research" data-page="research"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M5 3h14M9 3v6l-5 10a2 2 0 002 2h12a2 2 0 002-2L15 9V3M7 15h10"/></svg> Research</a>
     <a href="#training" data-page="training">Training & models</a>
+    <details class="secondary-navigation"><summary>Optional comparisons</summary><a href="#archetypes" data-page="archetypes"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 7h17l-4-4M21 17H4l4 4"/></svg> Reference comparisons</a></details>
   </nav>
   <div class="sidebar-note"><span class="dot"></span> Local audio-only prototype<p>Observable evidence first.<br>Interpretations remain reviewable.</p></div>
 </aside>
 <div class="workspace">
   <header class="toolbar">
     <div class="toolbar-person"><label for="person-select">Person</label><select id="person-select"><option value="">Select a person</option></select><button id="add-person" class="quiet">+ Add</button></div>
-    <div class="target-selector"><label for="target-select">Compare toward</label><select id="target-select"><option>Executive</option><option>Builder</option><option>Salesperson</option><option>Negotiator</option></select></div>
+    <details class="reference-options"><summary>Optional reference settings</summary><div class="target-selector"><label for="target-select">Exploratory comparison</label><select id="target-select"><option>Executive</option><option>Builder</option><option>Salesperson</option><option>Negotiator</option></select></div><p>Comparison goals supply no personality or training label.</p></details>
   </header>
   <main id="content" tabindex="-1">
-    <div class="page-heading"><div><p id="breadcrumb">Workspace / Dashboard</p><h1 id="page-title">Communication over time</h1><p id="page-description">Measure patterns. Compare with history. Inspect the evidence.</p></div><button id="upload-open" class="primary">+ Upload conversations</button></div>
+    <div class="page-heading"><div><p id="breadcrumb">Workspace / Dashboard</p><h1 id="page-title">Behavior in conversations</h1><p id="page-description">Inspect talking patterns, context, and reviewed human observations.</p></div><button id="upload-open" class="primary">+ Upload conversations</button></div>
     <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
     <div id="view" aria-live="polite"><p class="loading">Loading the research workspace…</p></div>
   </main>
@@ -41,7 +42,7 @@
 <dialog id="upload-dialog" aria-labelledby="upload-title">
   <form id="upload-form">
     <div class="dialog-title"><h2 id="upload-title">Add conversations</h2><button type="button" data-close="upload-dialog" aria-label="Close upload">×</button></div>
-    <p>Each recording becomes a session. Originals and full transcripts remain local until you delete the session.</p>
+    <p>Each recording becomes a session. Original media stay local; transcripts and research records are saved in PostgreSQL until deletion.</p>
     <label>Recordings<input name="recordings" type="file" accept=".mp3,.wav,.m4a,.mp4,.mov,.ogg" multiple required></label>
     <p class="muted">Up to 8 GiB and 4 hours per recording. MP4 and MOV are processed for audio only.</p>
     <div class="form-grid">
@@ -49,7 +50,7 @@
       <label>Conversation context<select name="context"><option>meeting</option><option>brainstorming</option><option>interview</option><option>debate</option><option>negotiation</option><option>sales</option><option>presentation</option><option>casual conversation</option></select></label>
       <label>Topic<input name="topic" placeholder="Project planning, funding, design review…"></label>
       <label>Dataset name<input name="dataset" value="personal uploads" required></label>
-      <label>Data split<select name="split"><option value="development">Development</option><option value="validation">Validation</option><option value="evaluation">Final evaluation</option><option value="reference">Reference archetype corpus</option></select></label>
+      <label>Data split<select name="split"><option value="development">Development</option><option value="validation">Validation</option><option value="evaluation">Final evaluation</option><option value="reference">Reference comparison corpus</option></select></label>
       <label>Consent / ethics status<select name="consent" required><option value="">Select documented status</option><option value="documented">Participant consent documented</option><option value="public licensed">Public recording with applicable license</option><option value="self recording">Self recording</option></select></label>
     </div>
     <label>Anonymous participant IDs<input name="participant_ids" placeholder="P01, P02, P03"><small>Use consistent IDs across recordings to detect reference/evaluation leakage.</small></label>
@@ -61,8 +62,8 @@
   <form id="person-form"><div class="dialog-title"><h2 id="person-title">Add a person</h2><button type="button" data-close="person-dialog" aria-label="Close person form">×</button></div>
     <p>Map this person to their speaker label after processing. No voice enrollment or face recognition is required.</p>
     <label>Display name or anonymous ID<input name="label" required maxlength="100" placeholder="Saksham or P01"></label>
-    <label>Target communication profile<select name="target_archetype"><option>Executive</option><option>Builder</option><option>Salesperson</option><option>Negotiator</option></select></label>
-    <p class="muted">This is a comparison goal, not a personality or occupational label.</p><button class="primary" type="submit">Create person</button>
+    <details><summary>Optional reference comparison</summary><label>Exploratory comparison goal<select name="target_archetype"><option>Executive</option><option>Builder</option><option>Salesperson</option><option>Negotiator</option></select></label>
+    <p class="muted">This optional goal supplies no human training label.</p></details><button class="primary" type="submit">Create person</button>
   </form>
 </dialog>
 <dialog id="evidence-dialog" aria-labelledby="evidence-title"><div class="dialog-title"><h2 id="evidence-title">Trace the evidence</h2><button data-close="evidence-dialog" aria-label="Close evidence">×</button></div><div id="evidence-detail"></div></dialog>

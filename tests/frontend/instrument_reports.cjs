@@ -6,6 +6,7 @@ const vm = require("node:vm");
 const context = {
   esc: value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"}[c])),
   nice: String,
+  number: value => value === null || value === undefined ? "Unavailable" : String(value),
   time: value => `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, "0")}`,
   runsTable: rows => `<table>${rows.length} retained attempts</table>`,
 };
@@ -24,6 +25,21 @@ const report = {speaker: {id: "speaker", display_name: "Test speaker"}, target_a
 
 (async () => {
   const html = await context.speakerReportWorkspace(report);
+  assert(html.includes("Talking patterns"));
+  assert(html.includes("Marksheet observations and predictions"));
+  assert(html.indexOf("Marksheet observations and predictions") < html.indexOf("Behavioral observation report"));
+  assert(!html.match(/<div class="report-heading">[\s\S]*?<button/)[0].includes("comparison goal"));
+  const fixture={...report,session_id:"synthetic-session",features:[{name:"words_per_minute",value:120,unit:"words/min",status:"measured",confidence:"moderate"}],supervised_predictions:[{family:"at",target:"A",score:3,model_id:"synthetic-model",evaluation_status:"exploratory"}],human_observations:[
+    {item_key:"A",state:"scored",score:0,source_type:"observer",participant_code:"P01",reviewer_id:"R<script>",label_revision:1,review_status:"approved",confidence:3,fair_opportunity:true,description:"Source definition",narrative:"Human note<script>",evidence_windows:[{kind:"support",start:12,end:15,context:"Context"}]},
+    {item_key:"B",state:"not_observed",source_type:"self_report",reviewer_id:"Self",label_revision:1,review_status:"needs_review"},
+    {item_key:"C",state:"missing",source_type:"independent_review",reviewer_id:"Other",label_revision:1,review_status:"needs_review"},
+  ]};
+  const comparison=context.marksheetComparison(fixture);
+  assert(comparison.includes("0 / 4") && comparison.includes("3 / 4") && comparison.includes("N/O") && comparison.includes("Missing answer"));
+  assert(comparison.includes("Participant self-report") && comparison.includes("Independent observer rating"));
+  assert(comparison.includes("R&lt;script&gt;") && comparison.includes("Human note&lt;script&gt;"));
+  assert(comparison.includes('data-seek="12"') && comparison.includes('data-source="synthetic-session"'));
+  assert(context.talkingPatterns(fixture).includes("120"));
   assert(html.includes("At a glance"));
   assert(html.includes("Fixture observation"));
   assert(html.includes("Fixture inference"));
@@ -35,11 +51,11 @@ const report = {speaker: {id: "speaker", display_name: "Test speaker"}, target_a
   assert.equal(context.communicationReportContent({...run, status: "stale"}, "Speaker"), "");
   assert.equal(context.communicationReportContent({...run, status: "failed"}, "Speaker"), "");
   const empty = await context.speakerReportWorkspace({...report, llm_runs: []});
-  assert(empty.includes("Create communication report"));
+  assert(empty.includes("Create observation report"));
   assert(!empty.includes("At a glance"));
   const pending = await context.speakerReportWorkspace({...report, llm_runs: [{condition: "C", status: "running"}]});
   assert(pending.includes('disabled aria-busy="true"'));
-  assert(pending.includes("Writing your communication report"));
+  assert(pending.includes("Writing your observation report"));
   const updating = await context.speakerReportWorkspace({...report, llm_runs: [{condition: "C", status: "queued"}, run]});
   assert(updating.includes("previous report stays available"));
   assert(updating.includes("Fixture summary"));
