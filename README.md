@@ -2,9 +2,45 @@
 
 PSYCON is a behavioral observation and communication research instrument. It connects a person's speaker-specific talking patterns and discussion context with psychologist-reviewed observations from the A-T marksheet. It preserves timestamped evidence and personal history, and trains supervised models to predict eligible contextual ratings from conversational data.
 
-The current ISEF prototype uses audio and transcripts. Its focus is what a person said and did in a particular exchange, how that relates to reviewed human observations, and how patterns differ across comparable conversations. The [v4.0 psychologist marksheet](docs/PSYCON_Psychologist_Observation_Mark_Sheet.pdf) and [answer interpretation guide](docs/PSYCON_Tendency_Flag_Guide.pdf) define the observation targets. Their [marksheet source](docs/PSYCON_Psychologist_Observation_Mark_Sheet.tex) and [guide source](docs/PSYCON_Tendency_Flag_Guide.tex) retain the exact definitions. Hardware, physiological inference, face recognition, and voice enrollment are outside this version.
+The current ISEF prototype uses audio and transcripts. Its focus is what a person said and did in a particular exchange, how that relates to reviewed human observations, and how patterns differ across comparable conversations. The [v4.0 psychologist marksheet](docs/PSYCON_Psychologist_Observation_Mark_Sheet.pdf) and [answer interpretation guide](docs/PSYCON_Tendency_Flag_Guide.pdf) define the observation targets. Their [marksheet source](docs/PSYCON_Psychologist_Observation_Mark_Sheet.tex) and [guide source](docs/PSYCON_Tendency_Flag_Guide.tex) retain the exact definitions.
 
 A psychologist-reviewed profile here means a set of contextual ratings, evidence, confidence, and review records. It does not establish a personality type or diagnosis. Model agreement with those ratings needs held-out evaluation. See [the behavioral direction](docs/PSYCON_VISION.md) for the staged work and [current coverage](docs/INSTRUMENT_STATUS.md) for implementation limits.
+
+## Research question
+
+**To what extent can speaker-specific talking patterns and discussion context predict contextual A-T ratings reviewed by school psychologists on held-out participants and recordings, and does adding strictly earlier personal history improve the evidence support and usefulness of the resulting communication reports?**
+
+The study has two separate evaluations. The supervised predictor learns the relationship between conversational measurements and reviewed human ratings, then measures per-item agreement on data excluded from fitting. The report experiment compares transcript-only, structured-context, and full-PSYCON inputs using the same speaker, local language model, and generation settings. The structured-context and full-PSYCON conditions share frozen supervised predictions so a changed predictor cannot be mistaken for an improvement from personal history.
+
+The question is about observable behavior in context. A correlation between a speaking pattern and a psychologist's rating does not establish a cause, a psychological state, or a permanent characteristic of the person. Success requires supported evidence, reproducible human judgments, performance against simple prediction baselines, and independent review of the reports. A completed software pipeline alone cannot answer the research question.
+
+## Psychology and the school psychologists' data
+
+The study's human reference is the marksheet data provided and reviewed by psychologists from the project author's school. Their role is to judge recorded behavior against the item definitions, check the surrounding exchange, and retain evidence for their judgments. PSYCON connects those observations to the correct participant's audio and transcript. It does not generate the psychologist's answers or treat its own predictions as human validation.
+
+Each marksheet describes one participant in one discussion. The five observation areas cover following the discussion, structuring contributions, sharing turns, responding to challenge, and delivery changes after an identifiable event. The psychological interpretation stays tied to what the recording supports. For example, reduced participation after a challenge needs evidence of the challenge, earlier participation, later behavior, and an opportunity to speak; a short contribution by itself cannot establish withdrawal or anxiety.
+
+The rating scale preserves the psychologist's distinctions:
+
+| Answer | Meaning in the v4.0 marksheet |
+| --- | --- |
+| 0 | The behavior was not observed despite a fair opportunity |
+| 1 | One weak or brief occurrence |
+| 2 | Repeated or noticeable behavior with limited effect |
+| 3 | Clear and repeated behavior, or an effect on the exchange |
+| 4 | Sustained behavior or a strong effect on the exchange |
+| N/O | No fair opportunity, or a recording that cannot support a rating |
+| Missing | No answer was supplied |
+
+Scores above zero require timestamps and the surrounding event. The interpretation guide treats 1 as a weak moment, 2 as a possible one-session pattern needing more evidence, and 3 or 4 as support for a contextual description. Reviewers also record confidence, recording quality, language access, overlap, moderation, unequal participation, sensitive topics, and accommodations. These conditions can change what a rating means.
+
+The app preserves the observer's original answer, independent review, disagreements, adjudication, and later corrections as separate records. Self-reports also remain separate from observer ratings. Reviewer agreement tests whether people apply the rubric consistently; model agreement tests whether conversational inputs predict their reviewed answers. Neither makes the marksheet a diagnostic instrument or establishes broader psychological validity.
+
+Psychologist-reviewed school data can be retained before it is ready for training. Training additionally requires documented permission, a reviewed participant-to-speaker mapping, applicable opportunity, supported evidence, source review, and independent answer review. The current application records do not yet contain eligible, consented, independently reviewed human labels. The software has been exercised with isolated synthetic studies; those checks are engineering tests and are not results from school participants.
+
+## Current scope: software active, hardware paused
+
+Hardware development is paused for now. The active work is the recording-to-evidence pipeline, psychologist marksheet intake and review, supervised behavioral prediction, personal history, and report evaluation in the software application. No wearable, physiological sensor, face recognition, voice enrollment, or identity embedding is required to run this workflow. Earlier hardware and coaching material is retained in [the archived README](docs/LEGACY_PRODUCT_README.md).
 
 ## Run the research instrument
 
@@ -50,6 +86,62 @@ Interpretation failures identify whether the service is unreachable, the selecte
 6. **Train eligible targets.** Training & models shows data readiness and exclusion reasons. Freeze a versioned dataset, queue training on the Docker or local worker, inspect per-item held-out evaluation, and activate a compatible model deliberately. Saving a spreadsheet alone does not authorize training. Models learn from approved examples, rather than indiscriminately using every stored record.
 7. **Interpret and evaluate.** Reports distinguish measurements, human annotations, supervised predictions, and LLM interpretation. Review cited audio before acting on suggestions. Evaluate supervised prediction separately from the controlled transcript-only, structured-context, and full-PSYCON comparison. Missing evaluation remains unavailable.
 8. **Export or delete.** Exports retain actual processing states, annotations, revisions, and model provenance. Corrections, withdrawals, and deletion invalidate affected datasets and results and flag dependent models for retirement or retraining.
+
+## How the software works
+
+### From a recording to participant evidence
+
+The launcher registers the 11 original files in `group_discussions` idempotently and queues their analysis in PostgreSQL. Uploaded recordings use the same processing workflow. Each session retains its exact original filename, file hash, recording time, context, ownership, and processing configuration. Registration and queuing do not imply that processing has succeeded.
+
+The media worker extracts audio to a separate normalized playback file, checks recording quality, identifies anonymous speaker intervals with Community-1, and transcribes speech with faster-whisper large-v3. It keeps source timestamps and assigns words conservatively: ambiguous overlapping speech remains unattributed. Segmentation then creates turns, utterances, and surrounding exchanges for speaker-specific feature extraction.
+
+Measurements include speaking time and share, turn count, words per minute, overlap candidates, and supported transcript markers. Every feature records its definition, unit, source, version, and limitations. An overlap candidate is not a confirmed intentional interruption, and a rule-based transcript marker is not a psychologist's judgment. Quality failures withhold unsupported analysis while preserving available stage outputs. Evidence links connect a result to the correct speaker, source excerpt, context, and playback time.
+
+### From a marksheet to a trained predictor
+
+Participants & answers previews CSV/XLSX files before saving, supports column and anonymous-code mapping, checks duplicates and invalid rows, and saves valid batches atomically. Direct entry follows the same versioned form definitions. PostgreSQL retains normalized answers, permitted source files, reviewer records, evidence windows, and immutable correction history. The current speaker mapping determines whether those answers can be joined to measured features.
+
+Training & models explains exclusions before fitting. A frozen snapshot records label and mapping revisions, consent, source hashes, feature versions, and split assignments. Shared participants, duplicate recordings, and related recording sources cannot cross the split boundary. Historical inputs use only permitted earlier sessions, and preprocessing learns its parameters from training records alone.
+
+The CPU trainer fits a separate supported target using median imputation, missing-value indicators, scaling, and class-balanced logistic regression. Validation selects the model configuration; final evaluation remains separate. The dashboard reports per-target sample counts, prediction errors, classification metrics, and a training-median prediction baseline where available. Small or unsupported targets remain unavailable or exploratory. This trains the supervised behavioral predictor; it does not fine-tune Whisper, diarization, or the LLM.
+
+Generated model files stay local with their hashes, manifests, evaluations, and training lineage registered in PostgreSQL. A fitted model remains a candidate until an operator activates it. Activation and rollback are recorded, and predictions retain the exact model and input lineage. Corrections or withdrawals invalidate affected snapshots and outputs and identify dependent models that need retirement or retraining.
+
+### From participant evidence to a report
+
+The application keeps four layers visible: measured observations, human annotations, supervised predictions, and LLM interpretations. When available, the local LLM receives structured predictions with model versions, uncertainty, abstention, and evidence references, alongside measured features and interaction context. Personal history uses strictly earlier comparable sessions; pressure-event comparisons use an earlier baseline within the same discussion. Those baselines answer different questions and remain separate.
+
+The report preserves its input, prompt, decoding settings, local model digest, output, citation checks, and processing attempts. Generated text from the video/session workflow is logged in PostgreSQL, including failed attempts. Invented or wrong-speaker citations and truncated responses are withheld. Reports offer qualified interpretations and evidence-backed communication suggestions, while measurements, human observations, and playback remain useful without a trained model or available LLM.
+
+### Pages and services
+
+| Application area | What it lets the researcher do |
+| --- | --- |
+| Dashboard | Check the original group-discussion videos and their latest analysis states |
+| Sessions | Inspect processing, participants and answers, transcript, measurements, and reports; play or export evidence |
+| People & history | Link anonymous people across reviewed session mappings and compare eligible earlier conversations |
+| Talking patterns | Inspect recurring conversational indicators with evidence and historical limits |
+| Evidence | Search saved speaker-specific excerpts and inspect their context and timestamps |
+| Research | Run the controlled three-way report comparison and inspect independent reviewer results |
+| Training & models | Review data readiness, freeze datasets, train, evaluate, activate, roll back, and inspect predictions |
+| Blinded review | Rate a saved report and its cited sources without seeing its system or model label |
+
+Optional reference comparisons remain secondary exploratory tools. They do not assign personality or provide training labels.
+
+The web service uses Flask, Jinja templates, and plain JavaScript. The media worker handles recording analysis and local interpretation; the independent CPU trainer handles fitting and queued spreadsheet intake without waiting for speech processing. PostgreSQL owns durable jobs, claims, leases, retries, cancellation, and protection against stale completion writes, so a browser request does not have to remain open while work runs.
+
+| Software component | Main source |
+| --- | --- |
+| Launcher and Docker services | [`run_psycon.py`](run_psycon.py), [`docker-compose.instrument.yml`](docker-compose.instrument.yml) |
+| Web application and APIs | [`app.py`](backend/instrument/app.py), [`routes.py`](backend/instrument/routes.py), [`workflow_routes.py`](backend/instrument/workflow_routes.py) |
+| Recording processing and features | [`service.py`](backend/instrument/service.py), [`audio.py`](backend/instrument/audio.py), [`features.py`](backend/instrument/features.py) |
+| Human forms, answers, and eligibility | [`forms.py`](backend/instrument/forms.py), [`answers.py`](backend/instrument/answers.py), [`annotations.py`](backend/instrument/annotations.py) |
+| Snapshots and supervised models | [`datasets.py`](backend/instrument/datasets.py), [`training.py`](backend/instrument/training.py) |
+| History and controlled report research | [`profiles.py`](backend/instrument/profiles.py), [`research.py`](backend/instrument/research.py) |
+| PostgreSQL, jobs, and workers | [`store.py`](backend/instrument/store.py), [`jobs.py`](backend/instrument/jobs.py), [`worker.py`](backend/instrument/worker.py) |
+| Exports, backups, and deletion | [`exports.py`](backend/instrument/exports.py), [`backup.py`](backend/instrument/backup.py), [`deletion.py`](backend/instrument/deletion.py) |
+
+The [architecture and research protocol](docs/INSTRUMENT_ARCHITECTURE.md) records feature calculations, quality gates, historical rules, and experimental controls. The [PostgreSQL and training runbook](docs/POSTGRES_TRAINING_RUNBOOK.md) covers configuration, migration, file registration, exports, coordinated database/local-file backup and verified restoration. The complete original-media backup still needs a destination with sufficient free space; database verification does not stand in for that media backup.
 
 ## Marksheet targets and training limits
 
