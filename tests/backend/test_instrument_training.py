@@ -251,3 +251,11 @@ def test_training_retry_remains_queued_and_exhaustion_is_visible(service,monkeyp
     service.store.execute("UPDATE jobs SET status='failed',error='Retry budget exhausted' WHERE id=%s",(run['job_id'],))
     assert training.process_training(service.store) is None
     assert service.store.one('SELECT status,error FROM training_runs WHERE id=%s',(run['id'],))==dict(status='failed',error='Retry budget exhausted')
+
+
+def test_idle_queue_poll_does_not_accumulate_worker_records(service):
+    store=service.store
+    before=store.one('SELECT count(*) AS n FROM worker_heartbeats')['n']
+    for _ in range(3):
+        assert jobs.claim(store,'training') is None
+    assert store.one('SELECT count(*) AS n FROM worker_heartbeats')['n']==before

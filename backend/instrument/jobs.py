@@ -21,7 +21,6 @@ def enqueue(store, kind, subject, revision, payload=None, db=None):
 def claim(store, kind, owner=None, seconds=120):
     owner=owner or str(uuid4())
     with store.connect() as db:
-        db.execute('INSERT INTO worker_heartbeats VALUES (%s,now()) ON CONFLICT(owner) DO UPDATE SET seen_at=now()', (owner,))
         db.execute("UPDATE jobs j SET status='failed',error='Retry budget exhausted',finished_at=now() WHERE kind=%s AND status='running' AND lease_until<now() AND attempt>=max_attempts AND NOT EXISTS (SELECT 1 FROM worker_heartbeats w WHERE w.owner=j.owner AND w.seen_at>now()-interval '120 seconds')", (kind,))
         row=db.execute("SELECT * FROM jobs j WHERE kind=%s AND attempt<max_attempts AND available_at<=now() AND "
                        "(status='queued' OR (status='running' AND lease_until<now() AND NOT EXISTS "
@@ -29,6 +28,7 @@ def claim(store, kind, owner=None, seconds=120):
                        'ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED', (kind,)).fetchone()
         if not row:
             return None
+        db.execute('INSERT INTO worker_heartbeats VALUES (%s,now()) ON CONFLICT(owner) DO UPDATE SET seen_at=now()', (owner,))
         return public(db.execute("UPDATE jobs SET status='running',owner=%s,attempt=attempt+1,lease_until=now()+%s*interval '1 second',heartbeat_at=now(),error=NULL WHERE id=%s RETURNING *", (owner,seconds,row['id'])).fetchone())
 
 
