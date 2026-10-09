@@ -1,4 +1,6 @@
-# Audio-first dataset and evaluation protocol
+# Behavioral dataset and evaluation protocol
+
+The primary research objective is to predict eligible contextual A-T observations from a participant's audio/transcript-supported talking patterns and discussion context, then evaluate agreement with reviewed human ratings. Descriptive feature/rating correlations do not establish causation or psychological validity. Archetype choices remain optional reference goals, never prediction targets or labels. Independently annotated communication behaviors retain their separate task definitions.
 
 The canonical observation unit is one reviewed participant in one recording, with separate per-target labels. Supporting evidence windows do not create independent examples. `at-4.0` preserves the paper marksheet and interpretation source hashes; `communication-1` uses the independent operational guidelines. Observer ratings, self-report, independent reviews, adjudications and predictions remain distinct. Missing, N/O and zero are separate states.
 

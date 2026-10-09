@@ -1,8 +1,10 @@
-﻿# PSYCON
+# PSYCON
 
-PSYCON is an audio-based longitudinal communication-analysis system that learns an individual's conversational patterns, represents them using speaker-specific and contextual evidence, compares them against personal baselines and reference communication archetypes, and uses that structured representation to generate evidence-grounded communication insights and coaching.
+PSYCON is a behavioral observation and communication research instrument. It connects a person's speaker-specific talking patterns and discussion context with psychologist-reviewed observations from the A-T marksheet. It preserves timestamped evidence and personal history, and trains supervised models to predict eligible contextual ratings from conversational data.
 
-The current ISEF prototype is audio-only. Its contribution is the structured conversational representation, historical baselines, evidence lineage, and A/B/C research comparison. Hardware, physiological inference, face recognition, and voice enrollment are outside this version.
+The current ISEF prototype uses audio and transcripts. Its focus is what a person said and did in a particular exchange, how that relates to reviewed human observations, and how patterns differ across comparable conversations. The [v4.0 psychologist marksheet](docs/PSYCON_Psychologist_Observation_Mark_Sheet.pdf) and [answer interpretation guide](docs/PSYCON_Tendency_Flag_Guide.pdf) define the observation targets. Their [marksheet source](docs/PSYCON_Psychologist_Observation_Mark_Sheet.tex) and [guide source](docs/PSYCON_Tendency_Flag_Guide.tex) retain the exact definitions. Hardware, physiological inference, face recognition, and voice enrollment are outside this version.
+
+A psychologist-reviewed profile here means a set of contextual ratings, evidence, confidence, and review records. It does not establish a personality type or diagnosis. Model agreement with those ratings needs held-out evaluation. See [the behavioral direction](docs/PSYCON_VISION.md) for the staged work and [current coverage](docs/INSTRUMENT_STATUS.md) for implementation limits.
 
 ## Run the research instrument
 
@@ -32,14 +34,30 @@ Interpretation failures identify whether the service is unreachable, the selecte
 
 ## Use it
 
-1. **Upload conversations.** Supply actual recording times, context, participant IDs, dataset split, and consent status. Each file becomes its own session; original audio is immutable. Supported formats are MP3, WAV, M4A, MP4, MOV, and OGG, with a 512 MiB / four-hour per-recording limit.
-2. **Inspect speaker evidence.** Open a session for quality diagnostics, stage outputs, timeline, word timestamps, attributed transcript, features, and directed interactions. Ambiguous overlapping words remain unattributed.
-3. **Connect personal history.** Add a person, select their target communication profile, and map their speaker label in each session. Baselines use only strictly earlier eligible sessions. Context-specific and global baselines remain separate; five comparable previous sessions are required for deviation flags.
-4. **Compare and interpret.** Choose Executive, Builder, Salesperson, or Negotiator in the target dropdown; the choice persists for anonymous speakers and can be saved per person. Inspect recurring indicators, mathematical reference comparisons, personal changes, and A/B/C runs. Click evidence to review the original audio and neighboring utterances. The target is a comparison goal, not an identity label.
-5. **Evaluate independently.** Research displays actual runs, numeric feature annotations, blinded reviewer forms, ordinal reviewer metrics, and paired inter-rater agreement. It shows `Not evaluated yet` until annotation data exist.
-6. **Export or delete.** JSON, feature CSV, RTTM, transcript text, complete ZIP, and research exports retain model/configuration provenance and actual stage states. Deleting a session removes its retained media and analysis and invalidates derived history.
+1. **Upload conversations.** Supply actual recording times, context, participant IDs, dataset role, and consent status. Each file becomes its own session, and originals keep their exact filenames.
+2. **Inspect speaker evidence.** Review quality diagnostics, processing stages, the timeline, attributed transcript, measured talking patterns, and surrounding exchanges. Ambiguous overlapping words remain unattributed.
+3. **Connect the correct person.** Keep longitudinal people, session participants, and speaker clusters separate. Confirm the participant-to-speaker mapping through a reviewer before linking answers to features. Names and identity embeddings are unnecessary.
+4. **Save and review marksheets.** In Participants & answers, preview individual or batch CSV/XLSX files, map columns and participant codes, and save normalized answers to PostgreSQL. Retain the psychologist's identity, context, opportunity, confidence, timestamps, and independent review. Zero, N/O, and missing answers have different meanings.
+5. **Examine contextual patterns.** Compare measured participation, timing, responses, and evidence with reviewed A-T observations and strictly earlier personal history. The Q-T event baseline comes from earlier in the same discussion; it is separate from the historical baseline. Optional archetype comparisons are exploratory reference tools.
+6. **Train eligible targets.** Training & models shows data readiness and exclusion reasons. Freeze a versioned dataset, queue training on the Docker or local worker, inspect per-item held-out evaluation, and activate a compatible model deliberately. Saving a spreadsheet alone does not authorize training. Models learn from approved examples, rather than indiscriminately using every stored record.
+7. **Interpret and evaluate.** Reports distinguish measurements, human annotations, supervised predictions, and LLM interpretation. Review cited audio before acting on suggestions. Evaluate supervised prediction separately from the controlled transcript-only, structured-context, and full-PSYCON comparison. Missing evaluation remains unavailable.
+8. **Export or delete.** Exports retain actual processing states, annotations, revisions, and model provenance. Corrections, withdrawals, and deletion invalidate affected datasets and results and flag dependent models for retirement or retraining.
 
-## Group-discussion reference profiles
+## Marksheet targets and training limits
+
+| Observation area | Items | Focus |
+| --- | --- | --- |
+| Discussion tracking | A-D | Following the current point, answering it, adapting to changes, and needing repetition |
+| Contribution structure | E-H | Idea order, requested support, completing a point, and task relevance |
+| Turn-taking and reciprocity | I-L | Turn entry, continuing overlap, sharing cues, and acknowledging a direct contribution |
+| Response to challenge | M-P | Observable changes after disagreement, their duration, participation changes, and response to feedback |
+| Pressure-linked delivery change | Q-T | Event-linked changes in rate, hesitation, vocal delivery, movement, or participation against an earlier same-session baseline |
+
+These are the marksheet's observation areas, not a total personality score. A rating above zero needs contextual evidence. N/O means the recording or opportunity cannot support a conclusion; missing means no answer was supplied. A model must abstain when its target or input evidence is unsupported. Visual-only evidence cannot train the current audio-based predictor. Item S remains excluded until supported vocal-change window features exist; T can use supported participation change, while visual-only answers remain saved and excluded.
+
+Training uses reviewed human ratings as separate per-item targets. Feature/label associations are descriptive, and prediction is evaluated on held-out people and source groups with recorded counts and baseline comparisons. Neither an association nor a fitted model establishes psychological validity. Independently defined communication ratings have their own [annotation guidelines](docs/COMMUNICATION_ANNOTATION_GUIDELINES.md); they are session-level behavioral labels and do not come from archetype choices or model outputs. The current real records do not yet provide eligible, consented, independently reviewed training labels.
+
+## Optional reference comparisons
 
 Saved guarded group analysis can be imported without rerunning face recognition; PostgreSQL must be available:
 
@@ -56,7 +74,7 @@ Group-derived Executive, Builder, Salesperson, and Negotiator lenses use an expl
 
 The pipeline, storage, baseline statistics, comparisons, exports, worker recovery, local reasoning, and evaluation workflow are implemented. Marker extraction is a transparent, unvalidated ruleset, not a validated semantic classifier. Topic control, interruption intent, paraphrasing, and other complex behaviors require manual review; manual event rates are explicitly labeled as partial annotation coverage. No participant counts, accuracies, reviewer scores, confidence intervals, or statistical significance are invented.
 
-LLM inputs use a documented bounded transcript window and retrieved evidence. A valid evidence ID does not prove that a citation supports a claim; independent reviewers evaluate that separately. The current dataset does not establish longitudinal validity or occupational reference accuracy. See [the architecture and research protocol](docs/INSTRUMENT_ARCHITECTURE.md) and [requirement coverage](docs/INSTRUMENT_STATUS.md).
+LLM inputs use a documented bounded transcript window and retrieved evidence. A valid evidence ID does not prove that a citation supports a claim; independent reviewers evaluate that separately. The current dataset does not establish longitudinal validity or validated prediction of psychologist ratings. See [the architecture and research protocol](docs/INSTRUMENT_ARCHITECTURE.md) and [requirement coverage](docs/INSTRUMENT_STATUS.md).
 
 ## Verify
 

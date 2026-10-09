@@ -1,19 +1,23 @@
-﻿# PSYCON product context
+# PSYCON product context
 
-## Register
+## Purpose
 
-Product. PSYCON is a local audio-first longitudinal communication research instrument for its ISEF prototype.
+PSYCON is a local behavioral observation and communication research instrument. Its primary unit is one reviewed participant in one discussion, with speaker-specific talking patterns, context, timestamped evidence, and psychologist-reviewed A-T ratings.
 
-## People and purpose
+People inspect their contributions and compare comparable sessions with strictly earlier history. Researchers connect human ratings to reviewed speaker evidence, train eligible per-target predictors, and evaluate their agreement on held-out participants and recording groups. A psychologist-reviewed contextual profile is not a validated personality assessment.
 
-A participant uploads real conversations, manually maps anonymous speakers to a person, inspects observable behavior, compares current sessions with strictly previous history, and chooses a target communication archetype. Researchers inspect model outputs and evaluate A/B/C conditions with blinded independent reviewers.
+## Evidence and targets
 
-## Scope
+The v4.0 marksheet and answer interpretation guide define discussion tracking, contribution structure, turn-taking and reciprocity, response to challenge, and pressure-linked delivery change. Keep measured observations, human observer ratings, self-report, adjudication, supervised predictions, and LLM interpretations distinct. Missing, N/O, and zero remain different states.
 
-Audio preprocessing, anonymous diarization, timestamped transcription, measurable features, contextual evidence, personal baselines, exploratory reference profiles, constrained LLM interpretation, longitudinal tracking, research experiments, coaching, and exports. No wearable, physiology, required face recognition, or required voice enrollment.
+Archetype comparisons are secondary exploratory tools. Executive, Builder, Salesperson, and Negotiator choices do not define a person, supply a human label, or determine training eligibility. Independently annotated communication targets retain separate operational definitions.
 
-## Interface
+## Scope and persistence
 
-Keep Flask, Jinja, and plain JavaScript. Use a charcoal navigation rail, restrained deep green controls, sand-neutral surfaces, and copper uncertainty indicators. Evidence is the primary interaction. Dashboard, Sessions, Profile, Traits, Archetypes, Evidence, and Research share one workspace.
+Use audio/transcript-supported conversational data and reviewed participant-to-speaker mappings. Names, faces, voice enrollment, identity embeddings, and physiological inputs are unnecessary. PostgreSQL owns application records, annotations, revisions, jobs, snapshots, evaluations, and provenance. Original media and model artifacts remain local with registered exact filenames, hashes, and relationships.
 
-Every number must be measured, transparently estimated, or derived by a documented calculation. Missing data remain unavailable. Archetype selection is a user-defined comparison goal; corpus-derived lenses remain exploratory unless independently validated.
+## Interface and delivery
+
+Keep Flask, Jinja, and plain JavaScript, with Geist, restrained controls, readable reports, and evidence navigation. Sessions, Participants & answers, Training & models, and Research belong to one canonical workspace. Preserve the original group-discussion dashboard restriction and playback behavior.
+
+The behavioral direction has three stages. Stage 1 updates documentation. Stage 2 centers the interface and reports on personal data and reviewed marksheet observations. Stage 3 verifies spreadsheet-to-database-to-training operation on the Docker or local worker. Existing import and training controls are implemented; their behavioral emphasis and complete real-data journey still need review in the later stages. Missing consent, labels, evidence, or evaluation must remain visible.

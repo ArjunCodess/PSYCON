@@ -1,71 +1,50 @@
-# PSYCON vision and reasoning
+# Behavioral direction for PSYCON
 
-This is the current product direction for personal communication coaching. The [root README](../README.md) gives the overview, [architecture](COMMUNICATION_ARCHITECTURE.md) defines implemented behavior, and [status](IMPLEMENTATION_STATUS.md) records the gaps. Earlier research documents remain evidence for their original experiments; they do not validate this product.
+PSYCON studies observable behavior in conversations. It connects a person's talking patterns and interaction context with psychologist-reviewed A-T ratings, preserves the evidence behind those judgments, and evaluates whether supervised models can predict eligible ratings on new conversations. The [README](../README.md) gives startup and usage, [architecture](INSTRUMENT_ARCHITECTURE.md) describes the current application, and [status](INSTRUMENT_STATUS.md) distinguishes implementation from research evidence.
 
-## The problem and the intended outcome
+## What a behavioral profile means
 
-People can review a recording and notice an isolated moment, but connecting several conversations is harder. They may speak differently under pressure, explain too much during a discovery call, respond quickly to disagreement, or leave more space after practicing a goal. The useful question is what repeatedly changes in a comparable context, what evidence supports that observation, and what small adjustment is worth trying.
+The authoritative [v4.0 marksheet](PSYCON_Psychologist_Observation_Mark_Sheet.pdf) records one participant in one discussion. Its five areas are discussion tracking, contribution structure, turn-taking and reciprocity, response to challenge, and pressure-linked delivery change. The [interpretation guide](PSYCON_Tendency_Flag_Guide.pdf) permits contextual pattern descriptions with timestamps and qualifications. Neither document assigns personality, occupation, intent, emotion, intelligence, or diagnosis.
 
-PSYCON's intended first milestone is one person with several consented conversations: identify their speech, form a baseline, explain a recurring measured change with examples, suggest an adjustment, and compare later conversations with earlier data. The recordings pilot establishes the software path before a wearable makes capture continuous. Two independent wearers must complete that flow before the pilot is treated as released.
+A psychologist-reviewed profile consists of item ratings, supporting moments, discussion context, fair opportunity, observer confidence, validity checks, and review or adjudication records. It remains a human judgment tied to that recording. Agreement between reviewers measures reproducibility; agreement between a model and those reviewers measures prediction performance. Neither alone proves psychological validity.
 
-The wearable is an input device for that same history. It is not a separate interpretation system. A later wrist stream may add synchronized research context, but stress predictions must not decide that a person was defensive, dishonest, rude, or failing to communicate.
+## The evidence chain
 
-## The theoretical model
-
-The system uses a within-person, longitudinal comparison. Individuals differ in habitual pace, pitch, contribution level, profession, and capture conditions, so a population-wide threshold is a weak basis for personal advice. Comparable personal history offers a reference without turning differences between people into rankings.
-
-Three layers support a report:
-
-| Layer | What it establishes | What it cannot establish alone |
+| Layer | What it contributes | Boundary |
 | --- | --- | --- |
-| Measured speech observations | Timing, rate, level, pitch, clean wearer speech, and simultaneous speech from the supplied recording. | Intent, psychological traits, listener understanding, or social harm. |
-| Contextual interpretation | A reviewed event such as a question, acknowledgement, clarification, objection, or disagreement tied to specific text intervals. | A diagnosis or an interpretation unsupported by the exchange. |
-| Longitudinal comparison | Repeated deviations from an earlier reference in a comparable cohort. | A causal effect of coaching or a universally desirable communication style. |
+| Measured observations | Speaker timing, participation, transcript markers, and supported interaction windows | A marker or overlapping turn cannot establish intent or a rubric score on its own |
+| Human annotations | Psychologist item ratings, contextual evidence, independent review, and immutable corrections | Self-report and each observer's judgments retain separate sources |
+| Supervised predictions | Per-target estimates from frozen reviewed examples, with model versions and abstention | A prediction never replaces a human answer or becomes a human training label |
+| Interpretation and history | Evidence-backed explanations and comparisons with strictly earlier eligible sessions | An explanation does not establish a cause or a permanent trait |
 
-The statistical pilot starts with medians and median absolute deviation over session summaries. Each session contributes one value, so a long recording does not outweigh several independent conversations. The initial reference requires five eligible conversations across three days and 30 minutes of clean wearer speech. These values are configurable pilot rules, not validated psychological thresholds.
+Reviewed participant-to-speaker mappings connect the layers. A longitudinal person, a session participant, and a diarized cluster are separate records. Anonymous codes are enough; names, face recognition, and identity embeddings are unnecessary.
 
-At least three later independent conversations must support a change in the same direction beyond the robust deviation threshold. A single overlap or unusually long turn cannot establish a recurring pattern. A different microphone creates a different cohort, so the system does not mistake recording gain for a meaningful loudness change.
+## Learning the relationship with human observations
 
-Context is entered by the wearer rather than guessed as ground truth. The implemented cohort uses language, conversation type, microphone, and setting. Topic, counterpart relationship, and objective provide additional context but do not yet create fully modeled opportunity categories. Sparse cohorts remain unavailable.
+The research question is whether speaker-specific conversational measurements and context predict the psychologist's reviewed item ratings. Descriptive feature/rating correlations can help characterize a dataset, but they are not evidence that one behavior causes another. Each supported A-T target needs its own readiness, evaluation, and limitations. Do not collapse the sheet into an invented overall personality score.
 
-## Coaching and the professional roles
+The model trains only on eligible examples with consent, reviewed mappings and source ancestry, completed processing, applicable opportunity, contextual evidence, and independent answer review. Spreadsheet uploads remain saved when these conditions are missing, with explicit exclusion reasons. Zero means not observed despite fair opportunity, N/O means no supported conclusion, and missing means no supplied answer.
 
-Every recommendation should connect the observation, its setting, the earlier reference, supporting examples, a possible effect, uncertainty, and one practical adjustment. The wearer can inspect the retained excerpt and the original timing reference, then correct an event or the conversation context. Corrections take precedence over model interpretations.
+Trigger-dependent items need the preceding event and response windows. Q-T additionally compare with the same person's earlier behavior inside that discussion. This event baseline is separate from PSYCON's previous-session historical baseline. Audio-supported participation change can support T; visual-only observations remain retained but excluded. S currently lacks supported vocal-change window features and cannot be trained.
 
-| Role | Intended coaching questions |
-| --- | --- |
-| General | Is the contribution clear, concise, and balanced, with space to listen and respond? |
-| Leadership | Are instructions clear, dissent invited, and others' contributions acknowledged? |
-| Sales | Is the conversation discovering needs, balancing participation, and responding to objections? |
-| Teaching | Does an explanation have structure, make jargon understandable, and adapt after confusion? |
-| Law | Are answers direct, reasoning supported, and responses structured during cross-questioning? |
-| Debate | Are counterarguments acknowledged, rebuttals concise, and the floor managed fairly? |
-| Negotiation | Are interests clarified, valid points acknowledged, and concessions handled explicitly? |
-| Medicine | Can concerns be expressed, explanations understood, and next steps acknowledged? |
-| Student and presentation | Are main points structured, pacing appropriate, and audience questions addressed? |
+Snapshots freeze answer and mapping revisions, feature versions, source hashes, consent, and split assignments. Shared participants and recording ancestry stay in the same split component. Training-only preprocessing, held-out baseline comparisons, per-item metrics, and separate final evaluation prevent apparent progress caused by leakage. A completed fit remains exploratory when sufficient independent evaluation is unavailable.
 
-The implementation provides shared measurements, role-specific suggestions, and operational definitions for supported reasoning, explanation structure, unexplained jargon, concessions, and opportunity-linked responses. These detectors remain unavailable automatically until annotated evidence passes the exact-version validation gate. Their definitions describe cited behavior rather than truth, skill, or audience understanding. See [role rubrics](COMMUNICATION_ROLE_RUBRICS.md).
+The Docker or local worker runs durable supervised training jobs. This updates the behavior predictor; it does not automatically fine-tune the speech models or LLM. PostgreSQL records job state, snapshots, evaluations, artifact manifests, activation, rollback, and prediction lineage. Original media and generated models keep registered local files. Models do not activate automatically.
 
-Goals use a frozen pre-goal reference. Later comparisons require comparable sessions and observed opportunities. Paired response rates use explicit questions, disagreement, criticism, objections, confusion, or concerns followed by a consecutive wearer response, with both types independently validated. Missing opportunities cannot supply zeros, and partial excerpt corrections remove whole-session semantic rates. These conservative denominators need human validation. Reports describe measured change without claiming that coaching caused it.
+## Personal history, references, and reports
 
-## Local AI and the evidence boundary
+Personal data and contextual talking patterns are the main report content. Repeated-session comparisons use only eligible, strictly earlier independent recordings and report counts and uncertainty. A single session cannot establish a stable trait, and a measured change cannot establish that coaching caused it.
 
-Speech recognition, diarization, verification, and LLM interpretation run locally. The initial interpreter is Ollama with `qwen3.5:4b`, pinned to the downloaded model digest. The LLM sees bounded, redacted turn windows and must cite supplied evidence IDs. Transcript instructions are untrusted conversation content.
+Executive, Builder, Salesperson, and Negotiator remain optional exploratory reference lenses for compatibility and controlled research. They are secondary to participant evidence and human observations. Selecting a lens supplies neither an identity nor ground truth. Independent communication annotations remain separately defined session-level behaviors.
 
-Structured output and correct references establish traceability, not semantic accuracy. Automated semantic types remain unavailable until a matching evaluation reviews at least 50 independent exchanges spanning all roles and reaches at least 90% precision for each enabled type. The validator also requires at least ten displayed predictions per enabled type. Missing inference, invalid references, or a digest mismatch leave measured results and rule-based coaching available.
+Reports show observations, human ratings, predictions, and LLM interpretations as separate kinds of evidence. They remain useful when training data or an LLM is unavailable. The transcript-only A, structured-context B, and full-PSYCON C experiment remains controlled; B and C use identical frozen supervised predictions so predictor changes do not confound historical personalization.
 
-The context API is a small authorized representation for another AI application. It contains supported patterns, goals, dates, counts, uncertainty, and current context. It excludes recordings, voice embeddings, evidence text, and other people's identities. It should help another application personalize its assistance without receiving a person's complete communication archive.
+## Staged delivery
 
-## Consent, retention, and user control
+- [x] Stage 1: update current documentation to center behavioral evidence and psychologist-reviewed marksheet targets, and identify legacy instructions clearly.
+- [ ] Stage 2: review the application and reports so participant data, talking patterns, and marksheet relationships receive priority over archetype controls.
+- [ ] Stage 3: verify and complete the guided marksheet import, database save, readiness, snapshot, training-button, evaluation, and activation journey on Docker or the local worker.
 
-The wearer owns access to the personal history. A reviewer needs an explicit, revocable grant, and an AI application needs a context grant. Research ratings remain separate from automated coaching. Participant numbers in different videos do not establish cross-session identity; an operator must confirm a source-to-profile link and the existing source must satisfy its consent and withdrawal rules.
+The current application already has participant CSV/XLSX import, review, readiness, frozen snapshots, durable fitting, and model lifecycle controls. Their existence does not mean the later-stage alignment or real human-data validation is complete. The current real dataset lacks eligible consented, independently reviewed labels. The coordinated original-media backup also still needs a destination with enough free space.
 
-Successful processing deletes new personal raw media, temporary files, and full transcripts. Bounded redacted excerpts and derived timing and measurements remain until deletion. Failed raw uploads expire after 24 hours. Enrollment embeddings are encrypted, and temporary media belongs outside research backups. Redaction is conservative rather than a guarantee that sensitive text has been removed.
-
-Corrections and deletion invalidate affected reports and frozen goals. Surviving derived data can rebuild a report, but an extractor cannot be rerun against deleted audio. A new recording is needed for a new extraction. Shared research recordings retain their existing policy; deleting a personal link does not silently delete a recording used by other participants.
-
-## What comes after the first pilot
-
-The next evidence milestone is the two-person private pilot and independently reviewed semantic dataset. After that, continuous physical ESP32 capture must demonstrate sustained transport, reconnect recovery, loss reporting, clock quality, power behavior, and usable wearer attribution through the same coaching records.
-
-All-day capture requires measured battery life, wearer and bystander consent controls, safe pause behavior, reliable session segmentation, and stronger operational recovery. Real wrist acquisition follows as optional synchronized research context. Hosted worker connections and a public personal product are separate later milestones. The local software build does not establish any of these release gates.
+No Stage 1 document change alters stored answers, model targets, existing evidence identities, UI controls, or the original controlled experiment. Later stages must record protocol and implementation changes explicitly.

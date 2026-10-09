@@ -1,6 +1,8 @@
 # Audio-only PSYCON architecture and research protocol
 
-PSYCON is an audio-based longitudinal communication-analysis system that learns an individual's conversational patterns, represents them using speaker-specific and contextual evidence, compares them against personal baselines and reference communication archetypes, and uses that structured representation to generate evidence-grounded communication insights and coaching.
+PSYCON is a behavioral observation and communication research instrument. It connects a person's speaker-specific talking patterns and discussion context with psychologist-reviewed observations from the A-T marksheet. It preserves timestamped evidence and personal history, and trains supervised models to predict eligible contextual ratings from conversational data.
+
+Participant evidence and reviewed marksheet observations define the behavioral focus. Existing archetype controls remain optional exploratory comparisons pending the Stage 2 interface review. See [the staged behavioral direction](PSYCON_VISION.md).
 
 ## Runtime and persistence
 
@@ -45,7 +47,7 @@ Context-specific baselines use exact session-context matches. The global baselin
 
 Five previous comparable sessions are required to flag deviations. A value over two sample SD from the earlier mean is a descriptive flag, not a statistical-significance claim. A zero-SD baseline flags a changed value without inventing a z-score or infinite ratio. Confidence remains low below ten samples and moderate afterward; sample count alone does not establish validity. Recurring indicators require evidence in at least three independent recordings and do not establish a fixed personality.
 
-## Reference communication profiles
+## Optional exploratory reference comparisons
 
 Reference dimensions are normalized into [0,1]. Ratio features use their original [0,1] range. Proposal generation uses `clip(proposals/minute / 2, 0, 1)`, an explicit prototype scale rather than a population percentile. Missing dimensions are omitted. At least three common dimensions are required.
 
@@ -79,7 +81,7 @@ Session exports support JSON, feature CSV, RTTM, transcript text, and a ZIP cont
 
 The adapter follows [Community-1's official model interface](https://huggingface.co/pyannote/speaker-diarization-community-1) and [faster-whisper's official transcription interface](https://github.com/SYSTRAN/faster-whisper). Model availability, local inference checks, or existing group coverage are not evidence of longitudinal communication validity.
 
-## Canonical annotation and training storage
+## Behavioral targets, annotations, and training storage
 
 Ordered migrations in `backend/instrument/migrations` create a separate `psycon` schema under a migration ledger and advisory lock. Runtime requests never execute migrations. Native JSONB, timezone-aware timestamps, finite measurements, and explicit start_s/end_s columns retain the external transcript timing contract. PostgreSQL leases own speech, interpretation, import, and training jobs; completion checks owner, attempt, lease, and input revision. A shared GPU lease excludes concurrent speech/LLM use. Frozen datasets use a serializable transaction to detect concurrent revisions.
 

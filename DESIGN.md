@@ -1,6 +1,6 @@
 ﻿# PSYCON research interface
 
-The primary audio-only workspace is `backend/templates/instrument.html`, served by `run_psycon.py web` at port 8001. It uses `backend/static/instrument.css` and `instrument.js`. Blinded reviews use a separate form with the same styles and no condition labels.
+The primary behavioral research workspace is `backend/templates/instrument.html`, served by the Docker launcher at port 8008 or `run_psycon.py web` at its configured port. It uses `backend/static/instrument.css` and `instrument.js`. Blinded reviews use a separate form with the same styles and no condition labels.
 
 ## Colors and typography
 
@@ -8,7 +8,7 @@ Charcoal `#222b25` carries the navigation. Content uses green-neutral `#f1f2ee`,
 
 ## Structure and interaction
 
-Seven navigation destinations share a person selector and target communication-profile dropdown. Session inspection uses Overview, Transcript, Measurements, and Analysis sections. Session and section URLs survive refresh and browser navigation. The audio element stays mounted when switching sections, preserving playback position. Processing records, speaker mapping, metadata, and exports remain in Overview; measurements and generated interpretations have separate reading spaces. Every output is accessible independently of the LLM. Native audio players, dialogs, forms, tables, and focus rings preserve familiar behavior.
+The current navigation shares a person selector and an exploratory target comparison dropdown. The [behavioral direction](docs/PSYCON_VISION.md) makes participant talking patterns and reviewed marksheet observations the primary content. Stage 2 will review that emphasis in the interface; the existing dropdown must never imply a personality label or training target. Session inspection includes Overview, Participants & answers, Transcript, Measurements, and Report sections. Training & models holds readiness, datasets, fitting, evaluation, activation, and rollback. Session and section URLs survive refresh and browser navigation. The audio element stays mounted when switching sections, preserving playback position. Processing records, speaker mapping, metadata, and exports remain in Overview; measurements and generated interpretations have separate reading spaces. Every output is accessible independently of the LLM. Native audio players, dialogs, forms, tables, and focus rings preserve familiar behavior.
 
 Layouts collapse below 760px into horizontal navigation and single-column content. Wide tables scroll inside their panels. Only brief control-state transitions use animation, with reduced-motion support. Charts have textual values available in adjacent tables or exports.
 
