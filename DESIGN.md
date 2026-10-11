@@ -1,15 +1,61 @@
-# PSYCON design system
+﻿# PSYCON research interface
 
-All four workspaces extend `backend/templates/base.html`. It supplies fonts, navigation, the page container, and shared styles. The server renders Jinja templates; client behavior uses plain JavaScript.
+The primary behavioral research workspace is `backend/templates/instrument.html`, served by the Docker launcher at port 8008 or `run_psycon.py web` at its configured port. It uses `backend/static/instrument.css` and `instrument.js`. Blinded reviews use a separate form with the same styles and no condition labels.
 
-## Color and type
+## Colors and typography
 
-`backend/static/dashboard.css` defines the common tokens: ink `#202421`, muted text `#65706a`, paper `#f3f1eb`, surface `#fbfaf6`, border `#d7d7cf`, teal `#24766b`, warning `#9b6818`, and danger `#a44232`. Manrope is the interface font, with Segoe UI as its fallback. Geist Mono labels technical data, with Consolas as its fallback.
+Charcoal `#222b25` carries the navigation. Content uses green-neutral `#f1f2ee`, surface `#fcfcf9`, ink `#252c28`, muted text `#59635d`, deep green `#285c4c`, copper `#8c5437`, and danger `#9a352c`. Use locally hosted Geist for interface text and Geist Mono only for timestamps, precise numeric data, code, and model provenance. The pinned official font files, license, source URLs, and SHA-256 hashes are in `backend/static/fonts`. Labels stay readable; state always includes text.
 
-`design-system.css` defines shared navigation, controls, headings, focus, and state styles. Main headings use 2.75rem, section headings 1.5rem, and smaller headings 1.125rem. Body copy uses a 1.65 line height and a readable line length.
+## Structure and interaction
 
-## Components and layout
+The current navigation shares a person selector and an exploratory target comparison dropdown. The [behavioral direction](docs/PSYCON_VISION.md) makes participant talking patterns and reviewed marksheet observations the primary content. The exploratory dropdown and reference navigation now live in closed optional disclosures; they supply no personality label or training target. Session overview leads with participant conversation data, and Measurements and Report put talking patterns and contextual human ratings before interpretation. Session inspection includes Overview, Participants & answers, Transcript, Measurements, and Report sections. Training & models holds readiness, datasets, fitting, evaluation, activation, and rollback. Session and section URLs survive refresh and browser navigation. The audio element stays mounted when switching sections, preserving playback position. Processing records, speaker mapping, metadata, and exports remain in Overview; measurements and generated interpretations have separate reading spaces. Every output is accessible independently of the LLM. Native audio players, dialogs, forms, tables, and focus rings preserve familiar behavior.
 
-Use the same masthead and Home, Coach, Research, and Devices navigation everywhere. The active page has a visible mark and `aria-current`. Controls have square corners, 44px minimum height, and visible keyboard focus. Primary actions use teal; secondary actions use a teal outline. Destructive actions use the shared danger color.
+Layouts collapse below 760px into horizontal navigation and single-column content. Wide tables scroll inside their panels. Only brief control-state transitions use animation, with reduced-motion support. Charts have textual values available in adjacent tables or exports.
 
-Page layouts may differ by task, but their fonts, colors, borders, spacing, fields, buttons, and states come from the shared styles. Page-specific CSS contains layout rules only. Forms and workspace grids collapse at 800px. Honor reduced motion and retain native form controls.
+Session mapping, metadata editing, and manual event annotation use disclosure controls so reading evidence stays ahead of editing. Dialogs have named headings, native focus trapping, and sticky close controls. Tables and timelines are keyboard-scrollable; timeline intervals support Enter and Space. Research polling refreshes when run states change instead of replacing the reading view every eight seconds. Failed and superseded runs remain in an expandable audit history.
+
+Mobile inputs use 16px text and controls have 44px touch targets. Long filenames, person names, source text, and reference labels wrap without widening the page. Blinded review uses numbered links to frozen cited excerpts and anonymous speaker labels; model and system labels remain concealed.
+
+## Scientific presentation
+
+Do not show a global communication score. Separate measured, estimated, reviewed partial, inferred, exploratory, and unavailable states. Render missing research metrics as `Not evaluated yet`. Compare person dimensions with reference dimensions and show the method, source, sample count, version, and limitations. Citing an existing evidence ID never becomes a claim of validated semantic support.
+
+Legacy pages continue to use their earlier shared styles; their hardware/coaching navigation does not define this workspace.
+
+## Research-workbench refinement
+
+The shared `instrument_design.css` layer preserves the green palette and locally hosted Geist. Body text is 15px, section headings are 20px, and page headings are 32px. Reports have a 70-character reading measure, measurements use compact tabular values, and forms retain visible labels and native controls. The toolbar carries a linked workspace location instead of repeating it above the page heading.
+
+Long research, training, history, and reference views offer section buttons that scroll and focus their headings without changing the page route. Participant review and training show the actual workflow as numbered steps. Withdrawal controls remain in a separate disclosure. Tables scroll inside their panels; touch controls remain at least 44px tall.
+
+The October 9 refinement was checked in the collaborative browser across all eight workspace pages, five session sections, the answer editor, populated training records, and a saved blinded review. Isolated same-origin rendering frames at 390, 768, and 1280px showed no page overflow after styles loaded. Native viewport resizing remains unavailable, so these checks do not establish physical-phone behavior. Section navigation preserves its route and focuses the requested heading; session sections preserve the same audio element and its playback position. Synthetic training records were inspected only in the isolated validation database, with no writes to participant answers or model activation.
+
+Both frontend rendering suites, JavaScript syntax checks, and three focused PostgreSQL tests passed. The Impeccable scan could not resolve Jinja stylesheet links and reported default-size typography warnings; browser-computed sizes confirmed the intended hierarchy. No backend or stored scientific results changed in this refinement.
+
+## Verification
+
+The seven primary views were exercised in the collaborative browser at 390px, 768px, and 1280px using isolated same-origin rendering frames. No page overflow or visible application errors occurred in those 21 checks. Session inspection, the evidence dialog, and blinded review were checked at 390px, including long claim selectors and source links. Visible research text passed a computed contrast check. Screenshot capture and native viewport resize were unavailable in this preview session, so these checks do not constitute a complete visual or assistive-technology audit.
+
+## Evidence workbench update
+
+The dashboard is scoped to original videos in the `Group discussion videos - full audio pipeline` dataset, excluding earlier audio imports and technical smoke runs. Its analyzed duration includes completed sessions only. Actual processing and failed states appear with a direct review action. A next-step prompt leads to a completed recording or personal-history setup.
+
+Recordings can be searched by filename, context, or dataset and filtered by processing status and dataset. Search text and filters persist while using the session list. Transcript search filters retained excerpts without changing the underlying evidence. Notices can be dismissed. Polling avoids replacing completed session views when an unrelated job changes and pauses while audio is playing or a form is being edited.
+
+Geist assets are sourced from [Vercel's official repository](https://github.com/vercel/geist-font) at the revision recorded in the local font manifest, with the supplied SIL Open Font License retained. Font requests are local; no third-party font service is used.
+
+The update was inspected in desktop screenshots with Geist confirmed as the loaded interface font. Session-section switching retained the same audio element and its playback position; transcript search handled an empty result. A check against the live session database confirmed that the dashboard excludes every recording outside the original-video dataset. JavaScript syntax and whitespace checks passed, and the full Python suite passed with 344 tests and five optional integration skips. The preview client failed after a native viewport-resize attempt, so the earlier responsive checks above have not been repeated for this update.
+
+## Speaker report reading flow
+
+The Report section opens the selected speaker's latest completed full PSYCON interpretation inline. It leads with the summary, then separates observed behavior, possible interpretation, confidence, and a suggested adjustment. Expand supporting moments to read exact saved quotes and play the recording at their timestamps. Scope and uncertainty remain accessible. Research condition labels, model configuration, raw JSON, and run history live in secondary disclosures.
+
+Queued and running reports disable duplicate generation and preserve an earlier completed report. Failed and outdated attempts never become current report content. Changing the selected speaker restores keyboard focus and reuses the session audio element. Speaker selection appears only where it changes the displayed measurements or report.
+
+The isolated frontend checks cover source links, text escaping, current-report selection, and empty, pending, updating, failed, stale, and unavailable states. Live data rendering and JavaScript syntax checks passed. An isolated desktop render in the collaborative preview loaded Geist, displayed the four real saved observations, and had no horizontal overflow. The preview then disconnected; screenshots, mobile layout, and live playback checks could not be completed for this update.
+
+## Behavioral evidence reading flow
+
+Current human A-T observations are read through the latest confirmed participant-to-speaker association and shown beside separate supervised predictions. The five marksheet areas organize the display. Reviewer identity, source type, current label revision, review status, opportunity, confidence, human evidence windows, and separate adjudication remain inspectable. Missing associations do not manufacture ratings or attach someone else's answers. Reports distinguish these current human records from the saved LLM interpretation and its frozen generation inputs. Talking-pattern measurements lead the view; reference comparisons stay optional.
+
+Stage 2 desktop inspection and an isolated 390px synthetic layout check passed, with no page overflow, internal table scrolling, and audio retained across section changes. Native viewport resizing still timed out; physical-phone verification remains unavailable. PostgreSQL and frontend checks are recorded in the coverage document.

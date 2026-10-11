@@ -4,7 +4,7 @@ import atexit
 import os
 
 from flask import Flask
-from flask import jsonify
+from flask import jsonify, request
 from werkzeug.exceptions import RequestEntityTooLarge
 
 from .auth import bootstrap_operator
@@ -22,6 +22,7 @@ from .communication.service import CommunicationService
 from .communication.store import PostgresCommunicationStore
 from .communication.routes import communication_api, coach_pages
 from .communication.sources import SourceAdapters
+from .instrument.routes import api as instrument_api, pages as instrument_pages
 
 
 def create_app(
@@ -32,6 +33,13 @@ def create_app(
     storage=None,
     initialize: bool = True,
 ) -> Flask:
+    if not testing and settings is None and database is None and storage is None:
+        from ml.src.environment import load_project_environment
+        load_project_environment()
+        os.environ.setdefault('PSYCON_DATABASE_ROLE','psycon_web')
+        if os.getenv('PSYCON_WEB_DATABASE_URL'):os.environ['PSYCON_DATABASE_URL']=os.environ['PSYCON_WEB_DATABASE_URL']
+        from .instrument.app import create_app as canonical_app
+        return canonical_app(os.getenv('PSYCON_INSTRUMENT_ROOT','instance/instrument'))
     app = Flask(__name__, template_folder="templates", static_folder="static")
     settings = settings or Settings.from_env(testing=testing)
     app.config.update(
@@ -70,6 +78,8 @@ def create_app(
     app.register_blueprint(group_routes.group_api)
     app.register_blueprint(communication_api)
     app.register_blueprint(coach_pages)
+    app.register_blueprint(instrument_api)
+    app.register_blueprint(instrument_pages)
 
     @app.errorhandler(RequestEntityTooLarge)
     def request_too_large(_error):
@@ -77,6 +87,8 @@ def create_app(
 
     @app.after_request
     def security_headers(response):
+        if request.path == "/instrument" or request.path.startswith("/review/"):
+            response.headers["Content-Security-Policy"] = "default-src 'self'; connect-src 'self'; img-src 'self' data:; media-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'"
         response.headers.setdefault(
             "Content-Security-Policy",
             "default-src 'self'; connect-src 'self'; img-src 'self' data:; "

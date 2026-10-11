@@ -1,0 +1,8 @@
+# Reuse the installed CUDA speech runtime; no original data enter the image.
+ARG PSYCON_RUNTIME_IMAGE=psycon-week4-worker:latest
+FROM ${PSYCON_RUNTIME_IMAGE}
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+RUN python -m pip install --no-cache-dir openpyxl==3.1.5
+WORKDIR /app
+ENTRYPOINT []
+CMD ["python", "run_psycon.py", "worker"]

@@ -1,5 +1,7 @@
 # Implementation status
 
+Historical workflow. This document records the earlier implementation and does not define the current behavioral instrument. Use [the current startup guide](START_HERE.md), [behavioral direction](PSYCON_VISION.md), [instrument architecture](INSTRUMENT_ARCHITECTURE.md), and [coverage record](INSTRUMENT_STATUS.md) for new work.
+
 This is the detailed coverage record for the communication direction as of 6 October 2026. The short progress section belongs in [README](../README.md); current behavior is specified in [architecture](COMMUNICATION_ARCHITECTURE.md).
 
 ## What can be confirmed

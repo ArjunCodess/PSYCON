@@ -1,5 +1,7 @@
 # Communication architecture and API
 
+Historical workflow. This document records the earlier implementation and does not define the current behavioral instrument. Use [the current startup guide](START_HERE.md), [behavioral direction](PSYCON_VISION.md), [instrument architecture](INSTRUMENT_ARCHITECTURE.md), and [coverage record](INSTRUMENT_STATUS.md) for new work.
+
 This document describes the implemented English recordings pilot. [Vision](PSYCON_VISION.md) explains the intended product, [operations](COMMUNICATION_COACH.md) gives runnable commands, and [status](IMPLEMENTATION_STATUS.md) distinguishes implementation from validation.
 
 ## Components and boundaries

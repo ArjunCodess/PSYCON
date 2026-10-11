@@ -24,7 +24,6 @@ $env:UV_CACHE_DIR = Join-Path $runtimeRoot 'cache\uv'
 $env:NPM_CONFIG_CACHE = Join-Path $runtimeRoot 'cache\npm'
 $env:PIP_CACHE_DIR = Join-Path $runtimeRoot 'cache\pip'
 $env:PLATFORMIO_CORE_DIR = Join-Path $runtimeRoot 'platformio'
-$env:PSYCON_DATABASE_URL = 'postgresql://psycon:psycon@127.0.0.1:5432/psycon'
 $env:PSYCON_S3_ENDPOINT_URL = 'http://127.0.0.1:9000'
 $env:PSYCON_S3_SECRET_KEY = 'psycon-local-object-secret'
 $env:PSYCON_DIARIZATION_DEVICE = 'cuda'
@@ -43,10 +42,10 @@ switch ($Action) {
             -RedirectStandardOutput (Join-Path $runtimeRoot 'logs\ollama-stdout.log') `
             -RedirectStandardError (Join-Path $runtimeRoot 'logs\ollama-stderr.log')
     }
-    'web' { & $pythonExe -m backend.communication.runtime web }
-    'worker' { & $pythonExe -m backend.communication.runtime worker }
+    'web' { & $pythonExe run_psycon.py web }
+    'worker' { & $pythonExe run_psycon.py worker }
     'train-group' {
-        & $pythonExe -m backend.group.train
+        & $pythonExe run_psycon.py train
         if ($LASTEXITCODE -eq 2) { exit 2 }
     }
     'configure' { & $pythonExe -m backend.communication.runtime configure-local }

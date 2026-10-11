@@ -11,6 +11,7 @@ from backend.config import Settings
 
 def test_production_rejects_local_default_secrets(monkeypatch) -> None:
     monkeypatch.setenv("PSYCON_ENV", "production")
+    monkeypatch.setenv("PSYCON_DATABASE_URL", "postgresql://localhost/psycon")
     with pytest.raises(RuntimeError, match="Production secrets"):
         Settings.from_env()
 

@@ -1,0 +1,2 @@
+-- Canonical PostgreSQL schema is defined by ordered migrations in migrations/.
+-- Apply explicitly with: python run_psycon.py migrate

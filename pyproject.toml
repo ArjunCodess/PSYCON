@@ -1,7 +1,7 @@
 [project]
 name = "psycon"
-version = "0.1.0"
-description = "WESAD-first software and ML pipeline for Psycon stress detection."
+version = "0.2.0"
+description = "Audio-first longitudinal communication evidence, personal baselines, and reference-profile research."
 requires-python = ">=3.11"
 
 [tool.pytest.ini_options]

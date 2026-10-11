@@ -1,3 +1,9 @@
+## Current audio-first implementation amendment, 2026-10-08
+
+The canonical application follows [the frozen dataset protocol](../DATASET_PROTOCOL.md) and [the PostgreSQL runbook](../POSTGRES_TRAINING_RUNBOOK.md). PostgreSQL holds normalized annotations, bounded original spreadsheet/form sources, immutable corrections, mappings, consent, snapshots and model lineage. Original audio/video and generated model files remain local with exact names and registered hashes. Source documents and private exports retain human metadata under the annotation-source retention policy; they are not public research releases. Names and identity embeddings are unnecessary.
+
+The supervised targets are eligible A-T ratings and separately annotated communication traits. Same-session event baselines differ from strictly earlier personal history. Fitting, held-out evaluation and deliberate deployment are separate gates, as is the controlled A/B/C personalization experiment. Real training is currently unavailable without consented, independently reviewed human labels. Historical device-study instructions below apply only to that separate experiment and do not define the active predictor.
+
 # Research data management
 
 Participant data must stay in the approved encrypted study store, outside this Git repository. The project repository may contain schemas, code, synthetic fixtures, aggregate reports approved for release, and manifests that cannot identify a person.

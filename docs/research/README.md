@@ -1,4 +1,16 @@
-# Week 5 research workflow
+# Behavioral research workflow
+
+The active study connects speaker-specific conversational evidence with psychologist-reviewed A-T observations. Use the [behavioral direction](../PSYCON_VISION.md), [dataset protocol](../DATASET_PROTOCOL.md), and [PostgreSQL training runbook](../POSTGRES_TRAINING_RUNBOOK.md). Import and review marksheets in the canonical application, freeze eligible examples, and queue supervised fitting on the Docker or local worker.
+
+The five marksheet areas describe contextual behavior in one discussion. Independent communication targets have separate annotation definitions. Archetype goals are optional exploratory comparisons and supply no human training labels. Predictive agreement with human ratings requires held-out evaluation; it does not establish personality or diagnosis. The current real records lack eligible consented, independently reviewed labels.
+
+The controlled A/B/C interpretation experiment evaluates personalization separately from the supervised predictor. Freeze identical supervised outputs for B and C, preserve final-evaluation roles, and report missing evaluation honestly.
+
+## Historical Week 5 device study
+
+The material below records the separate earlier wrist-and-speech experiment. Its commands, physiological inputs, and binary targets are not the active marksheet trainer. No hardware or face dependency is introduced into the behavioral instrument.
+
+### Earlier setup
 
 The Week 5 research code is prepared, but the repository has no PSYCON participant dataset and therefore has no valid Week 5 model result. Training starts after completed psychologist marksheets and their matching device sessions are available.
 

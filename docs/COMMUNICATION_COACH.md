@@ -1,5 +1,7 @@
 # PSYCON communication pilot
 
+Historical workflow. This document records the earlier implementation and does not define the current behavioral instrument. Use [the current startup guide](START_HERE.md), [behavioral direction](PSYCON_VISION.md), [instrument architecture](INSTRUMENT_ARCHITECTURE.md), and [coverage record](INSTRUMENT_STATUS.md) for new work.
+
 For plain-language startup and use, read [Start here](START_HERE.md). This page keeps the technical operating details. The proposed screen flow is in [the user-system design](USER_SYSTEM.md).
 
 Read [vision](PSYCON_VISION.md) for the reasoning, [architecture](COMMUNICATION_ARCHITECTURE.md) for the API/data contract, and [status](IMPLEMENTATION_STATUS.md) for implemented behavior and open release gates. This page is the operational runbook.
