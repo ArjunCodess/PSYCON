@@ -1,105 +1,284 @@
-\documentclass[conference]{IEEEtran}
-\usepackage{booktabs}
-\usepackage{graphicx}
-\usepackage{url}
-\usepackage{balance}
-
-\graphicspath{{../results/charts/}}
-\newcommand{\project}{\mbox{PSYCON}}
-
-\title{\project: A Multimodal Wearable System for Psychological State Detection}
-
-\author{
-  \IEEEauthorblockN{Arjun Vijay Prakash}
-  \IEEEauthorblockA{
-    Software and Machine Learning\\
-    Grade 11 Student\\
-    City Montessori School, Quality Building\\
-    Sector G, LDA Colony, Kanpur Road\\
-    Lucknow, Uttar Pradesh 226012, India
-  }
-  \and
-  \IEEEauthorblockN{Saksham Yadav}
-  \IEEEauthorblockA{
-    Hardware and Wearable System\\
-    Grade 11 Student\\
-    City Montessori School, Quality Building\\
-    Sector G, LDA Colony, Kanpur Road\\
-    Lucknow, Uttar Pradesh 226012, India
-  }
-}
-
+\documentclass{article}
+\usepackage{arxiv}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref,url,booktabs,tabularx,array,amsmath,amsfonts,microtype,graphicx,tikz}
+\usetikzlibrary{arrows.meta,positioning}
+\usepackage[numbers]{natbib}
+\hypersetup{colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue}
+\graphicspath{{figures/}}
+\renewcommand{\shorttitle}{PSYCON: contextual behavioral observation}
+\renewcommand{\headeright}{BEHA working draft}
+\renewcommand{\undertitle}{Behavioral and Social Sciences research working draft}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\title{PSYCON: Studying contextual communication behavior through evidence-linked psychologist observations}
+\author{Arjun Vijay Prakash \And Saksham Yadav}
+\date{October 12, 2026}
 \begin{document}
-
 \maketitle
-
 \begin{abstract}
-This paper presents \project, the Psychophysiological Condition Observation Network, a prototype multimodal wearable system for estimating psychological state from physiological, motion, and audio-derived signals. The current software pipeline is validated using the public WESAD dataset before adaptation to \project{} hardware data, pending IRB guidance. The implemented pipeline extracts ten-second feature windows from wearable signals and compares rule-based, logistic regression, random forest, XGBoost, and LightGBM classifiers across single-modality and multimodal feature sets. The pipeline also adds per-subject baseline-difference features to support the project's personalization goal.
+Behavior in a group discussion depends on the preceding exchange, speaking opportunity, and the participant's earlier behavior. PSYCON investigates whether speaker-specific conversational measurements can predict contextual observations reviewed by psychologists, and whether earlier personal history improves evidence-supported communication reports. The implemented research instrument normalizes recordings, diarizes speakers, transcribes speech, conservatively attributes words, and preserves timestamped exchanges. A versioned A--T marksheet distinguishes ordinal ratings from insufficient opportunity and missing answers. Reviewed labels can enter frozen participant/source-group datasets for per-item logistic classification; matched report conditions compare transcript-only, structured-context, and full-PSYCON representations. Independent rater agreement, held-out prediction error, and blinded report usefulness are the intended behavioral outcomes. These outcomes have not yet been established. Retained engineering artifacts cover eleven recordings and 85 marked person-recording slots. Guarded PSYCON produced 57 ready profiles, compared with 51 for each guarded Nemotron configuration; these are coverage counts, not identity accuracy or psychological validation. Ten local scanned annotation bundles contain 228 image-only pages, and an inspected version 5.0 sheet differs from the deployed version 4.0 form. They require version reconciliation, consent verification, and independent review before training. The present contribution is an implemented measurement and evaluation workflow that keeps contextual human observations separate from model predictions. Its behavioral hypotheses remain open, and no diagnosis, stable personality inference, causal effect, or demonstrated coaching benefit is claimed.
 \end{abstract}
+\keywords{behavioral observation \and social interaction \and communication \and psychologist ratings \and measurement validity \and reproducibility}
 
-\section{Introduction}
+\section{Behavioral question and significance}
+Two participants can have similar speaking time yet behave differently in a discussion. One may answer a direct question, another may respond to a different point; either may speak briefly because of turn allocation rather than disengagement. The behavioral problem is to describe what a person did in an identifiable exchange without turning a recording into a permanent judgment of that person.
 
-Stress detection using wearable sensors is challenging because individual signals can be noisy and ambiguous. Heart and electrodermal signals can change due to stress, but also due to temperature, activity, sensor contact, or individual physiology. Motion can indicate agitation, but it can also indicate ordinary movement. \project{} explores whether multimodal sensing can improve robustness compared with single-modality approaches.
+PSYCON examines this problem through contextual psychologist observations linked to conversational evidence. Its principal question is: \emph{To what extent can speaker-specific talking patterns and discussion context predict contextual A--T ratings reviewed by school psychologists on held-out participants and recordings, and does adding strictly earlier personal history improve the support and usefulness of communication reports?}
 
-The long-term system consists of a wrist biosensing module, an ear/audio module, and a mobile application for synchronization, inference, visualization, and storage. The present work focuses on the software and machine learning foundation. It uses WESAD, a public multimodal wearable stress and affect dataset, to validate the pipeline before collecting human-participant data from \project{} hardware \cite{schmidt2018wesad}.
+The scientific object is behavior in context. Audio processing and supervised prediction are measurement tools. The current project is positioned in Behavioral and Social Sciences, with an emphasis on social interaction and operational behavioral observation. It is not a study of whether a software interface is attractive or whether a device can transmit packets. The Society for Science science-project criteria emphasize a testable question, appropriate variables and controls, systematic analysis, sufficient evidence, and understanding of limitations \cite{isefcriteria}.
 
-The central product idea is personalization. Instead of using raw physiological values directly, \project{} should establish a calm baseline for each user during first wear and predict stress from deviations from that baseline.
+The potential benefit is a reviewable account of participation, reciprocity, contribution structure, and responses to challenge. A participant or psychologist could inspect the exact moment supporting an observation, correct attribution, and see uncertainty. That benefit remains prospective. No study in the reviewed artifacts establishes improved well-being, learning, communication skill, or clinical outcomes.
 
-\section{Methods}
+\section{Psychological background and research gap}
+\subsection{Interaction is sequential and context-dependent}
+Conversation involves the organization of speaker turns, responses, and opportunities to enter. Foundational conversation-analysis work examines this organization rather than interpreting speaking duration as a complete description of social behavior \cite{sacks1974}. PSYCON uses that distinction operationally: a timing overlap is measurable, but deciding whether it was an intentional interruption requires the surrounding exchange and human review.
 
-The current implementation validates the software and modeling pipeline using WESAD pickle files as the source of truth, because they contain aligned physiological signals and labels. The pipeline is reproducible from the repository root with \texttt{python main.py}. Raw WESAD data is stored locally and excluded from version control.
+A response after disagreement is similarly ambiguous. Reduced participation could reflect being interrupted, a topic change, moderator allocation, language access, fatigue, or a deliberate decision to listen. The project therefore asks observers to describe an event, earlier behavior, a response, its duration, and its effect on the exchange. It does not infer an emotion from a pause or assign a trait from one session.
 
-Wrist signals are mapped to \project{} concepts as follows: WESAD EDA is treated as a GSR proxy, accelerometer data is treated as motion, BVP is treated as a heart-signal proxy, and temperature is retained as an optional contextual feature. Signals are resampled to a common 4 Hz timeline. Ten-second windows with a two-second hop are used for feature extraction.
+These operational choices do not constitute an established psychological theory of all communication. They narrow the question to behavior the source recording can support. A scientifically useful observation must be attributable to the correct person, defined reproducibly, and interpreted within an opportunity to exhibit it.
 
-The first classifier is binary: WESAD baseline is mapped to calm and WESAD stress is mapped to high stress. Amusement and other labels are ignored for the first model. Mild stress remains reserved for future \project-specific participant data because WESAD does not provide a direct mild-stress class.
+\subsection{Measurement reliability and construct validity}
+Construct validity concerns whether evidence supports the interpretation of a measure, rather than whether a form merely has a psychological label \cite{cronbach1955}. The A--T groups and score meanings are project-defined. They have not been shown to form validated latent dimensions, to generalize across populations, or to measure anxiety, intelligence, diagnosis, or personality.
 
-Extracted features include EDA mean, standard deviation, range, slope, and peak count; BVP mean, standard deviation, range, slope, and peak count; accelerometer magnitude and jerk features; and temperature mean, standard deviation, range, and change. Per-subject calm baselines are computed from WESAD baseline windows, and baseline-difference features are added before model training. The evaluation compares rule-based, logistic regression, random forest, XGBoost, and LightGBM models across single-modality and multimodal feature sets.
+Independent observers are needed to establish whether the definitions can be applied reproducibly. Cohen's kappa measures chance-adjusted agreement, and weighted kappa can penalize ordinal differences differently \cite{cohen1960,cohen1968}. PSYCON preserves original ratings and adjudication separately so agreement can be evaluated before differences are resolved. High agreement would support reproducible use of the rubric in the studied setting, but would not establish every psychological interpretation attached to it.
 
-The train-test split is grouped by subject so that windows from held-out subjects are used for evaluation. This is stricter than a random window-level split and better reflects generalization to unseen users.
+The study also needs evidence that the recording and speaking opportunity support each score. A zero means the behavior was not observed despite a fair opportunity; N/O means opportunity or recording support was insufficient. Missing means no answer was supplied. Treating all three as zero would train on a changed target and could make poor recording access look like favorable behavior.
 
-\section{Results}
+\subsection{What the project adds and what it does not}
+Pretrained speech models provide transcription and diarization, including Whisper and Community-1 \cite{radford2022,community1}. They do not supply independent psychologist judgments of a participant's response to an exchange. PSYCON's contribution is the explicit connection between source evidence, reviewed human observations, annotation revisions, and independent evaluation units. The novelty claim is this project-specific measurement workflow, not that turn-taking or behavioral observation has never been studied.
 
-The current WESAD run produced 13,698 labeled windows from 15 subjects after filtering to calm and high-stress periods. The dataset contained 8,760 calm windows and 4,938 high-stress windows. Table~\ref{tab:model-results} reports the top results from the latest reproducible pipeline run.
+The closest technical foundations answer different questions: Whisper transcribes speech; Community-1 separates anonymous speakers; TalkNet examines audiovisual speaking activity; and SpeechBrain provides speech-processing components \cite{tao2021,ravanelli2021}. Their published results cannot be transferred to A--T prediction. For the behavioral study, they are possible sources of measurement error and tools whose outputs require review.
 
-\begin{table}[h]
-\centering
-\caption{Top WESAD Model Results}
-\label{tab:model-results}
-\begin{tabular}{llrrrr}
-\toprule
-Model & Modality & Acc. & Prec. & Rec. & FPR \\
+Data leakage is another methodological concern. Shared participants, repeated clips, and derived recordings can make a nominally held-out result partly familiar to a model \cite{kapoor2022}. The study therefore groups dependent people and sources before splitting examples. This design choice matters because a clip-level success can otherwise be mistaken for generalization to a new person.
+
+\section{Hypotheses, variables, and study design}
+\subsection{Two separate behavioral evaluations}
+Hypothesis H1 is that supported speaker-specific measurements and recorded interaction context predict some independently reviewed A--T item ratings with lower held-out mean absolute error than a constant training-median prediction. The null comparison is no improvement over that baseline. The hypothesis does not require every item to be predictable or every score to be equally frequent.
+
+Hypothesis H2 is that richer report representations receive better independently reviewed evidence-grounding and usefulness judgments than a transcript-only representation, without increasing unsupported psychological claims. The current application compares transcript-only A, structured-context B, and full-PSYCON C. B and C share frozen supervised predictions when available. The report study is distinct from prediction: a model may agree with a rating while producing an unhelpful report, or a report may be useful without a fitted predictor.
+
+The implemented C representation adds history, retrieved evidence, and exploratory reference information together. It cannot isolate a history-specific effect. A future matched ablation must vary history while holding evidence retrieval and references fixed before H2 can be narrowed to a causal claim about history. The application currently supports a package comparison, and the paper reports that boundary.
+
+\begin{table}[ht]
+\caption{Behavioral variables and controls. Proposed outcomes are not measured results.}
+\label{tab:variables}
+\centering\small
+\begin{tabularx}{\linewidth}{@{}l Y Y@{}}
+\toprule Study & Predictors or comparison & Outcome and controls \\
 \midrule
-XGBoost & EDA only & 0.932 & 0.871 & 0.953 & 0.081 \\
-LightGBM & EDA only & 0.924 & 0.871 & 0.928 & 0.078 \\
-Logistic regression & EDA only & 0.917 & 0.827 & 0.977 & 0.117 \\
-Logistic regression & Multimodal & 0.915 & 0.814 & 0.995 & 0.130 \\
-Random forest & Multimodal & 0.869 & 0.865 & 0.758 & 0.067 \\
-XGBoost & Multimodal & 0.864 & 0.877 & 0.727 & 0.058 \\
+Rating prediction & Speaker timing, attributed words, marker proxies, context, supported event windows & Per-item reviewed 0--4 score; participant/source-held-out partitions, training-only preprocessing, fixed baseline. \\
+Report comparison & A transcript; B structured context; C full representation & Blinded grounding, attribution, contextual appropriateness, usefulness, overclaiming; same speaker, transcript window, model digest, decoding settings. \\
+Rater reliability & Independent ratings of the same source-supported behavior & Per-item raw and weighted agreement before adjudication; common instructions and opportunity definitions. \\
+History-only follow-up & Earlier eligible history present versus withheld & Paired report review with retrieved evidence and reference information held fixed; not yet implemented as an isolated experiment. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Population, recruitment, and independence}
+The intended human reference comes from school psychologists reviewing group-discussion behavior. The retained engineering corpus contains eleven recordings and 85 marked person-recording places. These places are not a unique-person count; a person may appear in several recordings. Recruitment procedures, demographic distributions, independent-participant counts, and an approved final behavioral sample size are not established by the committed benchmark.
+
+The prospective behavioral study needs a documented sampling frame, voluntary recruitment, inclusion/exclusion rules, language access, relevant accommodations, and reviewed repeated-person mappings. A school convenience sample can support conclusions about the studied recordings, but cannot represent all adolescents or workplace communication. Moderator selection and topic assignment can also affect who gets a chance to display an item.
+
+No formal power calculation is reported. The estimator's minimum data requirements are engineering gates, not a sample-size justification. Planning should use the desired precision of the primary paired outcome and the number of independent participant/source groups. Thousands of overlapping clips from a few discussions would not replace that independent sample size.
+
+\section{Operational measures and psychologist data}
+\subsection{A--T observation definitions}
+The deployed form is derived from the tracked version 4.0 marksheet and interpretation guide. Its five areas appear in Table~\ref{tab:rubric}. Each label concerns one participant in one session. Observers retain confidence, fair opportunity, recording support, context, and timestamped evidence rather than contributing an undifferentiated personality total.
+
+\begin{table}[ht]
+\caption{Source-defined observation areas. These are operational groups, not validated psychological factors.}
+\label{tab:rubric}
+\centering\small
+\begin{tabularx}{\linewidth}{@{}l l Y@{}}
+\toprule Area & Items & What is observed \\
+\midrule
+Discussion tracking & A--D & Following the current point, addressing it, adapting to changes, and needing repetition. \\
+Contribution structure & E--H & Idea sequence, requested support, completion, and task relevance. \\
+Turn-sharing and reciprocity & I--L & Entry into turns, continued overlap, sharing cues, and recognition of a direct peer contribution. \\
+Challenge-linked change & M--P & Observable change after disagreement, duration, participation, and feedback response. \\
+Pressure-linked delivery & Q--T & Rate, hesitation, vocal, movement, or participation change against an earlier same-session baseline. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Scores range from 0 to 4. One means a weak or brief occurrence; two means repeated or noticeable behavior with limited effect; three means clear repeated behavior or an effect on the exchange; four means sustained behavior or a strong effect. The guide's interpretation thresholds are project rules, not scientifically calibrated cutoffs. N/O supports no conclusion about the absent observation, and missing answers remain missing.
+
+A positive score requires contextual evidence. Item K and M--T need event and response windows; Q--T also need a baseline from earlier in the same discussion. For example, a reduced-participation label should include the challenge, earlier participation, later participation, and the opportunity to speak. Visible posture or gaze can be retained as human observation, but it cannot automatically train the audio-based predictor.
+
+\subsection{Scanned material and the form-version problem}
+A read-only inventory on October 12 found ten local scanned PDF bundles containing 228 pages, all without extractable PDF text. A visually inspected sheet states version 5.0 and contains role-related additions. The deployed application's version 4.0 definition therefore cannot be assumed to match these sources. The inventory is evidence of available material, not a count of independently reviewed eligible labels.
+
+Extraction must preserve the original source and be checked by a human. Before normalization, the team needs an explicit crosswalk for item wording, identity, scoring meaning, and role-specific additions. A version 5.0 sheet cannot simply be renamed version 4.0. Private scans, signatures, participant responses, and identifiable photographs are not included in the paper or public figures.
+
+Consent, source ancestry, reviewed speaker mapping, and independent label review remain separate gates. A psychologist's completed sheet is a valuable human observation, but its availability alone does not authorize training or demonstrate reliability. The prior canonical-status record reports no eligible independently reviewed human training labels. No fresh live-database audit is claimed here.
+
+\subsection{Review, eligibility, and unavailable targets}
+The instrument stores observer answers and self-reports separately. It keeps original submissions, independent review, disagreements, adjudication, later corrections, and attachment provenance. Training requires documented permission, a current confirmed speaker mapping, source review, recording support, opportunity, observer confidence, and supported evidence. Reviewer repetitions are not additional independent examples.
+
+Conflicting ratings require adjudication before supervised use. Original disagreement remains available for reliability analysis. Positive evidence must belong to the target speaker, event responses must follow the event, and same-session baselines must precede it. Missing and N/O answers are excluded from numeric fitting rather than imputed as favorable scores.
+
+Item S remains excluded because supported vocal-change window predictors are absent from the current extractor. T may use supported participation change, while visual-only movement or gaze ratings remain stored and excluded from audio training. Independently defined communication targets have their own annotation requirements and are not generated from archetype preferences, A--T totals, or predicted answers.
+
+\section{Procedure and software-supported measurement}
+\subsection{Recording-to-evidence procedure}
+The canonical instrument accepts supported audio/video files with original filename, recording time and timezone, context, anonymous participant codes, dataset role, and consent status. Originals retain their hashes and registered local paths. Exact hashes detect duplicate bytes, while reviewed source ancestry handles excerpts and re-encodings. Registration and queuing do not imply completed analysis.
+
+The media worker records eight inspectable stages: preprocessing, diarization, transcription, attribution, segmentation, features, evidence, and profile. Audio is normalized to mono 16 kHz PCM with a playback copy separate from the original. Duration, clipping, silence, and corruption diagnostics can withhold unsupported analysis. An energy-contrast value is an SNR proxy, not a calibrated measure of recording noise. Aggressive denoising is disabled.
+
+Community-1 creates anonymous intervals, and faster-whisper large-v3 provides timestamped transcription \cite{fasterwhisper}. The present transcription adapter fixes English, voice-activity filtering, beam size five, and disabled conditioning on previous text. These settings do not establish multilingual validity. The default limits are twelve speakers, four hours, and an 8 GiB upload per recording.
+
+Word attribution requires strong interval coverage for one speaker and little competing coverage. Ambiguous overlapping words remain unattributed. Turn/utterance segmentation and neighboring exchanges create the behavioral context. A reviewer then connects a session participant to the correct anonymous cluster. Persistent person identity, session participant identity, and cluster identity remain distinct.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[node distance=4mm,font=\small,box/.style={draw,rounded corners,align=center,text width=12cm,minimum height=8mm,fill=gray!7},arr/.style={-{Stealth},thick}]
+\node[box] (a) {Recording, permission, context, anonymous participant codes};
+\node[box,below=of a] (b) {Normalize $\rightarrow$ diarize $\rightarrow$ transcribe $\rightarrow$ conservatively attribute};
+\node[box,below=of b] (c) {Turns, measurements, source-time evidence, surrounding exchange};
+\node[box,below=of c] (d) {Psychologist observations $\rightarrow$ independent review $\rightarrow$ adjudication};
+\node[box,below=of d] (e) {Eligibility $\rightarrow$ frozen participant/source groups $\rightarrow$ held-out analysis};
+\node[box,below=of e] (f) {Qualified behavioral account, playback, uncertainty, correction};
+\draw[arr] (a)--(b);\draw[arr] (b)--(c);\draw[arr] (c)--(d);\draw[arr] (d)--(e);\draw[arr] (e)--(f);
+\end{tikzpicture}
+\caption{Study procedure supported by the implemented instrument. Human observations enter through independent review. Diagram generated with AI-assisted LaTeX/TikZ from the reviewed code and form definitions.}
+\label{fig:procedure}
+\end{figure}
+
+\subsection{Conversational measurements and denominators}
+Speaking time is the union of a speaker's diarized intervals, including overlap. Speaking share uses exclusively attributed non-overlapping duration, $q_i=D_i^{\mathrm{exclusive}}/\sum_jD_j^{\mathrm{exclusive}}$. Turn count follows merging same-speaker intervals separated by at most 0.3 seconds. Words per minute divides attributed words by diarized speaking duration; incomplete attribution can lower this value, so it is not a complete measure of fluency.
+
+Overlap-entry candidates require at least 0.5 seconds of entry and at least 0.2 seconds remaining in another speaker's turn. Their rate uses session duration and is expressed per ten minutes. This detects a temporal relation; interruption intent remains a human interpretation. Directed-response estimates use adjacent turns and bounded gaps, which can misidentify the intended addressee in a group.
+
+Transparent English rules count question punctuation and selected proposal, hedging, acknowledgement, disagreement, reasoning, experimentation, and concession markers. Ratios use attributed utterances, while rates use session exposure. These are low-confidence proxies. Saying ``because'' does not establish reasoning quality, and punctuation does not independently determine the function of a question.
+
+Manual event annotations can supply richer topic, argumentation, question-type, and turn-sharing descriptions. Their coverage is explicitly partial. Automatic topic control, persuasion, paraphrasing, and interruption intent remain unvalidated or unavailable. A missing semantic measure is not treated as proof that the behavior did not occur.
+
+\subsection{Event change and personal history}
+The Q--T baseline occurs before an identifiable event in the same session. Historical comparison instead asks how the current session differs from earlier conversations. Historical summaries use strictly earlier eligible completed recordings linked to a reviewed person, exclude reference-only material and related source duplicates, and restrict use by dataset role. One long recording does not gain extra weight simply because it contains more windows.
+
+The implementation retains recording-level means, medians, variance, quantiles, sample counts, and source lineage. Availability requires five comparable prior recordings. A difference exceeding two sample standard deviations is a descriptive prototype flag, not a significance test, and five recordings do not establish stable personality. Neither same-session change nor historical deviation shows that a challenge caused the observed response.
+
+\section{Analysis plan and implemented predictor}
+\subsection{Independent units and frozen datasets}
+The snapshot builder retains labels, mappings, source hashes, consent and review records, feature versions, and partition assignments. The example unit is a participant in a session, with separate supported item targets. Connected components join recordings through confirmed repeated people and shared/reviewed original sources, and cannot cross unseen-participant train/validation/test boundaries. Reference overlap and incompatible roles are excluded.
+
+This grouping may connect much of a small corpus, leaving too few independent groups to fit. Randomly splitting clips would hide that limitation rather than solve it. A separate longitudinal protocol permits repeat-person evaluation with explicit training/validation/evaluation roles and strict forward-time cutoffs. Unseen-person generalization and within-person prediction are different estimands and require separate reports.
+
+The current supervised snapshot uses conversational measurements, context indicators, transcript confidence, and supported target-specific event-window features. Historical report summaries are not automatically inserted as predictor inputs. A prediction claim about personal history therefore needs an additional explicit feature experiment. This separation prevents a feature that only exists in reporting from being described as trained supervision.
+
+\subsection{Estimator, baseline, and selection}
+Supported targets use median imputation with missingness indicators, scaling, and class-balanced logistic regression from scikit-learn \cite{pedregosa2011}. The estimator approximates ordinal 0--4 scores as categorical classes; it does not enforce an ordinal threshold structure. Default regularization candidates are $C\in\{0.1,1,10\}$, selected by validation mean absolute error. Preprocessing fits on training data, and final test examples do not select the configuration.
+
+At least twelve training examples, three independent training groups, two score classes, and supported measured predictors are required. These minimums are software gates, not evidence of statistical power or adequate population coverage. If validation is absent, the implementation avoids hyperparameter search and marks unsupported evaluation as exploratory.
+
+The constant comparator predicts the integer training median. The portable artifact retains feature order, medians, missingness indicators, scaling, classes, coefficients, and intercepts, and its predictions are checked against the fitted estimator. A model remains a candidate until deliberately activated. Predictions retain model/input lineage, and correction or withdrawal identifies dependent artifacts requiring invalidation or retirement.
+
+\subsection{Statistical outcomes and uncertainty}
+For each target, the primary prediction outcome is $\mathrm{MAE}=n^{-1}\sum_r|y_r-\widehat y_r|$. The code also records macro-F1, balanced accuracy, a five-class confusion matrix, quadratic-weighted kappa, and multiclass Brier score. Probabilities are uncalibrated and cannot be presented as validated confidence. A 500-draw connected-group bootstrap supplies an MAE interval when enough independent held-out groups exist.
+
+The software's ``evaluated'' gate requires minimum validation/test counts and MAE below the constant baseline in both partitions. This status is not a statistical significance test, a validity certification, or a deployment approval. Coverage computed on retained examples is not coverage of all stored sheets. Final analysis must report exclusions, N/O, missingness, abstention, class distributions, participant counts, independent-source counts, and uncertainty.
+
+The prospective study should predeclare one primary target or aggregate outcome justified by the behavioral question, its analysis unit, and the meaningful improvement. Per-item secondary comparisons need a multiplicity policy. Rater reliability should be assessed before adjudication, and small or constant-score samples should be reported without forcing a kappa estimate. No p-values or confidence intervals for human outcomes are invented in this paper.
+
+\subsection{Blinded report comparison}
+A uses the first forty selected utterances around the target speaker's first contribution, including neighboring speakers for context. B adds session measurements, interaction context, and frozen predictions when available. C adds earlier history, retrieved speaker evidence, and exploratory references. The same transcript window is used in all three conditions; it is not a full-recording interpretation.
+
+The local Ollama model's actual digest, prompts, inputs, output, attempts, and decoding settings are stored. Defaults use temperature zero, seed 42, a 16,384-token context setting, and 3,200 generated tokens. At most 24 retrieved evidence records are selected across indicator types. Invalid, wrong-speaker, oversized, and truncated outputs are withheld rather than substituted with invented claims.
+
+Evidence-ID validation checks reference integrity, not semantic support. Independent reviewers must play the cited source and judge whether the claim follows. Planned primary review dimensions are grounding, correct attribution, contextual appropriateness, usefulness, and overclaiming. Exploratory role-reference agreement is secondary. Randomized condition order, masked system labels, common source material, and retained failed runs are necessary controls; no completed blinded behavioral outcome is reported.
+
+\section{Current results and evidential boundaries}
+\subsection{Behavioral outcomes remain pending}
+The reviewed release material does not supply independently validated held-out A--T prediction results, psychologist inter-rater agreement, blinded usefulness scores, or longitudinal improvement estimates. Raw scanned forms have become available locally, but their eligibility and version consistency are unresolved. Therefore H1 and H2 remain untested in the reported human data, rather than supported, disproved, or converted into engineering success criteria.
+
+This boundary is the main behavioral finding of the current evidence audit: the instrument supports a testable procedure, but the available artifacts do not yet answer the behavioral question. A software demonstration is not an effect size about people. The evidence does support reporting recorded engineering comparisons and explaining the remaining measurement gates.
+
+\subsection{Retained profile-coverage comparison}
+The earlier audiovisual comparison used eleven videos and 85 marked person-recording slots. It combined anonymous turns, TalkNet visual observations, and SpeechBrain voice checks; Nemotron supplied additional diarization paths \cite{nemotron}. Table~\ref{tab:coverage} reports the committed aggregate artifacts.
+
+\begin{table}[ht]
+\caption{Engineering context only: ready-profile counts and usable duration. These are not behavioral validity or identity-accuracy scores.}
+\label{tab:coverage}
+\centering
+\begin{tabular}{@{}lrr@{}}
+\toprule Method & Ready profiles / 85 & Usable seconds \\
+\midrule
+Original pipeline & 40 & 395.14 \\
+Earlier NVIDIA pipeline & 13 & 524.92 \\
+First PSYCON & 45 & 4,364.61 \\
+Guarded PSYCON & 57 & 4,640.04 \\
+Guarded Nemotron streaming & 51 & 4,849.58 \\
+Guarded Nemotron offline & 51 & 5,179.03 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The strongest current result was obtained by an EDA-only XGBoost model, followed by EDA-only LightGBM and EDA-only logistic regression. The best multimodal model was logistic regression, which remained close to the top single-modality results and achieved the highest recall among the top models. This result is scientifically useful: WESAD appears to be strongly driven by electrodermal activity, while \project's hardware data still needs to test whether motion, audio features, and per-user baselines reduce false positives in real-world conditions.
+Guarded PSYCON retained 57 profiles, a descriptive 67.1\% of slots, compared with 51 or 60.0\% for each guarded Nemotron path. The difference is six slots, or 7.1 percentage points of coverage. No participant-level uncertainty or statistical significance is claimed because this is a saved corpus comparison without independent identity ground truth. The denominator is not unique people.
 
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.95\linewidth]{model_comparison.png}
-\caption{Accuracy comparison across model families and signal modalities.}
-\label{fig:model-comparison}
+The gate required at least three usable clean seconds and a valid voice embedding. Guarded PSYCON improved the first PSYCON count from 45 to 57. Nemotron offline recovered four slots that PSYCON left incomplete and lost ten that PSYCON retained; five intervals disagreed with retained PSYCON visual observations. Either detector can be wrong. More audio seconds did not necessarily mean more covered slots.
+
+\begin{figure}[ht]
+\centering\includegraphics[width=.94\linewidth]{coverage.pdf}
+\caption{Aggregate coverage regenerated from the committed benchmark JSON using AI-assisted Python/matplotlib code in the companion builder. This describes the earlier audiovisual workflow, not psychological accuracy, and contains no participant images.}
+\label{fig:coverage}
 \end{figure}
 
-\section{Discussion}
+The earlier NVIDIA path had eighty anonymous channels but thirteen ready face-linked profiles. Channel count and ready-person-recording profile count are different measurements. Threshold diagnostics and saved detector disagreements are review aids, not independent labels. This benchmark does not establish the active audio-only instrument's attribution accuracy or any human behavioral hypothesis.
 
-The WESAD results validate the software and machine learning approach, but they do not prove accuracy on \project{} hardware. WESAD uses different sensors and does not include the planned trigger-based audio feature stream. Therefore, the current result should be framed as software-pipeline validation rather than device validation.
+\subsection{Workflow and synthetic demonstrations}
+Implementation notes record real-audio CUDA smoke processing, matched local A/B/C generation, and staged PostgreSQL/frontend checks. An isolated training demonstration used eighteen explicitly synthetic participant/session examples with twelve/three/three independent-group partitions. It exercised label intake, review, snapshot creation, fitting, activation, prediction, rollback, invalidation, and export.
 
-The results also show why machine learning is useful in this project. Rule-based thresholds provide an interpretable baseline, but learned models improve performance by combining weak signals into a stronger prediction. The best models used multiple modalities, which aligns with the project hypothesis. Future \project{} hardware data should extend this approach by using each user's first-wear baseline rather than only a generic population model.
+Those results establish execution and lineage handling, not participant performance. Synthetic labels do not populate the canonical research result as human outcomes. Historical test counts apply to their recorded source revisions and environments. The build guide records the present document build separately and does not substitute old test counts for a fresh run.
 
-There are several limitations. The first classifier is binary because WESAD does not provide a direct mild-stress class. The model therefore maps scores to calm, mild stress, and high stress for output, but true mild-stress training requires future \project-specific labeled data. Human participant collection must wait for IRB guidance or approval. Audio privacy also remains important; the MVP should prefer audio features over continuous raw audio.
+\section{Interpretation, alternative explanations, and limitations}
+The main threat is interpreting a conversational proxy as a psychological construct. Low word count can result from moderation or limited access; overlap can be normal cooperation; a marker such as ``I agree'' need not be sincere acknowledgement. The study must evaluate the actual operational item against source evidence instead of assuming that a plausible feature name measures the intended behavior.
 
-Future work will adapt the pipeline to \project{} hardware data, add participant-specific baseline calibration, evaluate trigger-based audio features, and compare the deployed on-device inference result with offline research models.
+The strongest alternative explanation for future predictor agreement is shared context or observer practice. A model could learn which topic, group, moderator, or recording quality tends to attract certain scores instead of learning a participant's behavior. Group/source separation, context-stratified errors, independent observers, and feature ablations can expose this. A null or reversed improvement would challenge H1 and should be reported directly.
 
-\balance
-\bibliographystyle{IEEEtran}
+Another alternative is common-source error. Observers and the model could both rely on an incorrect transcript or cluster mapping. Reviewers should have access to original audio, and attribution error must be measured independently rather than inferred from rating agreement. Removing uncertain examples can improve conditional performance while reducing real-world coverage, so exclusion and abstention require equal visibility.
+
+For reports, C may look better because it has more evidence or more polished information, rather than because earlier history is informative. The history-only ablation is the strongest single follow-up to isolate that interpretation. A report that receives higher usefulness ratings but more unsupported personal claims would not satisfy the intended benefit. Familiarity with a participant or inferred condition identity could also bias reviewers.
+
+Human data remain limited by unresolved source-version differences, absent confirmed recruitment/sample-size information, and pending independent evaluation. A school convenience sample, fixed English processing, limited language access, unequal opportunities, and unvalidated semantic rules limit generalization. Current ordinal approximation and rare score classes further constrain estimator interpretation. Stable personality and causal effects are outside the evidence.
+
+Practical problems included overlapping speech, short clean turns, ambiguous identity, slow remote-database reads, GPU contention, and preserving corrections during retries. Conservative attribution, durable jobs, adapter boundaries, grouped queries, and immutable revisions address operation, but do not remove psychological measurement limitations. Local single-user execution and incomplete physical-phone/media-backup verification also limit product readiness.
+
+\section{Future studies and potential impact}
+The next behavioral study should reconcile the version 5.0 sources with the deployed rubric, review extraction, document permission and mapping, collect independent ratings, and freeze an adequately sized participant/source split. It should report reproducibility of human scoring before model performance. If an item lacks agreement or adequate opportunity, the appropriate response is to revise or exclude it transparently.
+
+The most informative report follow-up is a paired history-only experiment with the same speaker, transcript, evidence retrieval, reference information, local model, and decoding settings. Independent raters would judge support, usefulness, and overclaiming from source playback. The comparison can challenge the claim that personal history helps; collecting a larger sample without isolating these inputs would not resolve that mechanism.
+
+Longer-term work could add reviewed semantic annotations, supported vocal-change windows, ordinal estimators, and calibration, with new feature versions and held-out comparison. The envisioned product is voluntary communication review that lets a person inspect and correct evidence and practice a specific adjustment. Demonstrated benefit in the studied population must precede wider school or workplace claims. Diagnosis, recruitment ranking, and disciplinary scoring are not supported uses.
+
+Hardware remains a secondary future branch. Retained designs describe ESP32 wrist/audio modules, physiological sensors, an I2S microphone, timestamps, and BLE. Ear firmware contains I2S capture and protocol transport; wrist sensor packets still use placeholders. No tracked KiCad schematic, PCB, or validated manufactured assembly exists. A future three-dimensional assembly diagram, KiCad circuit/board, verified power protection, pin assignments, bill of materials, and bench records would prepare a separate approved synchronized-sensor study. They do not supply current behavioral results.
+
+\section{Ethics, availability, and student contribution}
+Recorded discussions and handwritten ratings can identify participants even when names are replaced with codes. New recruitment, behavioral data collection, and applicable reuse require the relevant prior review and consent/assent processes. Society for Science human-participant rules distinguish approved studies and specific exemptions \cite{isefhuman}; this paper does not assert that the project's existing recordings qualify for an exemption or that approvals have been obtained. A paragraph added after collection cannot supply missing prior approval.
+
+Training permission is separate from retaining a recording. The instrument records permission, exclusion, correction, and withdrawal and invalidates dependent lineage. Existing weights may require retirement or retraining; this is not a claim of exact machine unlearning. Confidential source access, volunteer participation, psychological/social risk review, and prevention of evaluative misuse belong in the approved study protocol.
+
+The repository contains implementation, rubric sources, synthetic tests, aggregate benchmark data, and archived physiological metrics \cite{psyconrepo}. Private original recordings and the local scanned bundles are not published here. A future reproducible behavioral evaluation needs a governed access process or permitted deidentified package, reviewer instructions, frozen manifests, and an explicit source/version record.
+
+The prior manuscript attributes software and machine-learning work to Arjun Vijay Prakash and hardware/system work to Saksham Yadav. That attribution is retained; detailed ownership of recruitment, scoring, analysis, and interpretation must be confirmed by the students from their notebooks. School psychologists are acknowledged for supplying observation reference material, and open-source authors are credited in the references. No funding or conflict declaration is invented from absent repository information.
+
+This is an AI-assisted working draft for author review and independent rewriting, not a certified competition submission. AI assisted repository review, prose drafting, and build preparation. The authors must verify each reference, research claim, contribution, and applicable submission rule. School, city, and state identifiers and private participant images are omitted. No poster was prepared.
+
+\section{Conclusion}
+PSYCON provides an implemented pathway for studying contextual behavior with source-linked psychologist observations, distinct opportunity states, reviewed attribution, and independent evaluation boundaries. Retained engineering results demonstrate profile coverage and workflow execution. They do not answer the human behavioral hypotheses. The next scientific contribution depends on version-consistent, consented, independently reviewed observations and a held-out analysis that can support or challenge the proposed interpretation.
+
+\appendix
+\section{Engineering reproducibility and historical work}
+The active runtime uses Flask/Jinja/plain JavaScript, a mandatory PostgreSQL store, a media worker, and an independent CPU trainer/import worker. PostgreSQL retains jobs, annotations, bounded source attachments, snapshots, metrics, and manifests; original media and model files remain registered local assets. A consistent backup requires both. Docker publishes the local app at port 8008; standalone web defaults to 8001. The image depends on a prebuilt speech runtime and authorized model access.
+
+Jobs use row-locked claims, renewable leases, bounded retry, GPU-resource leasing, and owner/attempt/input-revision completion fencing. Revised inputs cannot be overwritten by a stale worker. Generated claims retain prompts, digest, decoding options, and source IDs; missing or mismatched local models fail explicitly. Same-origin mutation checks and loopback binding support a trusted local instrument, not public multi-user authorization.
+
+Optional Executive, Builder, Salesperson, and Negotiator references use project-defined normalized marker distances. Their centers and similarity scores are exploratory and lack occupational ground truth. They cannot supply training labels or personality identity. The older bearer-token coaching, audiovisual, and physiology modules remain separate code paths and do not define the present BEHA conclusions.
+
+The archived WESAD feature table contains 13,698 windows from fifteen subjects: 8,760 calm and 4,938 stress. Saved EDA-only XGBoost accuracy is 0.932, compared with 0.915 for multimodal logistic regression. These are a separate physiological task \cite{schmidt2018wesad}, and the artifacts do not support a blanket advantage from adding modalities. Calm baseline differences are computed using labelled subject windows before splitting, including held-out-subject calm information; calibration is not restricted to a pre-test interval. The scores therefore represent a label-informed calibration condition and cannot establish untouched unseen-person or PSYCON wearable performance.
+
+Source traceability for the reported values is provided by \path{docs/report_assets/nemotron-benchmark-summary.json}, \path{docs/group_discussions_final_report.md}, \path{docs/INSTRUMENT_STATUS.md}, \path{results/metrics.json}, and the associated processing/training sources. The companion build script regenerates aggregate figures and both PDFs without accessing participant recordings or connecting to the canonical database.
+
+\bibliographystyle{unsrtnat}
 \bibliography{references}
-
 \end{document}

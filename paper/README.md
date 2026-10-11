@@ -1,3 +1,29 @@
-# Legacy paper scaffold
+# BEHA paper and separate synopsis
 
-This directory is retained only as historical material. The authoritative product requirements and engineering document is `docs/engineering_prd/`; implementation decisions, acceptance gates, and release edits must use that source.
+[Paper PDF](main.pdf) and [two-page synopsis PDF](synopsis.pdf) frame PSYCON as research on contextual communication behavior, with software as the measurement tool. Sources are [main.tex](main.tex), [synopsis.tex](synopsis.tex), and [references.bib](references.bib). The paper leads with behavioral hypotheses, operational definitions, human observations, independent units, controls, and validity; engineering details follow as supporting methods and an appendix.
+
+These are AI-assisted working drafts for author verification and independent writing, not certified submission-ready materials. The official [AI-use table](https://sspcdn.blob.core.windows.net/files/Documents/SEP/ISEF/2026/Rules/Generative-AI-Use-Table.pdf) rejects AI-written initial papers, plans, abstracts, conclusions, and starter bibliographies. Rewording this draft alone is not a certification that those requirements are met. The students must develop submission materials from their own research work and sources. See also the current [rules](https://www.societyforscience.org/isef/international-rules/) and [science judging criteria](https://www.societyforscience.org/isef/grand-award/criteria/). No poster is included.
+
+## Build
+
+With Python, matplotlib, PyMuPDF, and TeX tools `pdflatex`, `bibtex`, and `latexmk`, run from the repository root:
+
+```powershell
+python paper/build.py
+```
+
+The builder regenerates aggregate figures from the committed benchmark JSON, compiles both sources in a temporary directory, checks references and layout warnings, verifies the synopsis is exactly two pages, and copies the PDFs here. Intermediate files stay outside the repository. Upload this directory to Overleaf and select `main.tex` or `synopsis.tex` as the main document.
+
+The October 12 build produced an 11-page paper and exactly two-page synopsis, with resolved citations and no overflowing boxes. Both firmware targets compiled, protocol typechecking and 20 tests passed, and both frontend behavior scripts passed. The available Python run passed 331 tests with five skips, excluding the three PostgreSQL-dependent instrument suites because Docker was unavailable. This does not claim a fresh complete integration or human-study validation. [Review record](REVIEW.md) records evidence and assistance boundaries.
+
+Both use `article` and the `arxiv.sty` preprint style shown in the requested [Overleaf template](https://www.overleaf.com/latex/templates/style-and-template-for-preprints-arxiv-bio-arxiv/pkzcrhzcdxmc). Attribution and the upstream license are in [TEMPLATE.md](TEMPLATE.md) and [arxiv-LICENSE.txt](arxiv-LICENSE.txt).
+
+## Evidence boundaries
+
+- Human rater agreement, held-out A--T accuracy, and blinded report benefit remain pending; no synthetic score replaces them.
+- The 85 benchmark slots span eleven recordings and are not unique participants. Ready-profile counts measure coverage, not psychological or identity accuracy.
+- Ten local untracked scanned bundles contain 228 image-only pages. An inspected version 5.0 sheet differs from the deployed version 4.0. No private scan is published or normalized by this documentation update.
+- The implemented A/B/C experiment changes history, evidence, and references together; a history-only ablation is needed to isolate history's effect.
+- Archived WESAD metrics concern a different physiology task with a label-informed calm baseline; hardware is paused, wrist values are placeholders, and no tracked KiCad design exists.
+
+School, city, and state names are omitted conservatively from the submission copy; the current portal should be checked rather than assuming an older anonymity guideline still applies. Funding, conflicts, recruitment counts, and approvals are not invented. The presentation at `docs/IRIS_PRESENTATION.md` has exactly 25 numbered content slides and is intentionally uncommitted.
