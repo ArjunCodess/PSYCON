@@ -1,0 +1,43 @@
+\documentclass{article}
+\usepackage{arxiv}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref,url,microtype}
+\hypersetup{colorlinks=true,urlcolor=blue,linkcolor=black}
+\renewcommand{\shorttitle}{PSYCON: behavioral research synopsis}
+\renewcommand{\headeright}{BEHA working draft}
+\renewcommand{\undertitle}{Separate two-page research synopsis}
+\title{PSYCON: Contextual communication behavior and evidence-linked psychologist observations}
+\author{Arjun Vijay Prakash \And Saksham Yadav}
+\date{October 12, 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+Group-discussion behavior depends on what happened immediately before, whether a participant had a fair opportunity to respond, and the person's earlier behavior. A brief contribution or an overlapping turn alone cannot establish anxiety, disengagement, or personality. PSYCON investigates whether speaker-specific conversational measurements can predict contextual observations reviewed by psychologists, and whether earlier personal history improves evidence-supported communication reports. Its local research instrument processes audio, produces anonymous speaker intervals and transcripts, retains timestamped exchanges, and connects reviewed participant mappings to a versioned A--T marksheet. Ratings distinguish 0--4 observations, insufficient opportunity, and missing answers. The planned behavioral evaluation measures independent rater agreement, held-out per-item prediction error, and blinded report grounding and usefulness. Participant/source grouping prevents related recordings from crossing evaluation boundaries. The implemented report comparison uses transcript-only, structured-context, and full-PSYCON inputs with matched local model settings. Human behavioral outcomes remain pending. Retained engineering evidence covers eleven recordings and 85 person-recording slots: guarded PSYCON yielded 57 ready profiles and guarded Nemotron yielded 51 in each tested configuration. These describe coverage, not identity accuracy or psychological validity. Ten local scanned annotation bundles contain 228 image-only pages; an inspected version 5.0 sheet differs from the deployed version 4.0 and needs reconciliation and review. The contribution is an auditable behavioral measurement workflow. The next study must establish permission, reproducible human scoring, and independent evaluation before claims of predictive or communication benefit.
+\end{abstract}
+
+\section{Introduction and behavioral question}
+The question is whether measurements and context predict reviewed A--T observations on held-out people/sources, and whether earlier history improves supported reports. The rubric concerns discussion tracking, contribution structure, turn-sharing, challenge, and delivery change. These are operational areas, not diagnostic factors. Reduced speech after challenge needs the event, earlier behavior, later response, and opportunity. Source context and measurement validity matter because a plausible model description cannot supply its own human validation.
+
+\section{Innovation and objectives}
+The contribution links participant, source time, exchange, reviewer, and revision in an auditable measurement workflow. H1 predicts lower held-out item error than the training-median baseline. H2 predicts better blinded grounding/usefulness without increased overclaiming. A history-only experiment must isolate history from the evidence/references also added by full PSYCON.
+
+\newpage
+\section{Methodology and controls}
+The unit is a participant within a discussion. A reviewer confirms person/participant/speaker mapping. Recordings retain context, time, permission, and source hashes. Mono 16 kHz audio passes quality checks, diarization, transcription, conservative attribution, and evidence linking. Ambiguous overlapping words remain unattributed; timing and marker proxies do not prove intent.
+
+Psychologists supply scores, opportunity, confidence, recording support, and evidence, followed by independent review. Disagreement remains available before adjudication. Positive scores need timestamps; event-linked items need event/response windows, and Q--T need an earlier same-session baseline. Item S lacks predictors; visual-only T cannot train the audio model. Scans need checked extraction and a version crosswalk.
+
+Frozen datasets group repeated people and related sources before splitting. Training-only preprocessing precedes per-item logistic classification; validation selects regularization, with test data separate. Fitting minimums are engineering gates, not a power calculation. Recruitment, sample size, and prior approval remain to be documented. Analysis needs item error against the training-median baseline, weighted agreement, exclusions, abstentions, and grouped uncertainty. Reports need blinded ratings, randomized order, and a primary outcome. Language, topic, moderation, opportunity, and recording quality are confounds.
+
+\section{Current results, limits, and next study}
+The saved audiovisual comparison produced 57 guarded PSYCON profiles out of 85 slots, versus 51 for each guarded Nemotron mode. Slots are not unique participants, and independent identity labels are absent. Synthetic and real-audio smoke runs demonstrate execution only. Psychologist agreement, behavioral accuracy, blinded usefulness, and longitudinal improvement remain pending. Scanned bundles are not automatically consented or training eligible.
+
+Next work must reconcile versions, confirm permission/mapping, establish rater reliability, and freeze an independent sample. A history-only ablation should hold transcript, evidence, references, model, and decoding fixed. Poor agreement, no baseline improvement, or increased unsupported claims would challenge the hypotheses. Hardware/3D/KiCad work is paused future measurement research. Voluntary communication review is a potential use; diagnosis, disciplinary scoring, causation, and worldwide benefit are unsupported.
+
+\section{Acknowledgements and selected references}
+School psychologists supplied observation reference material; open-source authors supplied speech tools. Private identities and school/location identifiers are omitted. AI assisted this working draft; authors must independently rewrite applicable submission text and verify claims, references, contributions, consent, and approvals. No poster is included.
+
+\small
+Sacks, Schegloff and Jefferson (1974), turn-taking, \href{https://doi.org/10.2307/412243}{doi:10.2307/412243}. Cronbach and Meehl (1955), construct validity, \href{https://doi.org/10.1037/h0040957}{doi:10.1037/h0040957}. Cohen (1968), weighted agreement, \href{https://doi.org/10.1037/h0026256}{doi:10.1037/h0026256}. Full references and engineering sources accompany the separate paper. Study framing follows the \href{https://www.societyforscience.org/isef/grand-award/criteria/}{ISEF science judging criteria}; human-study requirements follow the \href{https://www.societyforscience.org/isef/international-rules/human-participants/}{Human Participants rules}.
+\end{document}
