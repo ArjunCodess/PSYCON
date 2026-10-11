@@ -1,6 +1,16 @@
 # PSYCON
 
-PSYCON is a behavioral observation and communication research instrument. It connects a person's speaker-specific talking patterns and discussion context with psychologist-reviewed observations from the A-T marksheet. It preserves timestamped evidence and personal history, and trains supervised models to predict eligible contextual ratings from conversational data.
+PSYCON studies contextual communication behavior: following a discussion, structuring a contribution, sharing turns, responding to challenge, and changing participation after an identifiable event. Its local research instrument connects speaker-specific audio and discussion context to psychologist-reviewed A-T observations, timestamped evidence, and earlier personal history. Software provides the measurement and evaluation workflow; human behavioral conclusions require independent evidence.
+
+The project is framed for **Behavioral and Social Sciences (BEHA)** using the [ISEF science-project judging criteria](https://www.societyforscience.org/isef/grand-award/criteria/). The emphasis is the testable behavioral question, operational definitions, independent observations, sampling, controls, reliability, and limits of interpretation. A completed pipeline or a ready-profile count does not establish psychological validity.
+
+## Paper, synopsis, and presentation
+
+The [research paper](paper/main.pdf) and [separate two-page synopsis](paper/synopsis.pdf) use the requested [Overleaf preprint template](https://www.overleaf.com/latex/templates/style-and-template-for-preprints-arxiv-bio-arxiv/pkzcrhzcdxmc). [Sources and build instructions](paper/README.md) explain the evidence and format. Rebuild both with `python paper/build.py`; the builder regenerates the aggregate figure, checks LaTeX references and overflow, and verifies the synopsis page count. The paper puts the behavioral study first and retains software, legacy physiology, and hardware details as supporting methods or historical context.
+
+These are AI-assisted working drafts for the students' independent writing and reference verification. The official [AI-use guidance](https://sspcdn.blob.core.windows.net/files/Documents/SEP/ISEF/2026/Rules/Generative-AI-Use-Table.pdf) does not permit AI to initially write the research plan, abstract, paper, poster, conclusions, or starter bibliography. Draft generation and disclosure do not certify competition eligibility. No poster is part of this work.
+
+Local presentation content is at `docs/IRIS_PRESENTATION.md`: exactly 25 numbered content slides, excluding a title-opening slide and closing thanks. It covers the behavioral argument, evidence boundaries, and a short future hardware/3D/KiCad roadmap. It is intentionally not committed.
 
 The current ISEF prototype uses audio and transcripts. Its focus is what a person said and did in a particular exchange, how that relates to reviewed human observations, and how patterns differ across comparable conversations. The [v4.0 psychologist marksheet](docs/PSYCON_Psychologist_Observation_Mark_Sheet.pdf) and [answer interpretation guide](docs/PSYCON_Tendency_Flag_Guide.pdf) define the observation targets. Their [marksheet source](docs/PSYCON_Psychologist_Observation_Mark_Sheet.tex) and [guide source](docs/PSYCON_Tendency_Flag_Guide.tex) retain the exact definitions.
 
@@ -10,7 +20,9 @@ A psychologist-reviewed profile here means a set of contextual ratings, evidence
 
 **To what extent can speaker-specific talking patterns and discussion context predict contextual A-T ratings reviewed by school psychologists on held-out participants and recordings, and does adding strictly earlier personal history improve the evidence support and usefulness of the resulting communication reports?**
 
-The study has two separate evaluations. The supervised predictor learns the relationship between conversational measurements and reviewed human ratings, then measures per-item agreement on data excluded from fitting. The report experiment compares transcript-only, structured-context, and full-PSYCON inputs using the same speaker, local language model, and generation settings. The structured-context and full-PSYCON conditions share frozen supervised predictions so a changed predictor cannot be mistaken for an improvement from personal history.
+The study has two separate evaluations. H1 asks whether conversational measurements and context predict per-item reviewed ratings better than a constant training-median baseline on held-out participants and sources. H2 asks whether richer reports improve independently rated grounding and usefulness without increasing overclaiming. The report experiment compares transcript-only, structured-context, and full-PSYCON inputs using the same speaker, transcript window, local model digest, and generation settings. Structured context and full PSYCON share frozen supervised predictions. Full PSYCON also adds retrieved evidence and reference information, so the current package comparison cannot isolate history's effect; a history-only ablation must hold those other inputs fixed.
+
+The behavioral analysis also needs independent rater agreement before adjudication, an explicit recruitment and sample-size justification, declared primary outcomes, and error/abstention slices for language, opportunity, moderation, topic, and recording quality. The estimator's minimum counts are software gates, not a power calculation. Current supervised snapshots do not automatically include the historical summaries used in reports.
 
 The question is about observable behavior in context. A correlation between a speaking pattern and a psychologist's rating does not establish a cause, a psychological state, or a permanent characteristic of the person. Success requires supported evidence, reproducible human judgments, performance against simple prediction baselines, and independent review of the reports. A completed software pipeline alone cannot answer the research question.
 
@@ -36,11 +48,19 @@ Scores above zero require timestamps and the surrounding event. The interpretati
 
 The app preserves the observer's original answer, independent review, disagreements, adjudication, and later corrections as separate records. Self-reports also remain separate from observer ratings. Reviewer agreement tests whether people apply the rubric consistently; model agreement tests whether conversational inputs predict their reviewed answers. Neither makes the marksheet a diagnostic instrument or establishes broader psychological validity.
 
-Psychologist-reviewed school data can be retained before it is ready for training. Training additionally requires documented permission, a reviewed participant-to-speaker mapping, applicable opportunity, supported evidence, source review, and independent answer review. The current application records do not yet contain eligible, consented, independently reviewed human labels. The software has been exercised with isolated synthetic studies; those checks are engineering tests and are not results from school participants.
+Psychologist-reviewed school data can be retained before it is ready for training. Training additionally requires documented permission, a reviewed participant-to-speaker mapping, applicable opportunity, supported evidence, source review, and independent answer review. The prior canonical-status record reports no eligible, consented, independently reviewed human labels; this documentation review does not claim a new live-database audit. The software has been exercised with isolated synthetic studies; those checks are engineering tests and are not results from school participants.
+
+A read-only local inventory found ten scanned marksheet PDF bundles with 228 image-only pages. An inspected sheet is version 5.0, while the deployed source-derived form is version 4.0. These private, untracked scans require checked extraction and an explicit item/version crosswalk; their filenames and page counts do not establish unique participants, consent, independent review, or training readiness. No scan or participant response is included in the paper's figures.
+
+## Results that can be reported
+
+The retained audiovisual comparison covers 11 recordings and 85 marked person-recording slots, rather than 85 unique people. Guarded PSYCON produced 57 ready profiles, while guarded Nemotron streaming and offline each produced 51. The six-slot difference measures coverage under saved checks; it is not independently measured identity accuracy or behavioral prediction. See the [comparison report](docs/group_discussions_final_report.md) and [committed aggregate data](docs/report_assets/nemotron-benchmark-summary.json).
+
+Human A-T prediction performance, psychologist agreement, blinded report usefulness, and longitudinal improvement remain pending. The older WESAD metrics concern a different physiology task; its calm-baseline features use labelled subject windows before splitting, including held-out-subject information. Those scores cannot be used as untouched unseen-person, current BEHA, or wearable deployment accuracy.
 
 ## Current scope: software active, hardware paused
 
-Hardware development is paused for now. The active work is the recording-to-evidence pipeline, psychologist marksheet intake and review, supervised behavioral prediction, personal history, and report evaluation in the software application. No wearable, physiological sensor, face recognition, voice enrollment, or identity embedding is required to run this workflow. Earlier hardware and coaching material is retained in [the archived README](docs/LEGACY_PRODUCT_README.md).
+Hardware development is paused for now. The active work is the recording-to-evidence pipeline, psychologist marksheet intake and review, supervised behavioral prediction, personal history, and report evaluation in the software application. No wearable, physiological sensor, face recognition, voice enrollment, or identity embedding is required to run this workflow. Earlier hardware and coaching material is retained in [the archived README](docs/LEGACY_PRODUCT_README.md). The ear firmware has I2S capture and protocol transport, but the wrist's sensor packet values remain placeholders. There are no tracked KiCad schematic/PCB files or validated manufactured assemblies. Future 3D assembly, circuit, power, and bench work would prepare a separate synchronized-sensor behavioral study.
 
 ## Run the research instrument
 
@@ -177,6 +197,24 @@ The pipeline, storage, baseline statistics, comparisons, exports, worker recover
 LLM inputs use a documented bounded transcript window and retrieved evidence. A valid evidence ID does not prove that a citation supports a claim; independent reviewers evaluate that separately. The current dataset does not establish longitudinal validity or validated prediction of psychologist ratings. See [the architecture and research protocol](docs/INSTRUMENT_ARCHITECTURE.md) and [requirement coverage](docs/INSTRUMENT_STATUS.md).
 
 ## Verify
+
+October 12 documentation checks: both PDFs built, with an 11-page paper and exactly two-page synopsis. Both ESP32 firmware targets compiled, both frontend behavior scripts passed, and protocol typechecking plus all 20 protocol tests passed. The Python run passed 331 tests with five optional integrations skipped, excluding the three PostgreSQL-dependent instrument suites because Docker was unavailable. This is not a complete instrument integration rerun or a physical hardware test. Historical suite counts remain in the implementation-status record with their original dates.
+
+## Repository map
+
+| Area | Current role |
+| --- | --- |
+| `backend/instrument/`, instrument templates/static files | Canonical BEHA recording, evidence, annotation, training, and report workflow |
+| `backend/group/` | Retained audiovisual attribution, seat/face mapping, group observations, and benchmark adapters |
+| `backend/communication/`, other backend modules | Earlier private coaching and device/API workflows, separate from the canonical instrument |
+| `ml/src/` | Shared audio, speech, language, voice-quality, device-feature utilities, and archived WESAD models |
+| `research/` | Group observations, batch comparisons, recovery diagnostics, and earlier study/evaluation tools |
+| `protocol/` | Python/TypeScript/C++ packet contracts, CRC/validation, fixtures, and cross-language tests |
+| `firmware/ear/`, `firmware/wrist/` | Paused ESP32 work; compiled software is not a validated sensor assembly |
+| `validation/`, `tests/` | Evidence gates, software tests, and separate physical/integration requirements |
+| `demo/` | Earlier audio-upload demonstration, not the active behavioral study |
+| `paper/` | BEHA paper, two-page synopsis, shared preprint style, bibliography, figures, and reproducible builder |
+| `docs/`, `results/`, `data/processed/` | Current/legacy protocols and retained aggregate or physiological artifacts; distinguish their tasks before quoting results |
 
 The research workspace keeps its restrained green design across session inspection, participant answers, evidence, reports, research, and training. Long views include keyboard-accessible section navigation; wide tables scroll within their panels. Interface conventions and browser verification limits are recorded in [DESIGN.md](DESIGN.md).
 
