@@ -1,6 +1,6 @@
 # Evidence and review record
 
-Reviewed on October 12, 2026, against main revision `8b126b7` after a fast-forward pull of 44 commits. This is a documentation/evidence audit, not a new human experiment or live canonical-database audit.
+Reviewed on October 12, 2026, against main revision `8b126b7` after a fast-forward pull of 44 commits. The initial documentation audit was followed by a live canonical-database audit, transactional overlap application, and exploratory Docker source-score fitting. No new human experiment or missing participant observation was invented.
 
 ## Behavioral claim boundaries
 
@@ -39,3 +39,15 @@ AI assisted the code/evidence inventory, proposed prose, bibliography discovery/
 Sources checked include the [science judging criteria](https://www.societyforscience.org/isef/grand-award/criteria/), [AI-use table](https://sspcdn.blob.core.windows.net/files/Documents/SEP/ISEF/2026/Rules/Generative-AI-Use-Table.pdf), [human-participant rules](https://www.societyforscience.org/isef/international-rules/human-participants/), [IRIS 2026 portal](https://register.irisnationalfair.org/), requested [Overleaf template](https://www.overleaf.com/latex/templates/style-and-template-for-preprints-arxiv-bio-arxiv/pkzcrhzcdxmc), and the primary/model/software sources recorded in the bibliography. Foundational behavior/measurement references are intentionally older works, not presented as recent findings.
 
 The students must establish their own literature engagement, actual approvals and permission records, recruitment/sample-size information, funding/conflicts, and detailed division of work before producing submission materials. Current fair instructions take precedence over older anonymity guidance. No school/location identifiers, private answers, faces, or consent signatures are included in these outputs.
+
+## Completed source-score training release
+
+The live audit found 76 imported v5.0 forms, 2,432 answers (750 numeric / 1,662 N/O / 20 missing), and no strict behaviorally eligible labels. Missing opportunity, confidence, structured evidence, independent review, and 1,120 answer-row reviewer-provenance fields remain unavailable. Existing mapping status is not independent human identity validation. Permission is user-attested and does not prove prior ethics approval.
+
+Applied nineteen supplied links to 34 participant records representing fifteen known people; eight empty linked seats were added, giving 84 participant-session records. Retained known-source development roles and source ancestry were audited. No raw score, missing answer, consent, or independent review was fabricated. Derived lineage was invalidated when appropriate.
+
+Docker run `b207e378-0698-47f7-bdd4-d50e9ebbb982` completed against frozen source snapshot `c8374764-9afe-4145-bd4c-434f2cdd49fa`. It retained forty examples / nine recordings / five known groups / 488 numeric scores, excluded 1,944 answer rows, and fitted fourteen targets using 423 labels. Fixed C=1.0 and seed 42 were used without a validation search; all examples are training. Every model is explicitly exploratory and active with acknowledged limitations. Fourteen scored API predictions were verified. The private model bundle and public aggregate release were exported from the actual database/artifacts. No held-out accuracy or behavioral effect is available.
+
+Seven focused eligibility/overlap tests passed. The Docker image lacks pytest; host tests and actual Docker fit/API inference are distinct checks. Startup uses the installed instrument image with `--no-build`; the missing `psycon-week4-worker:latest` base prevents a clean image rebuild here. These limitations supersede the initial Docker-unavailable status above. The existing feature stash and private scans remain untouched, and presentation content remains uncommitted.
+
+Final verification: 63 PostgreSQL workflow/training and eligibility/overlap tests passed in a dedicated disposable PostgreSQL 16 database, with the backup/restore test excluded. Both frontend verification scripts passed. The final build produced twelve paper pages and two synopsis pages with resolved references and no overflowing boxes; all fourteen pages were rendered and visually checked. Abstract lengths are 233 and 232 words. Presentation headings remain exactly 1?25. The web health endpoint is passing on the restarted Docker services. Browser automation failed to reach the page, so no new live browser interaction check is claimed.

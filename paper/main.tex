@@ -17,7 +17,7 @@
 \begin{document}
 \maketitle
 \begin{abstract}
-Behavior in a group discussion depends on the preceding exchange, speaking opportunity, and the participant's earlier behavior. PSYCON investigates whether speaker-specific conversational measurements can predict contextual observations reviewed by psychologists, and whether earlier personal history improves evidence-supported communication reports. The implemented research instrument normalizes recordings, diarizes speakers, transcribes speech, conservatively attributes words, and preserves timestamped exchanges. A versioned A--T marksheet distinguishes ordinal ratings from insufficient opportunity and missing answers. Reviewed labels can enter frozen participant/source-group datasets for per-item logistic classification; matched report conditions compare transcript-only, structured-context, and full-PSYCON representations. Independent rater agreement, held-out prediction error, and blinded report usefulness are the intended behavioral outcomes. These outcomes have not yet been established. Retained engineering artifacts cover eleven recordings and 85 marked person-recording slots. Guarded PSYCON produced 57 ready profiles, compared with 51 for each guarded Nemotron configuration; these are coverage counts, not identity accuracy or psychological validation. Ten local scanned annotation bundles contain 228 image-only pages, and an inspected version 5.0 sheet differs from the deployed version 4.0 form. They require version reconciliation, consent verification, and independent review before training. The present contribution is an implemented measurement and evaluation workflow that keeps contextual human observations separate from model predictions. Its behavioral hypotheses remain open, and no diagnosis, stable personality inference, causal effect, or demonstrated coaching benefit is claimed.
+Behavior in a group discussion depends on the preceding exchange, speaking opportunity, and the participant's earlier behavior. PSYCON investigates whether speaker-specific conversational measurements can predict contextual observations reviewed by psychologists, and whether earlier personal history improves evidence-supported communication reports. The implemented research instrument normalizes recordings, diarizes speakers, transcribes speech, conservatively attributes words, and preserves timestamped exchanges. A versioned A--T marksheet distinguishes ordinal ratings from insufficient opportunity and missing answers. Reviewed labels can enter frozen participant/source-group datasets for per-item logistic classification; matched report conditions compare transcript-only, structured-context, and full-PSYCON representations. Independent rater agreement, held-out prediction error, and blinded report usefulness are the intended behavioral outcomes. These outcomes have not yet been established. Retained engineering artifacts cover eleven recordings and 85 marked person-recording slots. Guarded PSYCON produced 57 ready profiles, compared with 51 for each guarded Nemotron configuration; these are coverage counts, not identity accuracy or psychological validation. Ten scanned bundles contain 228 pages. Seventy-six imported version 5.0 forms yielded 750 numeric, 1,662 N/O, and 20 missing answers. A separate exploratory Docker fit retained 40 participant-session examples and fitted fourteen source-score targets using 423 real labels. All retained examples trained the models; independent behavioral validation remains unavailable. The present contribution is an implemented measurement and evaluation workflow that keeps contextual human observations separate from model predictions. Its behavioral hypotheses remain open, and no diagnosis, stable personality inference, causal effect, or demonstrated coaching benefit is claimed.
 \end{abstract}
 \keywords{behavioral observation \and social interaction \and communication \and psychologist ratings \and measurement validity \and reproducibility}
 
@@ -111,11 +111,11 @@ Scores range from 0 to 4. One means a weak or brief occurrence; two means repeat
 A positive score requires contextual evidence. Item K and M--T need event and response windows; Q--T also need a baseline from earlier in the same discussion. For example, a reduced-participation label should include the challenge, earlier participation, later participation, and the opportunity to speak. Visible posture or gaze can be retained as human observation, but it cannot automatically train the audio-based predictor.
 
 \subsection{Scanned material and the form-version problem}
-A read-only inventory on October 12 found ten local scanned PDF bundles containing 228 pages, all without extractable PDF text. A visually inspected sheet states version 5.0 and contains role-related additions. The deployed application's version 4.0 definition therefore cannot be assumed to match these sources. The inventory is evidence of available material, not a count of independently reviewed eligible labels.
+Ten local scanned PDF bundles contain 228 image-only pages. The current import retains 76 participant forms from ten recordings as version 5.0, with A--T and P1--P12 role-related items. Across 2,432 answer records, 750 are numeric scores, 1,662 are N/O, and twenty are missing. The separately versioned source form is not silently renamed as the legacy version 4.0 rubric.
 
-Extraction must preserve the original source and be checked by a human. Before normalization, the team needs an explicit crosswalk for item wording, identity, scoring meaning, and role-specific additions. A version 5.0 sheet cannot simply be renamed version 4.0. Private scans, signatures, participant responses, and identifiable photographs are not included in the paper or public figures.
+Imported transcriptions preserve their source version and answer states. Independent transcription review and rubric validation remain necessary; reviewer provenance is missing on 1,120 answer rows. Private scans, signatures, participant responses, and identifiable photographs are excluded from the paper and public figures.
 
-Consent, source ancestry, reviewed speaker mapping, and independent label review remain separate gates. A psychologist's completed sheet is a valuable human observation, but its availability alone does not authorize training or demonstrate reliability. The prior canonical-status record reports no eligible independently reviewed human training labels. No fresh live-database audit is claimed here.
+Permission, ancestry, participant attribution, and independent label review remain separate gates. User-attested permission records are available, but item opportunity, observer confidence, structured evidence, validity checks, and independent reviews are absent. Forty-five imported mappings are stored as confirmed by historical model-supported seat transfer, seven are uncertain, and twenty-four are unmapped; stored confirmation is not independent human speaker validation. No answers meet strict behavioral eligibility. A separate source-score prototype retains those limitations explicitly.
 
 \subsection{Review, eligibility, and unavailable targets}
 The instrument stores observer answers and self-reports separately. It keeps original submissions, independent review, disagreements, adjudication, later corrections, and attachment provenance. Training requires documented permission, a current confirmed speaker mapping, source review, recording support, opportunity, observer confidence, and supported evidence. Reviewer repetitions are not additional independent examples.
@@ -194,7 +194,7 @@ Evidence-ID validation checks reference integrity, not semantic support. Indepen
 
 \section{Current results and evidential boundaries}
 \subsection{Behavioral outcomes remain pending}
-The reviewed release material does not supply independently validated held-out A--T prediction results, psychologist inter-rater agreement, blinded usefulness scores, or longitudinal improvement estimates. Raw scanned forms have become available locally, but their eligibility and version consistency are unresolved. Therefore H1 and H2 remain untested in the reported human data, rather than supported, disproved, or converted into engineering success criteria.
+The release does not supply independently validated held-out A--T prediction results, psychologist inter-rater agreement, blinded usefulness scores, or longitudinal improvement estimates. Imported raw scores support an exploratory computational fit, not those outcomes. H1 and H2 remain untested in the reported human data.
 
 This boundary is the main behavioral finding of the current evidence audit: the instrument supports a testable procedure, but the available artifacts do not yet answer the behavioral question. A software demonstration is not an effect size about people. The evidence does support reporting recorded engineering comparisons and explaining the remaining measurement gates.
 
@@ -230,6 +230,33 @@ The gate required at least three usable clean seconds and a valid voice embeddin
 
 The earlier NVIDIA path had eighty anonymous channels but thirteen ready face-linked profiles. Channel count and ready-person-recording profile count are different measurements. Threshold diagnostics and saved detector disagreements are review aids, not independent labels. This benchmark does not establish the active audio-only instrument's attribution accuracy or any human behavioral hypothesis.
 
+\subsection{Completed exploratory fit on real source scores}
+The author-supplied overlap links were applied to 34 participant records representing fifteen known people. Eight linked seats were registered without answers or permissions, bringing the live inventory to 84 participant-session records; 76 have imported forms. Application retained private before-state journals and database audit events. These links constrain grouping, but do not validate word attribution or resolve every repeated person.
+
+An explicitly separate source-score task retained 488 numeric observations across forty participant-session examples, nine recordings, and five known person/source groups. It excluded N/O, missing answers, uncertain or absent speaker mappings, unavailable permission, invalid source ancestry, conflicting ratings without adjudication, and unsupported S/T targets. It retained absent opportunity, confidence, evidence, and independent-review fields as absent, with unmet validation requirements attached. No synthetic participant observation replaced a missing answer.
+
+Fourteen targets passed the engineering fitting gates of twelve examples, three groups, and two score classes. Their models used 423 labels in total, median imputation with missingness indicators, standard scaling, and class-balanced logistic regression at fixed $C=1.0$, seed 42, and maximum 2,000 iterations. All retained examples were assigned to training: there was no regularization search or independent validation/test set. P1--P12 source role ratings used general conversational proxies and have no demonstrated occupational or psychological validity.
+
+\begin{table}[ht]
+\centering\small
+\caption{Real source-score labels used by the exploratory Docker fit. Counts are item observations, not unique people or measured accuracy.}
+\begin{tabular}{lrr@{\qquad}lrr}
+\toprule
+Target & Labels & Groups & Target & Labels & Groups \\
+\midrule
+G & 13 & 5 & I & 13 & 4 \\
+P1 & 34 & 5 & P2 & 35 & 5 \\
+P3 & 33 & 5 & P4 & 37 & 5 \\
+P5 & 29 & 5 & P6 & 27 & 5 \\
+P7 & 36 & 5 & P8 & 33 & 5 \\
+P9 & 35 & 5 & P10 & 35 & 5 \\
+P11 & 30 & 5 & P12 & 33 & 5 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The Docker run completed, produced fourteen portable model artifacts, and activated them with exploratory acknowledgement. An API check returned fourteen scored predictions marked exploratory. Eighteen source targets remain untrained: fifteen retained targets were too sparse, L had no retained scores, and S/T lacked supported predictors. The aggregate release records snapshot hash, runtime, target counts, and limitations; weights remain private. Execution and successful prediction do not establish generalization, calibration, rater reliability, or either behavioral hypothesis.
+
 \subsection{Workflow and synthetic demonstrations}
 Implementation notes record real-audio CUDA smoke processing, matched local A/B/C generation, and staged PostgreSQL/frontend checks. An isolated training demonstration used eighteen explicitly synthetic participant/session examples with twelve/three/three independent-group partitions. It exercised label intake, review, snapshot creation, fitting, activation, prediction, rollback, invalidation, and export.
 
@@ -249,7 +276,7 @@ Human data remain limited by unresolved source-version differences, absent confi
 Practical problems included overlapping speech, short clean turns, ambiguous identity, slow remote-database reads, GPU contention, and preserving corrections during retries. Conservative attribution, durable jobs, adapter boundaries, grouped queries, and immutable revisions address operation, but do not remove psychological measurement limitations. Local single-user execution and incomplete physical-phone/media-backup verification also limit product readiness.
 
 \section{Future studies and potential impact}
-The next behavioral study should reconcile the version 5.0 sources with the deployed rubric, review extraction, document permission and mapping, collect independent ratings, and freeze an adequately sized participant/source split. It should report reproducibility of human scoring before model performance. If an item lacks agreement or adequate opportunity, the appropriate response is to revise or exclude it transparently.
+The next behavioral study should review the versioned 5.0 transcriptions and rubric crosswalk, verify permission and mapping independently, collect source-supported opportunity/confidence and independent ratings, and freeze an adequately sized participant/source split. It should report reproducibility of human scoring before model performance. If an item lacks agreement or adequate opportunity, the appropriate response is to revise or exclude it transparently.
 
 The most informative report follow-up is a paired history-only experiment with the same speaker, transcript, evidence retrieval, reference information, local model, and decoding settings. Independent raters would judge support, usefulness, and overclaiming from source playback. The comparison can challenge the claim that personal history helps; collecting a larger sample without isolating these inputs would not resolve that mechanism.
 
@@ -281,7 +308,7 @@ Optional Executive, Builder, Salesperson, and Negotiator references use project-
 
 The archived WESAD feature table contains 13,698 windows from fifteen subjects: 8,760 calm and 4,938 stress. Saved EDA-only XGBoost accuracy is 0.932, compared with 0.915 for multimodal logistic regression. These are a separate physiological task \cite{schmidt2018wesad}, and the artifacts do not support a blanket advantage from adding modalities. Calm baseline differences are computed using labelled subject windows before splitting, including held-out-subject calm information; calibration is not restricted to a pre-test interval. The scores therefore represent a label-informed calibration condition and cannot establish untouched unseen-person or PSYCON wearable performance.
 
-Source traceability for the reported values is provided by \path{docs/report_assets/nemotron-benchmark-summary.json}, \path{docs/group_discussions_final_report.md}, \path{docs/INSTRUMENT_STATUS.md}, \path{results/metrics.json}, and the associated processing/training sources. The companion build script regenerates aggregate figures and both PDFs without accessing participant recordings or connecting to the canonical database.
+Source traceability for the reported values is provided by \path{docs/report_assets/source-training-summary.json}, \path{docs/report_assets/nemotron-benchmark-summary.json}, \path{docs/group_discussions_final_report.md}, \path{docs/INSTRUMENT_STATUS.md}, \path{results/metrics.json}, and the associated processing/training sources. The companion build script regenerates aggregate figures and both PDFs without accessing participant recordings or connecting to the canonical database.
 
 \bibliographystyle{unsrtnat}
 \bibliography{references}
