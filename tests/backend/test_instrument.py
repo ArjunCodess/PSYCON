@@ -251,9 +251,14 @@ class Provider:
     def generate(self, packet, digest):
         speaker = packet["target_speaker_id"]
         own = next(u for u in packet["transcript"] if u["speaker_id"] == speaker)
-        return dict(summary="Test report", limitations=["Synthetic test"], claims=[dict(speaker_id=speaker,
+        report = dict(summary="Test report", limitations=["Synthetic test"], claims=[dict(speaker_id=speaker,
                     observation="A proposal marker occurs.", inference="Limited proposal indicator.", evidence_ids=[own["id"]],
                     confidence="low", limitation="Synthetic, not research.", suggestion="Review context.")])
+        if packet.get('report_focus'):
+            anchor = packet['report_focus']['anchors'][0]
+            report['claims'][0]['feature_names'] = [anchor['name']]
+            report['claims'][0]['observation'] = 'Synthetic measurement: '+anchor['display_value']
+        return report
 
 
 def test_matched_runs_blind_annotations_and_metrics(service):

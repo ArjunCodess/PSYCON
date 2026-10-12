@@ -417,12 +417,14 @@ class Instrument:
                                  suggestion=suggestions.get(feature, "Practice stating one proposal and its supporting reason, then invite a response. Treat this as a goal-specific experiment, not a personality change."),
                                  confidence="low", evidence_ids=refs, reference_id=comparison["archetype"]["id"]))
         predictions=[r for r in context['predictions'] if r['speaker_id']==speaker_id]
+        from .measurement_report import build as measurement_report
         result=dict(speaker=speaker, session_id=session["id"], features=features, traits=traits, supervised_predictions=predictions,
                     human_observations=[r for r in context['human_observations'] if r['speaker_id']==speaker_id],
                     baseline=personal, global_baseline=baseline(self.store, session, speaker, False), deviations=changes,
                     archetypes=comparisons, coaching=coaching, archetype_coaching=archetype_coaching,
                     archetype_status="available" if comparisons else "missing_reference_data",
                     target_archetype=target,
+                    measurement_summary=measurement_report(features,target,personal),
                     status="measured and estimated indicators; interpretation is separate",
                     llm_runs=[{k:v for k,v in r.items() if k!='speaker_id'} for r in context['runs'] if r['speaker_id']==speaker_id])
         if persist:self._save_comparisons([result])

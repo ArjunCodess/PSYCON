@@ -7,7 +7,7 @@ from collections import Counter, defaultdict
 
 from .store import uid, encode
 
-SCHEMA_VERSION = "1.0.0"
+SCHEMA_VERSION = "1.0.1"  # Denominator metadata corrected; numerical features are unchanged.
 
 
 def definition(description, unit, calculation, source, valid_range, confidence="moderate"):
@@ -186,10 +186,15 @@ def extract(session, speakers, turns, utterances):
             values[kind+"_ratio"] = counts[kind]/n if n else None
         for name, value in values.items():
             spec = DICTIONARY[name]
+            denominators = {'speaking_share': total_exclusive, 'words_per_minute': speech[sid],
+                            'mean_turn_duration': len(lengths), 'median_turn_duration': len(lengths),
+                            'response_latency': len(gaps), 'unhedged_proposal_ratio': counts['proposal'],
+                            'open_question_ratio': counts['question']}
+            denominator = denominators.get(name, duration if name.endswith('_rate') else n if name.endswith('_ratio') else None)
             features.append(dict(session_id=session["id"], speaker_id=sid, name=name, value=value,
                                  unit=spec["unit"], source=spec["source"], confidence=spec["confidence"],
                                  status="unavailable" if value is None else "estimated" if "rule" in spec["source"] or "candidate" in name else "measured",
-                                 denominator=duration if "rate" in name else n if "ratio" in name else None))
+                                 denominator=denominator))
         for name, reason in UNAVAILABLE.items():
             features.append(dict(session_id=session["id"], speaker_id=sid, name=name, value=None, unit="not defined",
                                  source=reason, confidence="low", status="not_validated", denominator=None))

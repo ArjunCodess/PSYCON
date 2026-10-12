@@ -16,7 +16,7 @@ from .store import decode, encode, uid, now
 from .profiles import DIMENSIONS, METHOD
 from .local_llm import local_models, LocalLLMError
 
-PROMPT_VERSION = "psycon-abc-1.2.1"
+PROMPT_VERSION = "psycon-abc-1.3.2"
 GENERATION_OPTIONS = dict(temperature=0, seed=42, num_ctx=16384, num_predict=3200)
 CONDITIONS = {"A": "Transcript-only", "B": "Structured context", "C": "Full PSYCON"}
 CRITERIA = ("grounding", "attribution", "contextual_appropriateness", "archetype_agreement", "usefulness", "overclaiming", "trait_validity")
@@ -36,6 +36,16 @@ Return JSON with claims (each with speaker_id, observation, inference, evidence_
 summary, and limitations. Confidence is high/moderate/low. Suggestions must follow the supported observation.
 Give a concrete conversational adjustment that follows the evidence, rather than recommending more analysis.
 If evidence does not support a claim, omit it. Return at most four focused claims, with concise explanations and no repeated claims."""
+INSTRUCTIONS += """
+When report_focus is present, write at most two claims about observable communication.
+Each claim must name at least one supplied feature in feature_names and copy its display_value exactly into observation.
+Those metrics cover the complete recording, whereas cited transcript excerpts cover the stated selected window.
+Explain what the metric measures without calling it good, bad, normal, or a personality trait: no validated norm is supplied.
+Source-score predictions are exploratory and must not justify coaching, personality labels, or psychological conclusions.
+Give one specific conversational action the user can try for their selected goal; describe it as a suggestion, not proven treatment or benefit.
+Use moderate or low confidence because extraction and interpretation have not been independently validated.
+If earlier history is insufficient, say so; never claim personalization from previous sessions.
+Do not repeat the topic as coaching, endorse policy positions, or invent optimal speech rates or ideal participation percentages."""
 OUTPUT_SCHEMA = {
     "type": "object", "required": ["claims", "summary", "limitations"], "additionalProperties": False,
     "properties": {
@@ -84,6 +94,30 @@ class Ollama:
         refs = [u["id"] for u in packet["transcript"] if u["speaker_id"] == packet["target_speaker_id"]]
         refs.extend(e["id"] for e in packet.get("evidence", []) if e["speaker_id"] == packet["target_speaker_id"])
         properties["evidence_ids"]["items"] = {"type": "string", "enum": refs}
+        if packet.get('report_focus'):
+            anchors = packet['report_focus']['anchors']
+            priority = {'speaking_share':0,'words_per_minute':1,'speaking_time':2}
+            primary = min(anchors,key=lambda a:priority.get(a['name'],3))
+            schema['properties']['claims']['maxItems'] = 2
+            properties['feature_names'] = {'type': 'array', 'minItems': 1, 'uniqueItems': True,
+                                         'items': {'type': 'string', 'enum': [a['name'] for a in packet['report_focus']['anchors']]}}
+            schema['properties']['claims']['items']['required'].append('feature_names')
+            properties['confidence']['enum'] = ['moderate', 'low']
+            # Facts come directly from measurements; the LLM supplies a bounded interpretation.
+            # One claim avoids redundant output from the small local model; raw attempts are retained.
+            schema['properties']['claims']['maxItems'] = 1
+            properties['feature_names']['maxItems'] = 1
+            properties['feature_names']['items'] = {'type':'string','const':primary['name']}
+            properties['observation'] = {'type':'string','const':
+                f"{primary['label']}: {primary['display_value']} across the complete attributed recording."}
+            properties['inference'] = {'type':'string','enum':[
+                'This quantity describes the attributed recording; no validated ideal range or stable personality follows from it.',
+                'Interpret this measurement in the discussion context and assigned role; it does not establish communication quality by itself.']}
+            if packet['report_focus'].get('optional_practice'):
+                properties['suggestion'] = {'type':'string','const':packet['report_focus']['optional_practice']}
+            schema['properties']['summary'] = {'type':'string','const':
+                'This bounded report presents a recording measurement and a prewritten exercise for the selected goal. '
+                'It does not establish personality, ideal communication quality, or a benefit from personal history.'}
         payload = dict(model=self.model, stream=False, think=False, keep_alive=0,
                        options=options or GENERATION_OPTIONS, format=schema,
                        messages=[dict(role="system", content=system_prompt or INSTRUCTIONS), dict(role="user", content=encode(packet))])
@@ -110,6 +144,49 @@ def compact_prediction_metadata(predictions):
             registry[key] = value
             prediction[name] = dict(metadata_ref=key)
     return compact, registry
+
+
+def measurement_focus(features, goal=None):
+    """Expose attributable quantities without inventing norms or inferred traits."""
+    supported = {'speaking_share': ('Speaking share', 100., '%'),
+                 'words_per_minute': ('Attributed speech rate', 1., ' words/min'),
+                 'speaking_time': ('Attributed speaking duration', 1., ' seconds')}
+    anchors = []
+    for feature in features:
+        name = feature['name']; value = feature.get('value')
+        if name not in supported or type(value) not in (int, float) or not math.isfinite(value):
+            continue
+        if feature.get('status') != 'measured' or value < 0 or (name == 'speaking_share' and value > 1):
+            continue
+        label, scale, suffix = supported[name]
+        anchors.append(dict(name=name, label=label, value=value, unit=feature['unit'],
+                            display_value=f'{value*scale:.2f}{suffix}', scope='complete attributed recording',
+                            limitation='Automated attribution/transcription estimate; not an independently validated norm'))
+    if not anchors:
+        return None
+    from .measurement_report import build
+    return dict(anchors=anchors, optional_practice=build(features,goal,{'status':'unavailable'})['optional_practice'],
+                practice_source='Prewritten optional exercise selected by the user goal, not inferred from model scores',
+                prediction_use='Exploratory source scores are not grounds for coaching or personality claims',
+                history_use='Only eligible earlier recordings establish historical comparison',
+                benefit_status='Suggestions are untested; useful personalization is not established')
+
+
+def history_only_pair(packet):
+    """A controlled research comparison; adding history is the only input change.
+
+    This helper does not claim a completed benefit study or create prior sessions.
+    It must be combined with independent blinded report review.
+    """
+    if 'personal_baseline' not in packet:
+        raise ValueError('A retrieved historical baseline is required')
+    baseline = packet['personal_baseline']
+    if baseline.get('status') != 'available':
+        raise ValueError('Eligible earlier history is unavailable; no history-effect comparison can be run')
+    with_history = deepcopy(packet)
+    without_history = deepcopy(packet)
+    without_history.pop('personal_baseline')
+    return {'without_history': without_history, 'with_history': with_history}
 
 
 def packets(instrument, speaker_id):
@@ -140,6 +217,9 @@ def packets(instrument, speaker_id):
         b['supervised_predictions'].append(entry)
     b['representation_versions']=dict(feature_extractor='conversation-1',supervised_models=sorted({r['model_id'] for r in report['supervised_predictions']}))
     b['source_types']=dict(measured_features='observations/estimates',supervised_predictions='trained predictions, never human answers',interpretation='LLM inference')
+    focus = measurement_focus(b['session_features'],report['target_archetype'])
+    if focus:
+        b['report_focus'] = focus
     b["context"]["session"].pop("versions", None)
     selected_ids = {u["id"] for u in selected}
     evidence = store.rows("SELECT * FROM evidence WHERE speaker_id=%s ORDER BY start_s", (speaker_id,))
@@ -207,11 +287,15 @@ def queue_runs(instrument, speaker_id, conditions=("A", "B", "C"), provider=None
 def validate_output(value, packet, condition):
     if not isinstance(value, dict) or not isinstance(value.get("claims"), list) or not isinstance(value.get("summary"), str):
         raise ValueError("Invalid report structure")
-    if not isinstance(value.get("limitations"), list) or len(value["claims"]) > 8:
+    if (not isinstance(value.get("limitations"), list) or
+            any(not isinstance(v, str) for v in value['limitations']) or len(value["claims"]) > 4):
         raise ValueError("Invalid report limitations or claim count")
+    if packet.get('report_focus') and len(value['claims']) > 2:
+        raise ValueError('Structured report permits at most two focused claims')
     ids = {u["id"]: u["speaker_id"] for u in packet["transcript"]}
     if condition == "C":
         ids.update({e["id"]: e["speaker_id"] for e in packet["evidence"]})
+    observations = set(); inferences = set()
     for claim in value["claims"]:
         if not isinstance(claim, dict):
             raise ValueError("Invalid claim")
@@ -225,6 +309,27 @@ def validate_output(value, packet, condition):
         for key in ("observation", "inference", "limitation", "suggestion"):
             if not isinstance(claim.get(key), str) or not claim[key].strip():
                 raise ValueError("Claim must separate observation, inference, uncertainty, and suggestion")
+        import re
+        normalize = lambda text: ' '.join(re.findall(r'\w+', text.casefold()))
+        observation = normalize(claim['observation']); inference = normalize(claim['inference'])
+        if observation in observations or inference in inferences:
+            raise ValueError('Repeated observation or inference; duplicate claims are withheld')
+        observations.add(observation); inferences.add(inference)
+        if packet.get('report_focus'):
+            anchors = {a['name']: a for a in packet['report_focus']['anchors']}
+            names = claim.get('feature_names')
+            if (not isinstance(names, list) or not names or
+                    any(not isinstance(n, str) or n not in anchors for n in names) or
+                    len(names) != len(set(names))):
+                raise ValueError('Structured claim must reference supplied measured features')
+            if any(anchors[n]['display_value'] not in claim['observation'] for n in names):
+                raise ValueError('Structured observation must reproduce the referenced measured values')
+            if claim['confidence'] == 'high':
+                raise ValueError('Unvalidated measurement interpretation cannot claim high confidence')
+            if normalize(claim['suggestion']) in (observation,inference):
+                raise ValueError('Suggestion repeats an observation or inference instead of a conversational action')
+            if re.search(r'\d',claim['inference']):
+                raise ValueError('Unverified derived numerical claims are withheld')
         # ID integrity is automatic. Whether a citation actually supports a claim requires independent review.
     return value
 

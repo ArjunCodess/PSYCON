@@ -40,6 +40,9 @@ const report = {speaker: {id: "speaker", display_name: "Test speaker"}, target_a
   assert(comparison.includes("R&lt;script&gt;") && comparison.includes("Human note&lt;script&gt;"));
   assert(comparison.includes('data-seek="12"') && comparison.includes('data-source="synthetic-session"'));
   assert(context.talkingPatterns(fixture).includes("120"));
+  const measured=context.measurementSummary({measurement_summary:{status:"available",observations:[{label:"Speaking share",display_value:17.8,display_unit:"%",meaning:"Context <script>"}],history_sessions:0,history_status:"insufficient_history",optional_practice:"A suggestion",practice_basis:"Selected goal",practice_effect:"Not evaluated",limitations:["No validated norm"]}});
+  assert(measured.includes("17.8") && measured.includes("Not evaluated") && measured.includes("Context &lt;script&gt;"));
+  assert(!measured.includes("<script>"));
   assert(html.includes("At a glance"));
   assert(html.includes("Fixture observation"));
   assert(html.includes("Fixture inference"));
