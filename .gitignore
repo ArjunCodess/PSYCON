@@ -69,3 +69,6 @@ output/pdf/*.out
 .psycon-private-spool/
 .test-tmp-*/
 .runtime/
+
+# Private signed participant documents
+/consents/
