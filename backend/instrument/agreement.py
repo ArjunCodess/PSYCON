@@ -2,11 +2,12 @@
 from itertools import combinations
 import math
 import numpy as np
-from .datasets import collect,latest
+from .datasets import collect,latest,TASK_FORMS
 
 
 def agreement(store,family):
-    form='at-4.0' if family=='at' else 'communication-1'
+    if family not in TASK_FORMS: raise ValueError('Unknown supervised task family')
+    form=TASK_FORMS[family]
     with store.connect() as db:
         db.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
         data=collect(db)

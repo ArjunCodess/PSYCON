@@ -1,0 +1,891 @@
+{
+  "id": "psycon-context-5.0",
+  "version": "5.0",
+  "title": "Contextual observation and professional communication marksheet",
+  "source_hash": "6f9b7b25c71479a2d84c75b9128f1de51a4a5b6d9b313d35fe377ebd365b3202",
+  "definition": {
+    "items": [
+      [
+        "A",
+        "Loses the active discussion thread — A clear intervening point, question, or change was missed."
+      ],
+      [
+        "B",
+        "Response does not address the preceding point — The participant had audible access and a fair chance to respond, but the contribution does not connect to the prompt or speaker."
+      ],
+      [
+        "C",
+        "Does not adjust after the discussion changes — The topic, claim, or instruction changes clearly, but the participant continues with the earlier frame."
+      ],
+      [
+        "D",
+        "Needs clear spoken information repeated — A question, rule, or point must be repeated after it was audible and directed to the participant."
+      ],
+      [
+        "E",
+        "Idea order is hard to follow — Key steps, reasons, or references appear in an order that obscures the intended point."
+      ],
+      [
+        "F",
+        "Claim lacks requested reason or example — The task calls for support, but the participant does not provide it after a fair prompt."
+      ],
+      [
+        "G",
+        "Stops before completing the central point — The contribution ends or shifts before the intended claim can be understood. Do not count interruption by someone else."
+      ],
+      [
+        "H",
+        "Moves away from the task without a clear link — The contribution changes subject and does not explain its connection to the current discussion."
+      ],
+      [
+        "I",
+        "Starts speaking before a turn is available — The participant enters during another person's active turn, beyond brief ordinary overlap."
+      ],
+      [
+        "J",
+        "Continues overlap after becoming aware of another speaker — Both speakers continue, and the participant does not pause or yield after a clear opportunity."
+      ],
+      [
+        "K",
+        "Holds speaking time despite clear cues to share the floor — The participant continues after an audible or visible turn-sharing cue."
+      ],
+      [
+        "L",
+        "Does not acknowledge a direct peer contribution — A peer clearly addresses or asks the participant something, but the response does not recognise it despite fair access."
+      ],
+      [
+        "M",
+        "Sharp behavioural change immediately after disagreement — Speech, expression, posture, or participation changes soon after a specific disagreement. Record the change without naming an emotion."
+      ],
+      [
+        "N",
+        "Changed response continues after the exchange moves on — The observable reaction continues into later turns or topics rather than returning to the earlier pattern."
+      ],
+      [
+        "O",
+        "Reduces or stops participation after challenge — Speaking attempts, response length, or engagement falls after questioning, disagreement, or evaluation."
+      ],
+      [
+        "P",
+        "Does not revise or clarify after clear respectful feedback — The participant repeats, abandons, or changes the point without addressing the feedback."
+      ],
+      [
+        "Q",
+        "Speaking rate changes after an identifiable pressure event — Rate becomes noticeably faster or slower than the participant's earlier session baseline after challenge or evaluation."
+      ],
+      [
+        "R",
+        "Pauses or hesitations increase after an identifiable pressure event — Silent pauses, restarts, or fillers rise relative to the participant's earlier session baseline."
+      ],
+      [
+        "S",
+        "Vocal delivery changes after an identifiable pressure event — Volume, pitch, or steadiness changes relative to the participant's earlier session baseline. Do not score poor audio as behaviour."
+      ],
+      [
+        "T",
+        "Movement or participation changes after an identifiable pressure event — Visible movement, posture, gaze behaviour, or participation changes relative to the participant's earlier session baseline."
+      ],
+      [
+        "P1",
+        "Clarity of message — The main point can be understood without unnecessary ambiguity."
+      ],
+      [
+        "P2",
+        "Relevance to objective — The response addresses the task, audience need, or question being evaluated."
+      ],
+      [
+        "P3",
+        "Appropriate concision — Amount of detail is proportionate to the task; important information is not buried."
+      ],
+      [
+        "P4",
+        "Acknowledgement / listening — The participant recognises the other person's point or question before responding when appropriate."
+      ],
+      [
+        "P5",
+        "Question handling — Questions are answered directly, with clarification sought when the question is genuinely ambiguous."
+      ],
+      [
+        "P6",
+        "Challenge handling — The participant responds to challenge with a clear answer or reason rather than evasion or unsupported assertion."
+      ],
+      [
+        "P7",
+        "Reasoning / support — Claims are supported with relevant evidence, examples, logic, or explanation when the task requires it."
+      ],
+      [
+        "P8",
+        "Audience adaptation — Language, detail, examples, and framing are adjusted to the audience or situation."
+      ],
+      [
+        "P9",
+        "Persuasive communication — The participant communicates a position or proposal in a way that is relevant and appropriately supported for the task."
+      ],
+      [
+        "P10",
+        "Delivery stability — Observable speech delivery remains sufficiently controlled for the task, including under pressure."
+      ],
+      [
+        "P11",
+        "Action / decision clarity — Requests, decisions, next steps, or commitments are expressed clearly when the role requires them."
+      ],
+      [
+        "P12",
+        "Role-objective alignment — The overall contribution advances the stated professional objective of the interaction."
+      ]
+    ],
+    "version": "5.0",
+    "score_rule": "0 absent despite fair opportunity; 1 weak/brief; 2 repeated/noticeable limited effect; 3 clear and repeated or affects exchange; 4 sustained or strongly affects exchange; N/O no fair opportunity or recording cannot support rating",
+    "eligibility": "Source transcription, not approved training labels. Individual confidence, validity, evidence windows and participant-speaker mappings are unreviewed.",
+    "professional_rule": "Role/task-specific communication performance, not personality or independent communication-1 trait labels",
+    "pattern_status_and_confidence": "Raw pattern status and confidence preserved in submission metadata. Pattern confidence is not item confidence. Out-of-range source confidence is preserved without coercion.",
+    "provenance_note": "Blank source schema retained from the private v5 import; private source paths and completed answers are omitted."
+  },
+  "items": [
+    {
+      "key": "A",
+      "description": "Loses the active discussion thread — A clear intervening point, question, or change was missed.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "B",
+      "description": "Response does not address the preceding point — The participant had audible access and a fair chance to respond, but the contribution does not connect to the prompt or speaker.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "C",
+      "description": "Does not adjust after the discussion changes — The topic, claim, or instruction changes clearly, but the participant continues with the earlier frame.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "D",
+      "description": "Needs clear spoken information repeated — A question, rule, or point must be repeated after it was audible and directed to the participant.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "E",
+      "description": "Idea order is hard to follow — Key steps, reasons, or references appear in an order that obscures the intended point.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "F",
+      "description": "Claim lacks requested reason or example — The task calls for support, but the participant does not provide it after a fair prompt.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "G",
+      "description": "Stops before completing the central point — The contribution ends or shifts before the intended claim can be understood. Do not count interruption by someone else.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "H",
+      "description": "Moves away from the task without a clear link — The contribution changes subject and does not explain its connection to the current discussion.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "I",
+      "description": "Starts speaking before a turn is available — The participant enters during another person's active turn, beyond brief ordinary overlap.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "J",
+      "description": "Continues overlap after becoming aware of another speaker — Both speakers continue, and the participant does not pause or yield after a clear opportunity.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "K",
+      "description": "Holds speaking time despite clear cues to share the floor — The participant continues after an audible or visible turn-sharing cue.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "L",
+      "description": "Does not acknowledge a direct peer contribution — A peer clearly addresses or asks the participant something, but the response does not recognise it despite fair access.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "M",
+      "description": "Sharp behavioural change immediately after disagreement — Speech, expression, posture, or participation changes soon after a specific disagreement. Record the change without naming an emotion.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "N",
+      "description": "Changed response continues after the exchange moves on — The observable reaction continues into later turns or topics rather than returning to the earlier pattern.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "O",
+      "description": "Reduces or stops participation after challenge — Speaking attempts, response length, or engagement falls after questioning, disagreement, or evaluation.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "P",
+      "description": "Does not revise or clarify after clear respectful feedback — The participant repeats, abandons, or changes the point without addressing the feedback.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "Q",
+      "description": "Speaking rate changes after an identifiable pressure event — Rate becomes noticeably faster or slower than the participant's earlier session baseline after challenge or evaluation.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "R",
+      "description": "Pauses or hesitations increase after an identifiable pressure event — Silent pauses, restarts, or fillers rise relative to the participant's earlier session baseline.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "S",
+      "description": "Vocal delivery changes after an identifiable pressure event — Volume, pitch, or steadiness changes relative to the participant's earlier session baseline. Do not score poor audio as behaviour.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "T",
+      "description": "Movement or participation changes after an identifiable pressure event — Visible movement, posture, gaze behaviour, or participation changes relative to the participant's earlier session baseline.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "audio_or_participation",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "P1",
+      "description": "Clarity of message — The main point can be understood without unnecessary ambiguity.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "role_context_audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "P2",
+      "description": "Relevance to objective — The response addresses the task, audience need, or question being evaluated.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "role_context_audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "P3",
+      "description": "Appropriate concision — Amount of detail is proportionate to the task; important information is not buried.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "role_context_audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "P4",
+      "description": "Acknowledgement / listening — The participant recognises the other person's point or question before responding when appropriate.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "role_context_audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "P5",
+      "description": "Question handling — Questions are answered directly, with clarification sought when the question is genuinely ambiguous.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "role_context_audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "P6",
+      "description": "Challenge handling — The participant responds to challenge with a clear answer or reason rather than evasion or unsupported assertion.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "role_context_audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "P7",
+      "description": "Reasoning / support — Claims are supported with relevant evidence, examples, logic, or explanation when the task requires it.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "role_context_audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "P8",
+      "description": "Audience adaptation — Language, detail, examples, and framing are adjusted to the audience or situation.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "role_context_audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "P9",
+      "description": "Persuasive communication — The participant communicates a position or proposal in a way that is relevant and appropriately supported for the task.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "role_context_audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "P10",
+      "description": "Delivery stability — Observable speech delivery remains sufficiently controlled for the task, including under pressure.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "role_context_audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "P11",
+      "description": "Action / decision clarity — Requests, decisions, next steps, or commitments are expressed clearly when the role requires them.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "role_context_audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    },
+    {
+      "key": "P12",
+      "description": "Role-objective alignment — The overall contribution advances the stated professional objective of the interaction.",
+      "answer_type": "ordinal",
+      "allowed_values": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        "N/O",
+        null
+      ],
+      "modality": "role_context_audio",
+      "requirements": {
+        "confidence": true,
+        "source_version": "5.0",
+        "fair_opportunity": true,
+        "positive_evidence": true,
+        "independent_review": true
+      }
+    }
+  ],
+  "tasks": [
+    {
+      "id": "contextual-v5",
+      "family": "contextual-v5",
+      "form_id": "psycon-context-5.0",
+      "definition": {
+        "unit": "participant/session",
+        "model": "regularized multinomial approximation to ordinal scores",
+        "title": "Contextual marksheet v5: A-T and P1-P12",
+        "min_test": 3,
+        "min_train": 12,
+        "min_groups": 3,
+        "pass_criteria": {
+          "min_test": 3,
+          "mae_below_baseline": true
+        },
+        "min_validation": 3,
+        "feature_version": "conversation-2"
+      }
+    },
+    {
+      "id": "source-v5-exploratory",
+      "family": "source-v5-exploratory",
+      "form_id": "psycon-context-5.0",
+      "definition": {
+        "unit": "participant/session",
+        "model": "regularized source-score approximation",
+        "min_test": 3,
+        "min_train": 12,
+        "min_groups": 3,
+        "label_policy": "Existing unreviewed v5 source scores; no hallucinated labels or reviewer fields",
+        "pass_criteria": {
+          "min_test": 3,
+          "mae_below_baseline": true,
+          "independent_validation_required": true
+        },
+        "min_validation": 3,
+        "feature_version": "conversation-2"
+      }
+    }
+  ]
+}

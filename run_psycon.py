@@ -19,6 +19,7 @@ def main():
     parser.add_argument("--root", default=os.getenv("PSYCON_INSTRUMENT_ROOT", "instance/instrument"))
     parser.add_argument("--port", type=int, default=8001)
     parser.add_argument("--once", action="store_true")
+    parser.add_argument("--no-build", action="store_true", help="Start Docker using the installed instrument image")
     parser.add_argument("--consent", default="not documented", choices=("not documented", "documented", "public licensed"))
     parser.add_argument('--destination',type=Path)
     parser.add_argument('--source',type=Path,default=Path('instance/instrument/psycon.sqlite3'))
@@ -29,7 +30,7 @@ def main():
     if args.command=='docker':
         import json, subprocess
         os.environ['PSYCON_PATH_MAP']=json.dumps({str(Path(__file__).resolve().parent):'/app'})
-        subprocess.run(['docker','compose','-f','docker-compose.instrument.yml','up','--build','-d'],check=True)
+        subprocess.run(['docker','compose','-f','docker-compose.instrument.yml','up','--no-build' if args.no_build else '--build','-d'],check=True)
         from urllib.request import urlopen
         import json as startup_json
         for attempt in range(60):

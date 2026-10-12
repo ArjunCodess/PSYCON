@@ -1,0 +1,160 @@
+{
+  "run_id": "b207e378-0698-47f7-bdd4-d50e9ebbb982",
+  "snapshot_id": "c8374764-9afe-4145-bd4c-434f2cdd49fa",
+  "snapshot_hash": "161773ce34c3806352477b14d62f1a1a9d6851692f8154b5fe44b8e105b4f2e5",
+  "status": "complete",
+  "family": "source-v5-exploratory",
+  "versions": {
+    "numpy": "2.5.3",
+    "python": "3.12.14",
+    "sklearn": "1.9.1",
+    "code_hash": "1c5fd8abfd36ef2b7da063723c6627a2b618268585b08dcd7b665debc7baf5a6",
+    "code_revision": "46b686d06ef39d01df62152b518c7db3525471b3",
+    "enqueue_runtime": {
+      "numpy": "2.5.3",
+      "python": "3.12.14",
+      "sklearn": "1.9.1",
+      "code_hash": "1c5fd8abfd36ef2b7da063723c6627a2b618268585b08dcd7b665debc7baf5a6",
+      "code_revision": "46b686d06ef39d01df62152b518c7db3525471b3"
+    },
+    "execution_runtime": {
+      "numpy": "2.5.3",
+      "python": "3.12.14",
+      "sklearn": "1.9.1",
+      "code_hash": "1c5fd8abfd36ef2b7da063723c6627a2b618268585b08dcd7b665debc7baf5a6",
+      "code_revision": "46b686d06ef39d01df62152b518c7db3525471b3"
+    }
+  },
+  "label_policy": "Unreviewed source transcriptions; opportunity, confidence, evidence and independent review are unavailable, not generated",
+  "validation_status": "Exploratory full-source fit; no independent validation/test partition; known person/source groups retained for source-only cross-validation",
+  "examples": 40,
+  "recordings": 9,
+  "groups": 5,
+  "retained_scores": 488,
+  "targets": [
+    {
+      "target": "G",
+      "training_labels": 13,
+      "groups": 5,
+      "status": "active",
+      "evaluation_status": "exploratory",
+      "regularization": 1.0
+    },
+    {
+      "target": "I",
+      "training_labels": 13,
+      "groups": 4,
+      "status": "active",
+      "evaluation_status": "exploratory",
+      "regularization": 1.0
+    },
+    {
+      "target": "P1",
+      "training_labels": 34,
+      "groups": 5,
+      "status": "active",
+      "evaluation_status": "exploratory",
+      "regularization": 1.0
+    },
+    {
+      "target": "P10",
+      "training_labels": 35,
+      "groups": 5,
+      "status": "active",
+      "evaluation_status": "exploratory",
+      "regularization": 1.0
+    },
+    {
+      "target": "P11",
+      "training_labels": 30,
+      "groups": 5,
+      "status": "active",
+      "evaluation_status": "exploratory",
+      "regularization": 1.0
+    },
+    {
+      "target": "P12",
+      "training_labels": 33,
+      "groups": 5,
+      "status": "active",
+      "evaluation_status": "exploratory",
+      "regularization": 1.0
+    },
+    {
+      "target": "P2",
+      "training_labels": 35,
+      "groups": 5,
+      "status": "active",
+      "evaluation_status": "exploratory",
+      "regularization": 1.0
+    },
+    {
+      "target": "P3",
+      "training_labels": 33,
+      "groups": 5,
+      "status": "active",
+      "evaluation_status": "exploratory",
+      "regularization": 1.0
+    },
+    {
+      "target": "P4",
+      "training_labels": 37,
+      "groups": 5,
+      "status": "active",
+      "evaluation_status": "exploratory",
+      "regularization": 1.0
+    },
+    {
+      "target": "P5",
+      "training_labels": 29,
+      "groups": 5,
+      "status": "active",
+      "evaluation_status": "exploratory",
+      "regularization": 1.0
+    },
+    {
+      "target": "P6",
+      "training_labels": 27,
+      "groups": 5,
+      "status": "active",
+      "evaluation_status": "exploratory",
+      "regularization": 1.0
+    },
+    {
+      "target": "P7",
+      "training_labels": 36,
+      "groups": 5,
+      "status": "active",
+      "evaluation_status": "exploratory",
+      "regularization": 1.0
+    },
+    {
+      "target": "P8",
+      "training_labels": 33,
+      "groups": 5,
+      "status": "active",
+      "evaluation_status": "exploratory",
+      "regularization": 1.0
+    },
+    {
+      "target": "P9",
+      "training_labels": 35,
+      "groups": 5,
+      "status": "active",
+      "evaluation_status": "exploratory",
+      "regularization": 1.0
+    }
+  ],
+  "limitations": [
+    "Ordinal scores approximated with multinomial logistic regression",
+    "Operational behavior annotations, not psychological diagnoses",
+    "Uncalibrated probabilities",
+    "Exploratory model: prespecified held-out criteria were not satisfied",
+    "Unreviewed source-form scores, not validated psychologist labels",
+    "Item opportunity, observer confidence and timestamped evidence are unavailable; none were fabricated",
+    "Role scores approximate raw source ratings using general conversational proxies; role validity is unverified",
+    "Final fit uses all retained sources; independent validation and psychological accuracy are unavailable",
+    "Known overlap links only; additional repeated participants may remain unidentified"
+  ],
+  "fitted_score_labels": 423
+}

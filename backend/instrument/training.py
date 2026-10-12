@@ -46,6 +46,8 @@ def queue(store,snapshot_id,configuration=None):
     if store.rows('SELECT id FROM snapshot_invalidations WHERE snapshot_id=%s',(snapshot_id,)):
         raise ValueError('Snapshot was invalidated by corrections, withdrawal, or mappings')
     config=configuration or {}
+    if snapshot['manifest'].get('study')=='source_exploration' and not config.get('allow_exploratory'):
+        raise ValueError('Explicit exploratory acknowledgement is required for unreviewed source-score fitting')
     if set(config)-{'regularization','allow_exploratory'}:
         raise ValueError('Unknown training configuration')
     values=config.get('regularization',[.1,1.,10.])
@@ -160,13 +162,20 @@ def fit(store,run):
             baseline=metric(truth,[median]*len(truth)); baseline['majority_class']=Counter(labels).most_common(1)[0][0]
             evaluations.append(dict(id=uid(),model_id=mid,split=split,n=len(truth),metrics=metrics,baseline=baseline,uncertainty=grouped_interval(truth,predictions,[e['component'] for e in records],run['configuration']['seed'])))
         val=next((r for r in evaluations if r['split']=='validation'),None); test=next((r for r in evaluations if r['split']=='test'),None)
-        evaluated=bool(val and test and val['n']>=definition['min_validation'] and test['n']>=definition['min_test'] and val['metrics']['mae']<val['baseline']['mae'] and test['metrics']['mae']<test['baseline']['mae'])
+        source_exploration=snapshot['manifest'].get('study')=='source_exploration'
+        evaluated=bool(not source_exploration and val and test and val['n']>=definition['min_validation'] and test['n']>=definition['min_test'] and val['metrics']['mae']<val['baseline']['mae'] and test['metrics']['mae']<test['baseline']['mae'])
         limitations=['Ordinal scores approximated with multinomial logistic regression','Operational behavior annotations, not psychological diagnoses','Uncalibrated probabilities']
         if not evaluated: limitations.append('Exploratory model: prespecified held-out criteria were not satisfied')
+        if source_exploration:
+            limitations.extend(['Unreviewed source-form scores, not validated psychologist labels',
+                               'Item opportunity, observer confidence and timestamped evidence are unavailable; none were fabricated',
+                               'Role scores approximate raw source ratings using general conversational proxies; role validity is unverified',
+                               'Final fit uses all retained sources; independent validation and psychological accuracy are unavailable',
+                               'Known overlap links only; additional repeated participants may remain unidentified'])
         with store.connect() as db:
             if db.execute('SELECT id FROM snapshot_invalidations WHERE snapshot_id=%s',(snapshot['id'],)).fetchone(): raise StaleJob('Snapshot invalidated during fitting')
             asset=register(store,path,'model',root=folder,db=db)
-            store.insert('model_versions',dict(id=mid,run_id=run['id'],family=snapshot['task_id'],target=target,status='candidate',evaluation_status='evaluated' if evaluated else 'exploratory',feature_schema=dict(version=FEATURE_VERSION,names=names),manifest=dict(rubric=snapshot['manifest'].get('rubric'),snapshot_hash=snapshot['sha256'],seed=snapshot['seed'],regularization=selected_c,versions=run['versions'],train_n=len(train),train_groups=len({e['component'] for e in train}),pass_criteria=definition['pass_criteria']),limitations=limitations),db)
+            store.insert('model_versions',dict(id=mid,run_id=run['id'],family=snapshot['task_id'],target=target,status='candidate',evaluation_status='evaluated' if evaluated else 'exploratory',feature_schema=dict(version=FEATURE_VERSION,names=names),manifest=dict(rubric=snapshot['manifest'].get('rubric'),snapshot_hash=snapshot['sha256'],seed=snapshot['seed'],regularization=selected_c,versions=run['versions'],train_n=len(train),train_groups=len({e['component'] for e in train}),pass_criteria=definition['pass_criteria'],label_policy=snapshot['manifest'].get('label_policy','Independently reviewed labels'),validation_status=snapshot['manifest'].get('validation_status','Separate validation/test partitions')),limitations=limitations),db)
             store.insert('model_artifacts',dict(id=uid(),model_id=mid,asset_id=asset['id'],format=artifact['format']),db)
             for evaluation in evaluations: store.insert('model_evaluations',evaluation,db)
             store.insert('training_run_events',dict(id=uid(),run_id=run['id'],message=f'Fitted {target}: {len(train)} training records; '+('evaluated' if evaluated else 'exploratory')),db)
@@ -247,7 +256,7 @@ def predict(store,speaker_id,context_windows=None):
         try:
             artifact=load(store,model)
             if session['status']!='complete': abstention='Processing is incomplete'
-            if model['family']=='at' and (model['target']=='K' or model['target']>='M'):
+            if model['family'] in ('at','contextual-v5') and (model['target']=='K' or model['target']>='M'):
                 windows=(context_windows or {}).get(model['target'],[])
                 if not windows:
                     abstention='Reviewed independent event/response context is required; global features cannot establish event-linked change'

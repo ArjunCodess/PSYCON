@@ -9,6 +9,11 @@ from .forms import TRAITS
 from .features import DICTIONARY
 
 FEATURE_VERSION='conversation-2'
+TASK_FORMS={'at':'at-4.0','communication':'communication-1','contextual-v5':'psycon-context-5.0','source-v5-exploratory':'psycon-context-5.0'}
+
+
+def contextual_item(family,key):
+    return family in ('at','contextual-v5') and len(key)==1 and key in 'ABCDEFGHIJKLMNOPQRST'
 
 
 def latest(rows,key,time='created_at'):
@@ -90,7 +95,10 @@ def contextual_features(session,utterances,speaker_id):
 
 
 def eligible(data,family):
-    form='at-4.0' if family=='at' else 'communication-1'
+    if family not in TASK_FORMS: raise ValueError('Unknown supervised task family')
+    if family=='source-v5-exploratory':
+        return exploratory_source_rows(data)
+    form=TASK_FORMS[family]
     sessions={r['id']:r for r in data['sessions']}; participants={r['id']:r for r in data['session_participants']}
     source_reviews=latest(data.get('source_reviews',[]),lambda r:r['session_id'],'revision')
     maps=latest(data['speaker_mappings'],lambda r:r['participant_id'],'revision')
@@ -128,13 +136,15 @@ def eligible(data,family):
         if v.get('speaker_identity')!='Yes' or v.get('recording_support')!='Yes': common.append('Speaker identity and recording validity must be affirmed')
         for answer in answers[sub['id']]:
             reasons=list(common); key=answer['item_key']; ew=windows[answer['id']]
+            if family=='contextual-v5' and not contextual_item(family,key):
+                reasons.append('Role-specific v5 targets need supported role-context predictors; not communication-1 labels')
             if answer['state']!='scored': reasons.append('N/O' if answer['state']=='not_observed' else 'Missing answer')
             if answer['fair_opportunity'] is not True: reasons.append('Fair opportunity unconfirmed')
             if answer['confidence'] is None: reasons.append('Observer confidence missing')
             if answer['score'] and not ew: reasons.append('Positive rating lacks timestamped evidence')
             if mapping and any(w.get('evidence_id') and not any(e['id']==w['evidence_id'] and e['speaker_id']==mapping['speaker_id'] for e in data['evidence']) for w in ew): reasons.append('Evidence belongs to another speaker')
             if answer['score'] and any(not w['context'].strip() for w in ew if w['kind']=='support'): reasons.append('Positive evidence needs the surrounding observable context')
-            if family=='at' and (key=='K' or key>='M'):
+            if contextual_item(family,key) and (key=='K' or key>='M'):
                 kinds={w['kind'] for w in ew}
                 if not {'event','response'}<=kinds: reasons.append('Event and response windows required')
                 if key>='Q' and 'same_session_baseline' not in kinds: reasons.append('Earlier same-session baseline required')
@@ -155,8 +165,34 @@ def eligible(data,family):
     return result
 
 
+def exploratory_source_rows(data):
+    """Unreviewed source-score approximation, never validated behavioral targets.
+
+    Missing review/opportunity/confidence/evidence stays missing. Only existing
+    numeric answers, permitted complete recordings and confirmed cluster links
+    can be used. Clinical/event interpretation is outside this model's scope.
+    """
+    rows=eligible(data,'contextual-v5')
+    mandatory={'Recording ancestry needs review for excerpts, re-encodings, and duplicate sources',
+               'Participant withdrawn','Person withdrawn','Training consent unavailable',
+               'Needs reviewed speaker mapping','Incomplete processing',
+               'Reference corpus is excluded from fitting and evaluation',
+               'Self-report is separate from observer training targets','N/O','Missing answer',
+               'Evidence belongs to another speaker','Conflicting reviewer ratings need adjudication'}
+    for row in rows:
+        original=list(row['reasons'])
+        row['unmet_validation_requirements']=[r for r in original if r not in mandatory]
+        row['strict_behavioral_eligibility']=row['eligible']
+        row['label_policy']='Existing unreviewed v5 source scores only; no fabricated observations or review'
+        row['reasons']=[r for r in original if r in mandatory]
+        if row['target'] in ('S','T'):
+            row['reasons'].append('No supported vocal/visual change features for source-score fitting')
+        row['eligible']=not row['reasons']
+    return rows
+
+
 def readiness(store,family):
-    if family not in ('at','communication'): raise ValueError('Choose at or communication')
+    if family not in TASK_FORMS: raise ValueError('Choose at, communication, or contextual-v5')
     with store.connect() as db:
         db.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
         data=collect(db)
@@ -167,7 +203,9 @@ def readiness(store,family):
 
 
 def freeze(store,family,seed=42,study='unseen_participant'):
-    if type(seed) is not int or study not in ('unseen_participant','longitudinal'): raise ValueError('Invalid snapshot protocol')
+    if type(seed) is not int or study not in ('unseen_participant','longitudinal','source_exploration'): raise ValueError('Invalid snapshot protocol')
+    if (family=='source-v5-exploratory') != (study=='source_exploration'):
+        raise ValueError('Source-score exploration requires its separate all-training protocol')
     task=store.one('SELECT * FROM training_tasks WHERE id=%s',(family,))
     with store.connect() as db:
         db.execute('SET TRANSACTION ISOLATION LEVEL SERIALIZABLE')
@@ -182,7 +220,7 @@ def freeze(store,family,seed=42,study='unseen_participant'):
             linked=[r for r in data['session_assets'] if r['session_id']==session['id'] and r['purpose']=='original group discussion video']
             if linked:
                 session['versions']=dict(session['versions'],source_recording_sha256=asset_hashes[linked[0]['asset_id']])
-        components=connected_components(data['sessions'],data['session_participants'] if study=='unseen_participant' else [])
+        components=connected_components(data['sessions'],data['session_participants'] if study in ('unseen_participant','source_exploration') else [])
         sessions={r['id']:r for r in data['sessions']}
         roles=defaultdict(set)
         for s in data['sessions']: roles[components[s['id']]].add(s['split'])
@@ -202,7 +240,7 @@ def freeze(store,family,seed=42,study='unseen_participant'):
                     example['features'][f['name']]=dict(value=f['value'],unit=f['unit'],status=f['status'],denominator=f['denominator'])
             for name,value in contextual_features(s,data['utterances'],row['speaker_id']).items():
                 example['features'][name]=dict(value=value,unit='context category' if name.startswith('context_') else 'uncalibrated transcript confidence',status='recorded context' if name.startswith('context_') else 'estimated',denominator=None)
-            if family=='at' and (row['target']=='K' or row['target']>='M'):
+            if contextual_item(family,row['target']) and (row['target']=='K' or row['target']>='M'):
                 for name,value in window_features(data,row['speaker_id'],row['windows']).items():
                     example['features'][row['target']+'__'+name]=dict(value=value,unit='window measurement',status='observed',denominator=None)
         development=sorted({e['component'] for e in examples.values() if e['role']=='development'})
@@ -212,6 +250,9 @@ def freeze(store,family,seed=42,study='unseen_participant'):
         if study=='unseen_participant' and len(development)>=5 and not any(e['role']=='evaluation' for e in examples.values()): split_map[development[-2]]='test'
         for e in examples.values():
             e['split']={'validation':'validation','evaluation':'test'}.get(e['role'],split_map.get(e['component'],'train'))
+            if study=='source_exploration':
+                if e['role']!='development': raise ValueError('Exploratory final fit must not consume validation/evaluation roles')
+                e['split']='train'
         if study=='longitudinal':
             # Explicit roles and chronology are required; never randomize a within-person time study.
             if any(e['role']=='development' and e['split']!='train' for e in examples.values()):
@@ -221,6 +262,9 @@ def freeze(store,family,seed=42,study='unseen_participant'):
                 raise ValueError('Longitudinal role cutoffs must be strictly forward in time')
         manifest=dict(seed=seed,feature_version=FEATURE_VERSION,task_definition=task['definition'],study=study,source_policy='source-review-1: unknown ancestry excluded; reviewed excerpts and derivatives share the original source group',grouping='Confirmed person, registered hashes, and reviewed original-source connected components; no reference overlap',exclusions=exclusions,counts=dict(examples=len(examples),sessions=len({e['session_id'] for e in examples.values()}),groups=len({e['component'] for e in examples.values()})),examples=list(examples.values()))
         manifest['rubric']={k:rubric[k] for k in ('id','version','source_hash','definition')}
+        if study=='source_exploration':
+            manifest['label_policy']='Unreviewed source transcriptions; opportunity, confidence, evidence and independent review are unavailable, not generated'
+            manifest['validation_status']='Exploratory full-source fit; no independent validation/test partition; known person/source groups retained for source-only cross-validation'
         digest=hashlib.sha256(encode(manifest).encode()).hexdigest(); snapshot=uid()
         store.insert('training_snapshots',dict(id=snapshot,owner_id='local',task_id=family,sha256=digest,seed=seed,protocol=dict(study=study,roles='development/validation/evaluation/reference',grouping='person/source components',cutoff='strictly earlier history'),manifest=manifest),db)
         for e in examples.values():
