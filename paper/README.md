@@ -1,6 +1,6 @@
 # BEHA paper and separate synopsis
 
-The consent update records review of nine private signed discussion-participation sheets. It distinguishes that evidence from recording/training scope, parental permission and prior approval, which remain unverified. See [the anonymized review](../docs/CONSENT_REVIEW.md). Signed photographs remain local and excluded from commits.
+The consent update records review of nine private signed discussion-participation sheets. The authors confirm recording/training permissions, applicable parental permission and prior approval in the complete records. This confirmation is distinguished from independent checking of the photographed evidence. See [the anonymized review](../docs/CONSENT_REVIEW.md). Signed photographs remain local and excluded from commits.
 
 The latest compact-model update builds a fifteen-page paper and exactly two-page synopsis, with abstract lengths 275/232 words and resolved references/layout. Four/eight-feature models, cumulative ordinal classifiers and shallow ensembles produced 62.2% agreement, MAE 0.490 and 30.0% class sensitivity on the same 402 observations, still below the median reference in agreement/error. Fourteen fitted artifacts remain candidates; no independent final test or personalization benefit is established. Forty-one focused tests, both frontend scripts and one PostgreSQL report-comparison integration test passed. See [the current review record](REVIEW.md) for scope and assistance boundaries. The uncommitted presentation now contains complete text for all 25 content slides.
 
