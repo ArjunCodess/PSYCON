@@ -41,6 +41,25 @@ def figures():
     fig.savefig(folder / "coverage.pdf", metadata={"Title": "Ready-profile coverage; not psychological accuracy"})
     fig.savefig(folder / "coverage.png", dpi=180)
     plt.close(fig)
+    training = json.loads((ROOT / 'docs/report_assets/source-cross-validation-summary.json').read_text(encoding='utf-8'))
+    targets = sorted(training['by_target'], key=lambda t: (len(t), int(t[1:]) if len(t)>1 else ord(t)))
+    values = training['by_target']
+    if sum(values[t]['training']['n'] for t in targets) != training['training']['n']:
+        raise ValueError('Training metric denominators do not match target counts')
+    if sum(values[t]['retrospective_cv']['n'] for t in targets) != training['retrospective_cv']['n']:
+        raise ValueError('CV metric denominators do not match target counts')
+    x = list(range(len(targets)))
+    fig, ax = plt.subplots(figsize=(9, 3.8), layout='constrained')
+    ax.bar([v-.18 for v in x], [values[t]['training']['accuracy']*100 for t in targets], .36, label='Training resubstitution', color='#315a91')
+    ax.bar([v+.18 for v in x], [values[t]['retrospective_cv']['accuracy']*100 for t in targets], .36, label='Retrospective grouped CV', color='#c18b31')
+    ax.set_xticks(x, targets)
+    ax.set_ylim(0, 105)
+    ax.set_ylabel('Exact raw source-rating agreement (%)')
+    ax.spines[['top', 'right']].set_visible(False)
+    ax.legend(fontsize=9)
+    fig.savefig(folder / 'source-training-cv.pdf')
+    fig.savefig(folder / 'source-training-cv.png', dpi=180)
+    plt.close(fig)
 
 
 def build():
