@@ -13,11 +13,11 @@
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \title{PSYCON: Studying contextual communication behavior through evidence-linked psychologist observations}
 \author{Arjun Vijay Prakash \And Saksham Yadav}
-\date{October 12, 2026}
+\date{October 13, 2026}
 \begin{document}
 \maketitle
 \begin{abstract}
-Behavior in a group discussion depends on the preceding exchange, speaking opportunity, and the participant's earlier behavior. PSYCON investigates whether speaker-specific conversational measurements can predict contextual observations reviewed by psychologists, and whether earlier personal history improves evidence-supported communication reports. The implemented research instrument normalizes recordings, diarizes speakers, transcribes speech, conservatively attributes words, and preserves timestamped exchanges. A versioned A--T marksheet distinguishes ordinal ratings from insufficient opportunity and missing answers. Reviewed labels can enter frozen participant/source-group datasets for per-item logistic classification; matched report conditions compare transcript-only, structured-context, and full-PSYCON representations. Independent rater agreement, held-out prediction error, and blinded report usefulness are the intended behavioral outcomes. These outcomes have not yet been established. Retained engineering artifacts cover eleven recordings and 85 marked person-recording slots. Guarded PSYCON produced 57 ready profiles, compared with 51 for each guarded Nemotron configuration; these are coverage counts, not identity accuracy or psychological validation. Ten scanned bundles contain 228 pages. Seventy-six imported version 5.0 forms yielded 750 numeric, 1,662 N/O, and 20 missing answers. A separate exploratory Docker fit retained 40 participant-session examples and fitted fourteen source-score targets using 423 real labels. All retained examples trained the models. Training agreement was 97.9\%; retrospective omitted-group agreement was 57.2\%, below a 64.4\% median baseline. Retrospective compact-model selection improved agreement to 62.2\% on the same labels, with MAE 0.490 versus the reference 0.460. Minority-score detection remained poor and independent behavioral validation is unavailable. Independent behavioral validation remains unavailable. The present contribution is an implemented measurement and evaluation workflow that keeps contextual human observations separate from model predictions. Its behavioral hypotheses remain open, and no diagnosis, stable personality inference, causal effect, or demonstrated coaching benefit is claimed.
+PSYCON investigates whether speaker-specific conversational measurements predict contextual psychologist observations and support evidence-linked communication reports. The implemented instrument normalizes recordings, diarizes speakers, transcribes speech, preserves timestamped exchanges, and distinguishes ordinal ratings from insufficient opportunity and missing answers. Independent rater agreement and blinded report usefulness remain unmeasured. Retained engineering artifacts cover eleven recordings and 85 person-recording slots; guarded PSYCON produced 57 ready profiles versus 51 for each guarded Nemotron configuration, measuring coverage rather than identity accuracy. Seventy-six imported version 5.0 forms contain 750 numeric, 1,662 N/O and twenty missing answers. The source-score pilot uses 423 existing ratings across forty participant-session examples, nine recordings and five known connected groups. Original training agreement was 97.9\%; retrospective grouped agreement was 230/402, or 57.21\%, with twenty-one abstentions. Compact nested development achieved 62.19\% agreement and mean absolute error 0.490, below fold training-median and mode references at 64.43\%/0.460 and 65.67\%/0.453. A new bounded nested pooled procedure exactly matched the mode predictions but reduced score-3 recall from 18.45\% to 4.85\%, so it was not promoted. A 67.16\% fixed-configuration diagnostic predominantly predicted score 4 and was not selected from outer results. Historical predictions refitted exactly, with training-only preprocessing and known-group boundaries preserved. Unresolved identities, unreviewed ratings and unequal observation opportunities prevent independent generalisation claims. No independent final test supports an 85\% result. The contribution is an auditable measurement and evaluation workflow; diagnosis, stable personality inference, causal improvement and demonstrated coaching benefit remain unsupported.
 \end{abstract}
 \keywords{behavioral observation \and social interaction \and communication \and psychologist ratings \and measurement validity \and reproducibility}
 
@@ -294,7 +294,42 @@ Across all 423 labels, including reference fallbacks, compact selection produced
 
 \begin{figure}[ht]
 \centering\includegraphics[width=.98\linewidth]{source-compact-comparison.pdf}
-\caption{Latest compact procedure compared on identical 402 source-score observations. Reduced complexity improved agreement and ordinal error relative to the original model, but the median reference remained better on those measures. Average class recall remained low. No independent final-test outcome is available.}
+\caption{Earlier compact procedure compared on identical 402 source-score observations. Reduced complexity improved agreement and ordinal error relative to the original model, but the median reference remained better on those measures. Average class recall remained low. No independent final-test outcome is available.}
+\end{figure}
+
+
+\subsection{Maximum defensible performance audit}
+On 13 October, a separate frozen-input audit checked answer IDs, target/speaker alignment, ordinal scales, duplicate records, missing outputs, denominators, source hashes and known person/source transitivity. Refitting the original, compact and previous agreement-selection procedures reproduced every saved prediction. No demonstrable implementation defect explains their agreement. The 423 fitted-target ratings have score counts $(0,24,24,109,266)$ for categories 0--4. The common 402-rating cohort has counts $(0,13,20,103,266)$; it is fixed by original prediction availability, not chosen for favourable outcomes.
+
+A bounded second grid used penalized multinomial and cumulative ordinal logistic models with core, conversation and extended existing-rate features. Professional targets P1--P12 shared coefficients with penalized target indicators; G/I were fitted separately because their score direction differs. The grid included $C=0.01,0.1,1$ for core/conversation logistic models, a training-balanced conversation model, an extended-rate model and conversation ordinal models at $C=0.1,1$, with median/mode references. Each outer fold omitted a known connected group. Training-only imputation and scaling preceded inner grouped selection; recording/person identity, observer notes, annotation windows and transcript confidence were excluded. These are completed-session inputs, not evidence of real-time prediction or calibrated probabilities.
+
+Inner selection maximized equal-group agreement subject to no MAE increase over either reference, individual-class recall loss at most 0.02 versus median for classes with at least five inner observations, and a minimum 0.025 agreement gain over the best reference. The disclosed policy was frozen before these runs after earlier results were known, so it remains retrospective development. Promotion required agreement gain over compact, no MAE increase versus compact/mode, no score-specific recall loss above 0.02 versus compact, and positive descriptive paired agreement lower bounds versus compact/mode. Fixed outer diagnostics could not select another winner.
+
+\begin{table}[ht]
+\caption{Verified common-cohort comparison. All rows score the same 402 ratings; the original abstains on 21 of 423. Other procedures score all 423, often with explicit reference fallbacks.}
+\centering\small
+\begin{tabular}{@{}l r r r@{}}
+\toprule Procedure & Correct & Agreement & MAE \\
+\midrule
+Original grouped model & 230 & 57.21\% & 0.562 \\
+Compact procedure & 250 & 62.19\% & 0.490 \\
+Previous agreement selection & 247 & 61.44\% & 0.498 \\
+Fold training median & 259 & 64.43\% & 0.460 \\
+Fold training mode & 264 & 65.67\% & 0.453 \\
+New nested pooled procedure & 264 & 65.67\% & 0.453 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The new procedure chose references in four folds and core logistic $C=0.01$ in the fifth, producing exactly the same predictions as the mode reference. Score 1--4 recalls were 15.38\%, 0\%, 4.85\% and 96.62\%, versus compact's 15.38\%, 0\%, 18.45\% and 86.09\%. Balanced accuracy over observed truth classes was 29.21\% versus 29.98\%; quadratic weighted kappa was 0.129 versus 0.101. MAE treats adjacent score intervals as equal and kappa uses squared ordinal distances. Score 0 has no support, and pooled metrics mix distinct target meanings. Full precision, recall, F1 and confusion matrices accompany the aggregate release.
+
+The strongest fixed diagnostic achieved 270/402 agreement (67.16\%), MAE 0.435, but predicted score 4 on 397 ratings and recalled only 1.94\% of score 3. It is not the selected procedure; choosing it after observing outer results would add selection bias. The new procedure failed the rare-class and mode-superiority promotion gates, so compact remains the research reference and no model was activated. No result supports 85\% agreement. On all 423 ratings, compact achieved 259 matches (61.23\%, MAE 0.506), previous selection 256 (60.52\%, 0.513), median 268 (63.36\%, 0.478), and mode/new selection 273 (64.54\%, 0.470), with no abstentions in these procedures.
+
+All nineteen documented identity links and registered source hashes respect frozen components, but twenty-one participant-session identities remain unresolved. The fitted ratings lack independent reviews, recorded opportunity decisions, item confidence and structured evidence windows. This prevents an inter-rater reliability estimate or defensible numerical ceiling. Independent blinded re-rating must preserve originals; new identity-resolved connected groups are needed for final evaluation. Six audit regression tests contributed to 82 passing research tests, with one ffmpeg-dependent skip. The public aggregate release preserves every comparison without publishing individual IDs or notes.
+
+\begin{figure}[ht]
+\centering\includegraphics[width=.98\linewidth]{maximum-defensible-comparison.pdf}
+\caption{Verified agreement and class recall on the fixed 402-rating cohort. The nested challenger matches the mode reference; the higher fixed diagnostic largely predicts score 4 and is not promoted. These are retrospective development results, not independent final testing.}
 \end{figure}
 
 \subsection{Current full-input report example}
@@ -356,7 +391,7 @@ Optional Executive, Builder, Salesperson, and Negotiator references use project-
 
 The archived WESAD feature table contains 13,698 windows from fifteen subjects: 8,760 calm and 4,938 stress. Saved EDA-only XGBoost accuracy is 0.932, compared with 0.915 for multimodal logistic regression. These are a separate physiological task \cite{schmidt2018wesad}, and the artifacts do not support a blanket advantage from adding modalities. Calm baseline differences are computed using labelled subject windows before splitting, including held-out-subject calm information; calibration is not restricted to a pre-test interval. The scores therefore represent a label-informed calibration condition and cannot establish untouched unseen-person or PSYCON wearable performance.
 
-Source traceability for the reported values is provided by \path{docs/report_assets/source-cross-validation-summary.json}, \path{docs/report_assets/source-training-summary.json}, \path{docs/report_assets/nemotron-benchmark-summary.json}, \path{docs/group_discussions_final_report.md}, \path{docs/INSTRUMENT_STATUS.md}, \path{results/metrics.json}, and the associated processing/training sources. The companion build script regenerates aggregate figures and both PDFs without accessing participant recordings or connecting to the canonical database.
+Source traceability for the latest audit is provided by \path{docs/report_assets/maximum-defensible-summary.json} and \path{docs/research/maximum-defensible-2026-10-13/}. Earlier reported values are provided by \path{docs/report_assets/source-cross-validation-summary.json}, \path{docs/report_assets/source-training-summary.json}, \path{docs/report_assets/nemotron-benchmark-summary.json}, \path{docs/group_discussions_final_report.md}, \path{docs/INSTRUMENT_STATUS.md}, \path{results/metrics.json}, and the associated processing/training sources. The companion build script regenerates aggregate figures and both PDFs without accessing participant recordings or connecting to the canonical database.
 
 \bibliographystyle{unsrtnat}
 \bibliography{references}

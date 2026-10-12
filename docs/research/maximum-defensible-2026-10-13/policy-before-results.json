@@ -1,0 +1,128 @@
+{
+  "version": "maximum-defensible-1",
+  "seed": 42,
+  "configurations": [
+    {
+      "name": "median",
+      "kind": "reference"
+    },
+    {
+      "name": "mode",
+      "kind": "reference"
+    },
+    {
+      "name": "pooled-core-logistic-0.01",
+      "kind": "logistic",
+      "features": "core",
+      "c": 0.01,
+      "weight": null
+    },
+    {
+      "name": "pooled-core-logistic-0.1",
+      "kind": "logistic",
+      "features": "core",
+      "c": 0.1,
+      "weight": null
+    },
+    {
+      "name": "pooled-core-logistic-1.0",
+      "kind": "logistic",
+      "features": "core",
+      "c": 1.0,
+      "weight": null
+    },
+    {
+      "name": "pooled-conversation-logistic-0.01",
+      "kind": "logistic",
+      "features": "conversation",
+      "c": 0.01,
+      "weight": null
+    },
+    {
+      "name": "pooled-conversation-logistic-0.1",
+      "kind": "logistic",
+      "features": "conversation",
+      "c": 0.1,
+      "weight": null
+    },
+    {
+      "name": "pooled-conversation-logistic-1.0",
+      "kind": "logistic",
+      "features": "conversation",
+      "c": 1.0,
+      "weight": null
+    },
+    {
+      "name": "pooled-conversation-logistic-balanced",
+      "kind": "logistic",
+      "features": "conversation",
+      "c": 0.1,
+      "weight": "balanced"
+    },
+    {
+      "name": "pooled-extended-logistic-0.1",
+      "kind": "logistic",
+      "features": "extended",
+      "c": 0.1,
+      "weight": null
+    },
+    {
+      "name": "pooled-conversation-ordinal-0.1",
+      "kind": "ordinal",
+      "features": "conversation",
+      "c": 0.1,
+      "weight": null
+    },
+    {
+      "name": "pooled-conversation-ordinal-1.0",
+      "kind": "ordinal",
+      "features": "conversation",
+      "c": 1.0,
+      "weight": null
+    }
+  ],
+  "grouping": "Leave one known connected recording/person component out; inner leave-one-component-out",
+  "unit": "Existing target rating within participant-session; 423 ratings are not independent observations",
+  "features": {
+    "core": [
+      "speaking_share",
+      "words_per_minute",
+      "mean_turn_duration",
+      "response_latency"
+    ],
+    "conversation": [
+      "speaking_share",
+      "words_per_minute",
+      "mean_turn_duration",
+      "response_latency",
+      "question_rate",
+      "proposal_rate",
+      "acknowledgement_ratio",
+      "interruption_candidate_rate"
+    ],
+    "extended": [
+      "speaking_share",
+      "words_per_minute",
+      "mean_turn_duration",
+      "response_latency",
+      "question_rate",
+      "proposal_rate",
+      "acknowledgement_ratio",
+      "interruption_candidate_rate",
+      "reasoning_ratio",
+      "hedging_ratio",
+      "concession_ratio",
+      "experimentation_ratio",
+      "disagreement_rate",
+      "question_ratio"
+    ]
+  },
+  "pooling": "Share coefficients among P1-P12 only, with penalized target indicators; G/I fit separately",
+  "selection": "Inner equal-group exact agreement; no MAE increase versus both median and mode, no per-class recall loss > .02 versus median for inner classes with support >= 5; minimum gain .025 over best reference; ties declaration order",
+  "promotion": "Only the single nested challenger is eligible. Common-cohort agreement gain >= .025 versus compact, MAE <= compact and mode, class recall loss <= .02 versus compact for scores 1-4, and paired group-bootstrap agreement lower bound > 0 versus compact and mode. Otherwise retain compact as research reference.",
+  "inference": "Completed-session analysis only; no labels, reviewer notes, recording/participant IDs, confidence or annotation-selected windows as predictors",
+  "calibration": "Ordinal probabilities are monotonic projected cumulative logistic estimates, not claimed calibrated; no calibration fit with five small groups",
+  "status": "Retrospective development, not preregistered, not independent final testing",
+  "bounded": true,
+  "automatic_deployment": false
+}

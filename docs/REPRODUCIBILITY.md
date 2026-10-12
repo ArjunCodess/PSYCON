@@ -1,5 +1,12 @@
 # Current audio-first application
 
+## Frozen source-score audit, 13 October 2026
+
+Run `.runtime/venv/Scripts/python.exe -m research.maximum_defensible --output <new-directory>` with the private frozen snapshot, prediction archives and applied overlap journal. Output directories cannot already exist. The script validates source hashes, alignment and known links; refits the historical procedures; fits all new preprocessing inside training folds; selects within inner groups; and exports both fixed cohorts with abstentions and per-class metrics. No live database or model activation is involved. The verified research suite command is `.runtime/venv/Scripts/python.exe -m pytest tests/research -ra -o addopts=''`: 82 passed and one ffmpeg-dependent skip.
+
+The versioned [aggregate release](report_assets/maximum-defensible-summary.json) and [submission account](research/maximum-defensible-2026-10-13/submission_results.md) exclude private IDs and notes. Full predictions, experiment logs and checksums remain in `.runtime/maximum-defensible-2026-10-13-final/`. Existing source artifacts were preserved. Rebuild paper figures and PDFs with `python paper/build.py`.
+
+
 The active application uses only PostgreSQL. Install `requirements-instrument.txt`, configure the ignored `PSYCON_DATABASE_URL`, run `python run_psycon.py migrate`, then run `python run_psycon.py web` and `python run_psycon.py worker`. The local managed interpreter is `.runtime/venv/Scripts/python.exe`. No application/test SQLite fallback exists; `migrate-source` is the one-time read-only importer.
 
 Run `python -m pytest tests/backend/test_instrument.py tests/backend/test_instrument_training.py tests/backend/test_instrument_workflow.py` against an available local PostgreSQL database. These fixtures create disposable `psycon_test_*` schemas, run real fitting with explicitly synthetic labels and remove their records. They exercise imports and revisions, source ancestry, mappings, frozen splits, roles, leases, retries, cancellation, generation attempts, portable models, deployment, withdrawal, exports and coordinated database/local-file restoration. Run `python -m pytest` for the broader compatibility suite. Optional external-service and licensed-data tests may skip; record those skips separately.

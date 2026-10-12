@@ -1,14 +1,14 @@
 # Psycon: complete presentation content
 
-Exactly 25 content slides follow. A separate opening title slide and closing thank-you slide are excluded. All text beneath each numbered heading is proposed slide text, including captions. These are AI-assisted preparation drafts for the students to verify, develop in their own words and check against the applicable fair rules. Results describe the source-score pilot, not independently validated personality prediction. No poster is included.
+Updated 13 October 2026 from the verified maximum-defensible audit. Exactly 25 content slides follow. A separate opening title slide and closing thank-you slide are excluded. All text beneath each numbered heading is proposed slide text, including captions. These are AI-assisted preparation drafts for the students to verify, develop in their own words and check against the applicable fair rules. Results describe the source-score pilot, not independently validated personality prediction. No poster is included.
 
 ## 1. Abstract
 
-Psycon investigates whether measurements from a group conversation can predict contextual behavioral observations and support useful communication feedback.
+Psycon investigates whether conversation measurements predict contextual observer ratings and support evidence-linked reports.
 
-The exploratory pilot contains 40 participant-session examples from nine recordings and five known connected groups. Fourteen source-score targets use 423 imported ratings. On the same 402 observations, compact-model development raised exact agreement from 57.2% to 62.2%, but the training-median baseline remained better at 64.4%.
+The pilot uses 423 ratings from 40 participant-session examples across nine recordings and five known connected groups. Compact development reached 62.19% agreement on the common 402 ratings. New nested pooling reached 65.67%, exactly matching training-mode predictions and reducing score-3 recall, so it was not promoted.
 
-The implemented system links recordings, measurements, ratings and reports. Reliable behavioral prediction, stable personality inference and useful personalization remain unestablished.
+These are retrospective development results. Independent rater reliability, final testing, history benefit and 85% agreement remain unestablished.
 
 ## 2. Background: behavior depends on the situation
 
@@ -128,67 +128,61 @@ These analyses were developed after earlier results had been examined. Nested sp
 
 ## 14. Model changes and training parameters
 
-The latest procedure compares twelve fixed candidates, including median/mode references, compact logistic models, ridge models, cumulative ordinal classifiers and shallow tree ensembles.
+The compact reference tests four/eight-feature logistic, ridge, ordinal and depth-limited tree models. The new grid tests shared professional-target logistic/ordinal coefficients with target indicators, core/conversation/extended existing features and training-fold class weighting. G/I are fitted separately.
 
-- Core models use four predefined timing measurements; conversation models use up to eight timing/text proxies.
-- Logistic regularization uses C = 0.1 or 1. Ridge uses alpha = 10.
-- Ensembles use 64 trees, maximum depth 3 and at least four examples per leaf.
-- Feature-based fitting requires twelve examples, three known groups and two classes; otherwise it returns an explicit reference.
-- Inner selection requires at least 0.025 lower group-average error and allows at most 0.02 lower class-average sensitivity than the median reference.
+- Each outer fold holds out a known connected group; inner grouped folds choose the configuration and hyperparameters.
+- Imputation and scaling use training data only; IDs, observer notes and annotation-selected windows are excluded.
+- Inner agreement gains must preserve ordinal error and individual class recall.
+- Only the nested challenger can pass the declared promotion gates; fixed outer diagnostics cannot choose a winner.
 
 ## 15. What the training/testing split means here
 
-| Evidence | Current status |
-|---|---|
-| Final fitting | All 40 examples used for training |
-| Independent validation examples | 0 |
-| Independent final-test examples | 0 |
-| Retrospective evaluation | Five omitted-known-group folds |
-| Common comparison | 402 item observations |
-| Full revised coverage | 423 labels, including reference fallbacks |
+| Evidence | Status |
+| --- | --- |
+| Original final fitting | All 40 examples used for training |
+| Independent final test | 0 examples |
+| Outer development folds | Five known connected groups |
+| Common paired cohort | 402 ratings, fixed by original predictions |
+| Original abstentions | 21 of 423 |
+| Other procedures | All 423 scored, with explicit reference fallbacks |
 
-Training agreement measures data already used for fitting. Grouped evaluation is more informative about transfer, but already examined groups cannot provide independent confirmation.
+Nineteen documented identity links stay within folds, but 21 participant-session identities remain unresolved. Grouped development cannot establish participant-independent generalisation.
 
 ## 16. Results: every procedure against the baseline
 
-| Procedure | Exact agreement | Mean absolute error | Mean class sensitivity |
-|---|---:|---:|---:|
-| Original model | 57.2% | 0.562 | 30.3% |
-| Earlier MAE-focused repair | 60.9% | 0.493 | 28.8% |
-| Sensitivity-focused repair | 56.5% | 0.562 | 29.9% |
-| Latest compact procedure | 62.2% | 0.490 | 30.0% |
-| Emergency agreement-policy experiment | 61.4% | 0.498 | 29.1% |
-| Training-median reference | 64.4% | 0.460 | 29.6% |
-| Training-mode reference | 65.7% | 0.453 | 29.2% |
+| Procedure, common 402 ratings | Correct | Agreement | MAE | Balanced accuracy |
+| --- | ---: | ---: | ---: | ---: |
+| Original grouped model | 230 | 57.21% | 0.562 | 30.33% |
+| Compact procedure | 250 | 62.19% | 0.490 | 29.98% |
+| Previous agreement-selection experiment | 247 | 61.44% | 0.498 | 29.10% |
+| Fold training median | 259 | 64.43% | 0.460 | 29.64% |
+| Fold training mode | 264 | 65.67% | 0.453 | 29.21% |
+| New nested pooled procedure | 264 | 65.67% | 0.453 | 29.21% |
 
-*Figure caption: The same 402 observations are compared. Lower error is better. These are retrospective source-score results.*
+The new nested procedure exactly matches the mode reference. It selects references in four folds and pooled core logistic C=0.01 in one. The compact model remains the research reference because rare-class and mode-superiority promotion gates fail.
 
-The compact procedure gains 5.0 percentage points over the original model, but still does not beat either reference in agreement or ordinal error. The emergency experiment did not improve it, so we retained the compact procedure.
+*Figure caption: All results use the same 402 ratings and remain retrospective development.*
 
 ## 17. Sensitivity: minority scores remain difficult
 
-Sensitivity is the proportion of observations with a source score that receive that exact predicted score.
+| Score | Common support | Compact recall | New nested recall |
+| --- | ---: | ---: | ---: |
+| 1 | 13 | 15.38% | 15.38% |
+| 2 | 20 | 0% | 0% |
+| 3 | 103 | 18.45% | 4.85% |
+| 4 | 266 | 86.09% | 96.62% |
 
-| Source score | Observations | Latest exact matches | Sensitivity |
-|---|---:|---:|---:|
-| 1 | 13 | 2 | 15.4% |
-| 2 | 20 | 0 | 0.0% |
-| 3 | 103 | 19 | 18.4% |
-| 4 | 266 | 229 | 86.1% |
+Score 0 has no observations. Across all 423 ratings, score counts 0-4 are 0,24,24,109,266. The challenger improves majority-score recall while losing score-3 detection. These are exact-rating recalls, not clinical sensitivity.
 
-*Heatmap caption: Score 4 dominates. Score 0 has no observations, so its sensitivity is unavailable.*
-
-Agreement on the dominant score does not establish reliable detection across scores. These are exact-rating recalls, not clinical sensitivity.
+*Figure caption: Read agreement beside class-wise precision, recall and F1; pooled agreement can conceal minority failures.*
 
 ## 18. Error, uncertainty and target interpretation
 
-The full compact procedure covers 423 labels with 61.2% agreement and MAE 0.506, compared with median-reference 63.4% and MAE 0.478.
+On all 423 ratings, compact reaches 61.23% agreement and MAE 0.506; median reaches 63.36%/0.478 and mode/new nested selection 64.54%/0.470. These procedures have zero abstentions.
 
-- P2 reaches 82.9% agreement, but its final fit is a median reference. This is not individualized prediction.
-- Eight final fits are population references and six use measured features. All remain exploratory candidates.
-- A five-group bootstrap gives a descriptive model-minus-median MAE interval of -0.013 to 0.049. It spans zero and does not establish superiority.
+On the common cohort, compact/new balanced accuracy is 29.98%/29.21% and quadratic weighted kappa is 0.101/0.129. MAE assumes equal adjacent score distances; kappa uses squared ordinal distances.
 
-*Figure caption: Report every target, sample size and baseline. Few groups and unresolved overlap limit uncertainty estimates.*
+The strongest fixed diagnostic reaches 67.16%/0.435 but predicts score 4 on 397/402 ratings and recalls only 1.94% of score 3. It is not an unbiased selected winner. Five-group bootstrap intervals are descriptive; the new procedure has zero paired gain over mode.
 
 ## 19. Example output after a real recording
 
@@ -218,22 +212,17 @@ No current result establishes more useful personalized answers.
 
 ## 21. Problems encountered and repairs
 
-| Problem | Repair and remaining boundary |
-|---|---|
-| Training performance did not transfer | Added grouped/nested evaluation; independent confirmation remains absent. |
-| Small sample, many predictors | Added predefined four/eight-feature models and constrained complexity. |
-| Accuracy hid minority failures | Exported supports, sensitivity, precision, specificity and confusion matrices. |
-| Repeated or invented report claims | Added exact anchors, duplicate rejection and scope checks. |
-| Source overlap risked leakage | Kept known groups together; unknown overlap remains. |
-| Missing contextual rating evidence | Preserved missingness rather than inventing observations. |
+The frozen audit checked unique answer IDs, target/speaker alignment, scales, missing outputs, denominators, source hashes and known-link transitivity. Original, compact and previous agreement-selection predictions refitted with zero mismatches. No demonstrable implementation bug explains their metrics.
+
+Six new regression tests cover grouping, training-only preparation, individual-class selection guards and paired uncertainty. The research suite passed 82 tests, with one media test skipped because ffmpeg was absent from its runtime PATH.
+
+All unsuccessful comparisons remain recorded; source ratings and live models were unchanged.
 
 ## 22. Discussion: what the findings support
 
-The pilot shows that imported source scores can be processed, modelled and compared through a reproducible workflow. Smaller models improved transfer relative to the original fit, but the evaluated procedure still loses to a simple reference and misses minority scores.
+The pilot establishes an executable audit workflow, not reliable prediction of independently reviewed behaviour. The new procedure matches a population reference, while the higher fixed diagnostic largely predicts score 4. Compact remains the research reference without a superiority claim.
 
-Topic, moderation, speaking opportunity, recording quality and attribution errors may explain part of the apparent participant signal. The evidence does not identify one cause.
-
-Psycon is presently a contextual communication research instrument. Stable personality prediction, diagnosis, causal improvement and worldwide effectiveness would exceed these results.
+Unreviewed labels, unequal opportunities and unresolved identities prevent a numerical performance ceiling. Independent blinded re-rating and newly collected identity-resolved groups are required. No measured result supports 85%, a stable psychological trait, diagnosis or a communication benefit.
 
 ## 23. The next behavioral study
 
@@ -266,3 +255,5 @@ We acknowledge the school psychologists who supplied observation reference mater
 - Kapoor & Narayanan (2022). Leakage in ML-based science. arXiv:2207.07048.
 
 These sources motivate methods and limitations; they do not validate Psycon's rubric or effectiveness.
+
+Aggregate source: `docs/report_assets/maximum-defensible-summary.json`; audit details: `docs/research/maximum-defensible-2026-10-13/submission_results.md`. Private individual predictions remain local.

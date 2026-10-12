@@ -1,0 +1,22 @@
+[
+  {
+    "a": "interruption_candidate_rate",
+    "b": "overlap_time",
+    "correlation": 0.9105018141523008
+  },
+  {
+    "a": "mean_turn_duration",
+    "b": "median_turn_duration",
+    "correlation": 0.9068015668417901
+  },
+  {
+    "a": "speaking_share",
+    "b": "speaking_time",
+    "correlation": 0.9365653469857159
+  },
+  {
+    "a": "speaking_time",
+    "b": "word_count",
+    "correlation": 0.9269844162061901
+  }
+]

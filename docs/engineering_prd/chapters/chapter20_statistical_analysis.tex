@@ -31,3 +31,9 @@ The output contract includes accuracy, precision, recall, F1, ROC-AUC when both 
 \begin{observationbox}
 These procedures are implemented and covered by unit tests, but no Week 5 metric is reported because no completed marksheet and matching PSYCON recording dataset is available. The target definition, primary metric, \texttt{N/O} handling, exclusions, and duration-stability tolerance must be frozen before the test set is opened.
 \end{observationbox}
+
+
+\subsection{Separate contextual source-score development audit}
+The active communication task is ordinal and separate from the Week 5 binary physiology evaluator. The 13 October audit uses 423 source ratings from forty participant-session examples, nine recordings and five known connected groups. The fixed common cohort contains 402 original non-abstained predictions; twenty-one original abstentions remain explicit. Compact grouped development achieved 62.19\% agreement and MAE 0.490, compared with fold training median 64.43\%/0.460 and mode 65.67\%/0.453. New nested pooling exactly matched mode predictions but reduced score-3 recall from 18.45\% to 4.85\%, so it was not promoted. The higher fixed diagnostic is not selected from outer results. No independent final test or 85\% outcome is available.
+
+Training-only preprocessing and inner known-group selection are required. Report both cohorts, per-class precision/recall/F1, confusion matrices, ordinal error, observed-class balanced accuracy and quadratic weighted kappa beside exact agreement. Unresolved people and unreviewed labels prevent participant-independent generalisation and rubric-reliability claims. Full execution records remain private; the aggregate release is \path{docs/report_assets/maximum-defensible-summary.json}.

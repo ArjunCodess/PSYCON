@@ -1,5 +1,12 @@
 # Evidence and review record
 
+## Maximum-defensible documentation revision, 13 October
+
+The paper, synopsis, README, versioned 25-slide content, defense notes, instrument status, research index and reproducibility instructions now distinguish the compact procedure from the new nested challenger and the rejected fixed diagnostic. Public summaries contain aggregate metrics only; individual predictions, labels/notes, identity journals and private input manifests remain ignored. Original, compact and previous agreement-selection refits have zero mismatches. The research suite passed 82 tests with one ffmpeg-dependent skip. No live model, rating or eligibility record changed.
+
+The nested challenger exactly matches mode predictions at 264/402 (65.67%, MAE 0.453), while reducing score-3 recall to 4.85%. The fixed 270/402 diagnostic predicts score 4 on 397 ratings and is not a selected winner. No independent test or 85% result is claimed. Known-link checks do not resolve all participant identities or source ancestry. Build/page/visual checks for this revision are recorded in `docs/BUILD_VERIFICATION.md`; dated entries below preserve previous execution scope and do not certify this revision. Slides are versioned under the current author instruction.
+
+
 ## Build and versioning check (October 13)
 
 All seven standalone LaTeX documents compiled, both firmware targets built, protocol typechecking and twenty protocol tests passed, and both frontend scripts passed. The local Python suite passed 381 tests with five skips; the three PostgreSQL-dependent instrument suites were excluded. Docker remained unresponsive after a configured build attempt, so no container rebuild is claimed. See [the build record](../docs/BUILD_VERIFICATION.md). Slides are now versioned under the latest author instruction; earlier references to uncommitted slides describe the previous release. Public audit outputs contain anonymized examples and aggregate metrics only. Source recordings, signed forms, rating scans and private runtime artifacts remain excluded.

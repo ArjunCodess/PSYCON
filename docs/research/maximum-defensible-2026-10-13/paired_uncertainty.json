@@ -1,0 +1,47 @@
+{
+  "compact": {
+    "groups": 5,
+    "draws": 10000,
+    "agreement_delta": 0.03482587064676617,
+    "agreement_interval": [
+      0.008287292817679558,
+      0.06451612903225806
+    ],
+    "mae_delta": -0.03731343283582089,
+    "mae_interval": [
+      -0.055299539170506916,
+      -0.005741569822823475
+    ],
+    "limitation": "Descriptive and unstable with five known groups; not an independent-test significance claim"
+  },
+  "fixed:mode": {
+    "groups": 5,
+    "draws": 10000,
+    "agreement_delta": 0.0,
+    "agreement_interval": [
+      0.0,
+      0.0
+    ],
+    "mae_delta": 0.0,
+    "mae_interval": [
+      0.0,
+      0.0
+    ],
+    "limitation": "Descriptive and unstable with five known groups; not an independent-test significance claim"
+  },
+  "fixed:median": {
+    "groups": 5,
+    "draws": 10000,
+    "agreement_delta": 0.012437810945273632,
+    "agreement_interval": [
+      0.00202020202020202,
+      0.03125
+    ],
+    "mae_delta": -0.007462686567164179,
+    "mae_interval": [
+      -0.019417475728155338,
+      0.0
+    ],
+    "limitation": "Descriptive and unstable with five known groups; not an independent-test significance claim"
+  }
+}

@@ -1,5 +1,18 @@
 # Current specification coverage
 
+## Latest source-score evidence, 13 October 2026
+
+The October 13 audit refitted the original, compact and previous agreement-selection procedures with zero saved-prediction mismatches. Its new nested procedure reached 264/402 exact matches (65.67%) and MAE 0.453, exactly matching the fold training-mode predictions. It selected median/mode references in four of five outer folds and a pooled core logistic model in the fifth. Score-3 recall fell from compact's 18.45% to 4.85%, so the predefined promotion gates failed and compact remains the research model reference. No candidate was activated.
+
+The strongest fixed-configuration diagnostic reached 270/402 (67.16%), MAE 0.435, but predicted score 4 on 397 ratings and recalled only 1.94% of score 3. This is a disclosed outer diagnostic, not the inner-selected procedure or an unbiased winner. An 85% target is unsupported by the measured evidence.
+
+All 423 rating counts for scores 0-4 are 0, 24, 24, 109 and 266. The common cohort counts are 0, 13, 20, 103 and 266. The original abstained on 21 ratings; every other procedure scored all 423, with explicit population-reference fallbacks. On all 423, compact achieved 259 matches (61.23%, MAE 0.506), previous agreement selection 256 (60.52%, 0.513), median 268 (63.36%, 0.478), and mode/new nested selection 273 (64.54%, 0.470). The fixed 402 cohort omits those same 21 IDs for paired comparison, not new abstentions.
+
+These are retrospective development results, not independent final testing. Known links stay within folds, but 21 participant-session identities remain unresolved. The fitted labels have zero independent reviews, structured evidence windows, recorded fair-opportunity decisions or individual observer-confidence fields. Rubric reliability and a numerical performance ceiling cannot be inferred. Independent blinded re-rating and a newly collected identity-resolved test sample are required. Session observations do not establish stable psychological traits.
+
+See [the aggregate audit](research/maximum-defensible-2026-10-13/submission_results.md). Earlier dated implementation and experiment records below remain historical.
+
+
 This records implementation scope, not scientific success. The current [behavioral direction](PSYCON_VISION.md) centers participant talking patterns, contextual evidence, and psychologist-reviewed A-T ratings. It supersedes the previous wearable/coaching product direction. Stage 1 documentation, Stage 2 behavioral interface emphasis, and Stage 3 import-to-training engineering workflow are complete. Real participant-model validation remains unavailable. Existing archetype controls and comparisons are retained exploratory tools, not personality assessments.
 
 | Area | Implemented behavior | Remaining validation or limitation |

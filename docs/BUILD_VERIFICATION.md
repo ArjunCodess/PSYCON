@@ -1,5 +1,17 @@
 # Build verification, 13 October 2026
 
+## Latest maximum-defensible documentation build
+
+`python paper/build.py` rebuilt a sixteen-page paper and exactly two-page synopsis with resolved citations/references and no overflowing boxes. Abstracts contain 234 and 260 whitespace-separated words. All paper pages were rendered into a contact sheet; the new audit table/figure pages and both synopsis pages were inspected at reading size. The source presentation retains exactly 25 numbered content slides. The new figure reads only the committed aggregate audit and checks the 402-rating denominator.
+
+The LaTeX plugin compiler used the existing MiKTeX/latexmk toolchain to rebuild the engineering document at 41 pages. An initial long aggregate-file path overflowed a column; using a breakable path fixed it, and the final log has no overfull or unresolved-reference warnings. The changed audit page was rendered and inspected. The rebuilt PDF is versioned with its source.
+
+An initial paper-build attempt with the ML virtual environment failed because that environment lacks PyMuPDF. The system Python has the document libraries and completed the build; documentation therefore uses `python paper/build.py`, while model reproduction retains the ML virtual environment. Earlier unchanged figure PDFs rendered identically to their committed versions, so timestamp-only changes were discarded.
+
+The aggregate release was checked against the private saved comparison: all 29 procedure records retain both cohort counts, exact-match numerators, MAE and class support. Private individual IDs, raw notes and prediction rows are excluded. The earlier audit research suite passed 82 tests with one ffmpeg-dependent skip; this documentation build does not claim a new model, hardware, Docker, PostgreSQL or human-study run. The source-score output remains retrospective development with no independent final test. No existing reference result was overwritten.
+
+## Earlier full build
+
 The paper builder completed with a fifteen-page paper and exactly two-page synopsis. All rebuilt paper/figure PDFs were compared page by page with committed copies and rendered identically; timestamp-only changes were discarded.
 
 The existing MiKTeX toolchain compiled the forty-page engineering document, three-page group-discussion report, five-page observation marksheet, two-page interpretation guide and one-page blank group-session consent template. Build outputs remain under `.runtime/full-build-2026-10-13/`; completed signed consent forms and source-rating scans remain private. Historical engineering claims are not certified by compilation.

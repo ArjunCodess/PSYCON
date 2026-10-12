@@ -93,8 +93,44 @@ def figures():
     plt.close(fig)
 
 
+def audit_figure():
+    """Build the latest comparison from aggregate metrics, without private inputs."""
+    source = ROOT / 'docs/report_assets/maximum-defensible-summary.json'
+    data = json.loads(source.read_text(encoding='utf-8'))
+    names = ['original', 'compact', 'fixed:median', 'fixed:mode', 'nested_challenger',
+             'diagnostic:pooled-core-logistic-0.01']
+    labels = ['Original', 'Compact', 'Median', 'Mode', 'Nested', 'Fixed diagnostic']
+    records = [data['procedures'][n]['common_402'] for n in names]
+    if any(r['evaluated'] != 402 or sum(c['support'] for c in r['per_class']) != 402
+           or not abs(r['exact_agreement']-r['correct']/402) < 1e-12 for r in records):
+        raise ValueError('Latest audit figure must use the fixed 402-rating cohort')
+    fig, axes = plt.subplots(1, 2, figsize=(11, 3.8), layout='constrained')
+    bars = axes[0].bar(labels, [r['exact_agreement']*100 for r in records],
+                      color=['#315a91', '#2c786a', '#697581', '#697581', '#c18b31', '#999999'])
+    axes[0].bar_label(bars, fmt='%.2f', padding=3, fontsize=8)
+    axes[0].set_ylim(0, 100)
+    axes[0].set_ylabel('Exact agreement (%)')
+    axes[0].tick_params(axis='x', labelrotation=35, labelsize=8)
+    axes[0].spines[['top', 'right']].set_visible(False)
+    recall = [[r['per_class'][k]['recall']*100 for k in range(1, 5)] for r in records]
+    im = axes[1].imshow(recall, vmin=0, vmax=100, cmap='Blues', aspect='auto')
+    axes[1].set_yticks(range(len(labels)), labels, fontsize=8)
+    axes[1].set_xticks(range(4), ['Score 1', 'Score 2', 'Score 3', 'Score 4'])
+    axes[1].set_title('Exact-score recall (%); score 0 unobserved', fontsize=9)
+    for i, values in enumerate(recall):
+        for j, value in enumerate(values):
+            axes[1].text(j, i, f'{value:.1f}', ha='center', va='center', fontsize=8,
+                         color='white' if value > 60 else 'black')
+    fig.colorbar(im, ax=axes[1], shrink=.75)
+    folder = HERE / 'figures'
+    fig.savefig(folder / 'maximum-defensible-comparison.pdf')
+    fig.savefig(folder / 'maximum-defensible-comparison.png', dpi=180)
+    plt.close(fig)
+
+
 def build():
     figures()
+    audit_figure()
     compiler = shutil.which("latexmk")
     if not compiler:
         raise RuntimeError("Install a TeX runtime with latexmk, pdflatex and bibtex")
