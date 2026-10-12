@@ -73,10 +73,17 @@ def portable(pipeline,names):
 
 
 def infer(artifact,values):
+    if artifact['format']=='psycon-source-constant-1':
+        return int(artifact['score']),artifact['distribution']
+    if artifact['format'] not in ('psycon-logistic-json-1','psycon-source-ridge-1'):
+        raise ValueError('Unknown model artifact format')
     x=np.asarray([values.get(n,np.nan) if values.get(n) is not None else np.nan for n in artifact['features']],dtype=float)
     missing=np.isnan(x); x=np.where(missing,np.asarray(artifact['medians']),x)
     x=np.concatenate([x,missing[np.asarray(artifact['indicator_features'],dtype=int)].astype(float)])
     x=(x-np.asarray(artifact['means']))/np.asarray(artifact['scales'])
+    if artifact['format']=='psycon-source-ridge-1':
+        value=float(np.dot(artifact['coefficients'],x)+artifact['intercept'])
+        return int(np.clip(np.floor(value+.5),0,4)),{}  # Regression has no class probabilities.
     logits=np.asarray(artifact['coefficients'])@x+np.asarray(artifact['intercept'])
     if len(logits)==1:
         probability=1/(1+np.exp(-np.clip(logits[0],-700,700))); probs=np.asarray([1-probability,probability])
@@ -217,7 +224,7 @@ def load(store,model):
     artifact=store.one('SELECT asset_id FROM model_artifacts WHERE model_id=%s',(model['id'],))
     path=resolve(store,artifact['asset_id'],verify=True)
     result=json.loads(path.read_text(encoding='utf-8'))
-    if result['format']!='psycon-logistic-json-1' or result['feature_version']!=FEATURE_VERSION or result['features']!=model['feature_schema']['names']:
+    if result['format'] not in ('psycon-logistic-json-1','psycon-source-constant-1','psycon-source-ridge-1') or result['feature_version']!=FEATURE_VERSION or result['features']!=model['feature_schema']['names']:
         raise ValueError('Model feature schema is incompatible')
     return result
 
@@ -251,7 +258,7 @@ def predict(store,speaker_id,context_windows=None):
     models=store.rows("SELECT m.* FROM model_versions m JOIN training_runs r ON r.id=m.run_id WHERE m.status='active' AND r.owner_id='local' ORDER BY m.family,m.target")
     results=[]
     for model in models:
-        abstention=None; score=None; distribution=None
+        abstention=None; score=None; distribution=None; artifact=None
         model_values=dict(values)
         try:
             artifact=load(store,model)
@@ -274,11 +281,12 @@ def predict(store,speaker_id,context_windows=None):
                     from .datasets import window_features
                     measured=window_features(dict(utterances=store.rows('SELECT * FROM utterances WHERE speaker_id=%s',(speaker_id,))),speaker_id,windows)
                     model_values.update({model['target']+'__'+k:v for k,v in measured.items()})
-            if not any(n in measured_names for n in artifact['features']): abstention='Measured conversational predictors unavailable'
+            if artifact['format']!='psycon-source-constant-1' and not any(n in measured_names for n in artifact['features']): abstention='Measured conversational predictors unavailable'
             if not abstention: score,distribution=infer(artifact,model_values)
         except (ValueError,LookupError,OSError) as exc:
             abstention=str(exc)
-        row=dict(id=uid(),model_id=model['id'],session_id=session['id'],speaker_id=speaker_id,input_revision=session['input_revision'],score=score,distribution=distribution,uncertainty=dict(status='uncalibrated',evaluation_status=model['evaluation_status'],limitations=model['limitations']),abstention=abstention,inputs=dict(feature_version=FEATURE_VERSION,features=model_values,context_windows=context_windows or {},session_context={k:session[k] for k in ('context','topic','conditions','recorded_at')}))
+        reference=bool(artifact and artifact['format']=='psycon-source-constant-1')
+        row=dict(id=uid(),model_id=model['id'],session_id=session['id'],speaker_id=speaker_id,input_revision=session['input_revision'],score=score,distribution=distribution,uncertainty=dict(status='population_reference' if reference else 'uncalibrated',score_kind='training population reference, not individualized' if reference else 'exploratory model estimate' if model['evaluation_status']=='exploratory' else 'model estimate',evaluation_status=model['evaluation_status'],limitations=model['limitations']),abstention=abstention,inputs=dict(feature_version=FEATURE_VERSION,features=model_values,context_windows=context_windows or {},session_context={k:session[k] for k in ('context','topic','conditions','recorded_at')}))
         with store.connect() as db:
             store.insert('model_predictions',row,db)
             for e in db.execute('SELECT id FROM evidence WHERE speaker_id=%s ORDER BY start_s LIMIT 24',(speaker_id,)):
