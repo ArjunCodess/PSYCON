@@ -14,15 +14,19 @@ The exploratory question actually examined was whether general conversational pr
 |---|---:|---:|---:|
 | Original class-balanced logistic | 57.2% | 0.562 | 30.3% |
 | Retrospective nested selection | 60.9% | 0.493 | 28.8% |
+| Sensitivity-focused development | 56.5% | 0.562 | 29.9% |
+| Latest compact procedure | 62.2% | 0.490 | 30.0% |
 | Training-median reference | 64.4% | 0.460 | 29.6% |
 
-The revised procedure improves exact agreement by 3.7 percentage points and reduces mean error by about 12.4%, but loses to the median reference and reduces class-average sensitivity. It is an attempted repair, not a demonstrated overall improvement. The original 97.9% training agreement is resubstitution, not test accuracy. Final revised fits have 77.3% training agreement. Neither is independent validation.
+The latest compact procedure improves exact agreement by 5.0 percentage points and reduces mean error by about 12.8% relative to the original model, but loses to the median reference in agreement/error and still fails on score 2. The earlier MAE repair improved agreement while reducing class-average sensitivity. These attempts do not establish a validated overall improvement. The original 97.9% training agreement and latest 73.5% training replay are resubstitution, not independent test accuracy.
 
 The full revised procedure covers all 423 labels using explicit training-reference fallbacks, producing 60.0% agreement versus 63.4% for the median reference. Those denominators differ from the 402-label comparison and must not be mixed. There are forty participant-session examples, nine recordings and five known connected groups; 423 ratings are not 423 people.
 
 Sensitivity means correctly detecting an exact score among observations with that score. On the common 402 labels, original sensitivities for scores 1, 2, 3 and 4 are 15.4%, 0%, 33.0% and 72.9%; revised values are 15.4%, 0%, 13.6% and 86.1%. Score 0 has no observations, so its sensitivity is unavailable. These are descriptive pooled ordinal classes with different item meanings, not clinical sensitivity. P1-P12 contribute 397/402 observations.
 
 A separate post-hoc sensitivity-oriented nested procedure used the same candidates and achieved 56.5% agreement, MAE 0.562 and 29.9% mean observed-class sensitivity on the identical 402 labels. It detected score 2 in one of twenty cases, but overall sensitivity remained below the original 30.3%. All 423 labels yielded 55.8% agreement and MAE 0.574. Both repair attempts remain disclosed; neither is promoted as reliable prediction.
+
+The latest compact procedure uses four/eight predefined predictors, ordinal threshold classifiers and shallow ensembles with inner sensitivity constraints. It achieves 62.2% agreement, MAE 0.490 and 30.0% class sensitivity on the same 402 labels. It improves over the original in agreement/error but still loses to the median reference, with zero score-2 recall. Full 423-label performance is 61.2%/0.506 versus median 63.4%/0.478. The descriptive five-group MAE-difference interval spans zero (-0.013 to 0.049). Eight of the fourteen final fits are population references; six use measured features. All fixed-candidate attempts are disclosed; none was promoted as independently validated.
 
 ## Questions a judge can reasonably ask
 
@@ -43,7 +47,7 @@ A separate post-hoc sensitivity-oriented nested procedure used the same candidat
 ## Repairs completed
 
 - Nested group model selection fits preprocessing only on training data and keeps known groups together. It compares nine disclosed candidate configurations and falls back to training references when evidence is insufficient.
-- Fourteen final fits are saved as exploratory candidates, including nine median references and five feature-based estimators. They were not promoted because the selection procedure remains below baseline overall.
+- The latest fourteen final fits are saved as exploratory candidates, including eight population references and six feature-based models. Earlier candidate runs remain separately auditable. They were not promoted because the selection procedure remains below baseline overall.
 - Accuracy, error, class sensitivity, precision, specificity, supports, normalized confusion matrices and omitted-group error plots are exported. A paired known-group bootstrap interval is explicitly exploratory with only five groups.
 - The software supplies a separate deterministic measurement summary and labels the selected-goal exercise as untested. It does not pass it off as generated coaching or a personality diagnosis.
 - Report validation rejects duplicates, mismatched measured values and unsupported derived numbers. The bounded generation schema limits factual observations and fixes the optional exercise to the selected goal.
@@ -60,6 +64,8 @@ The authors must identify what they personally designed, implemented, transcribe
 
 - [Nested analysis policy and implementation](../research/defensible_source_models.py)
 - [Public aggregate results](report_assets/defensible-source-summary.json)
+- [Latest compact/ordinal policy and aggregate results](report_assets/compact-source-summary.json)
+- [Compact model implementation](../research/compact_source_models.py)
 - [Original grouped results](report_assets/source-cross-validation-summary.json)
 - [Source-score training release](report_assets/source-training-summary.json)
 - [Known overlap mapping](research/PARTICIPANT_OVERLAP.md)
