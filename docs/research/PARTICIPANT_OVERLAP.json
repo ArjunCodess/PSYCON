@@ -1,0 +1,224 @@
+{
+  "version": 1,
+  "status": "author_supplied_partial_cross_recording_identity_links",
+  "source": "Two handwritten images and the project author's accompanying corrections in this conversation",
+  "coordinate_convention": "Seat numbers count from the right edge of the displayed recording frame, starting at 1; independent of diarization cluster indexes",
+  "first_section_correction": "Only section 1: all handwritten left labels mean right",
+  "limitations": [
+    "Author-supplied identity correspondences; not independently validated diarization labels",
+    "Unlisted correspondences remain unknown; unlinked slots cannot be declared distinct people",
+    "No participant names or source photographs are published",
+    "Documentation manifest only; no live person/speaker mapping or training partition was changed"
+  ],
+  "links": [
+    {
+      "section": 1,
+      "a": {
+        "recording": "WhatsApp Video 2026-09-27 at 1.15.33 PM.mp4",
+        "seat_from_right": 1
+      },
+      "b": {
+        "recording": "IMG_3962.MOV",
+        "seat_from_right": 2
+      }
+    },
+    {
+      "section": 1,
+      "a": {
+        "recording": "WhatsApp Video 2026-09-27 at 1.15.33 PM.mp4",
+        "seat_from_right": 2
+      },
+      "b": {
+        "recording": "IMG_3962.MOV",
+        "seat_from_right": 3
+      }
+    },
+    {
+      "section": 1,
+      "a": {
+        "recording": "WhatsApp Video 2026-09-27 at 1.15.33 PM.mp4",
+        "seat_from_right": 3
+      },
+      "b": {
+        "recording": "IMG_3962.MOV",
+        "seat_from_right": 4
+      }
+    },
+    {
+      "section": 1,
+      "a": {
+        "recording": "WhatsApp Video 2026-09-27 at 1.15.33 PM.mp4",
+        "seat_from_right": 4
+      },
+      "b": {
+        "recording": "IMG_3962.MOV",
+        "seat_from_right": 5
+      }
+    },
+    {
+      "section": 1,
+      "a": {
+        "recording": "WhatsApp Video 2026-09-27 at 1.15.33 PM.mp4",
+        "seat_from_right": 5
+      },
+      "b": {
+        "recording": "IMG_3962.MOV",
+        "seat_from_right": 6
+      }
+    },
+    {
+      "section": 1,
+      "a": {
+        "recording": "WhatsApp Video 2026-09-27 at 1.15.33 PM.mp4",
+        "seat_from_right": 6
+      },
+      "b": {
+        "recording": "IMG_3962.MOV",
+        "seat_from_right": 8
+      }
+    },
+    {
+      "section": 2,
+      "a": {
+        "recording": "WhatsApp Video 2026-09-27 at 10.19.44 AM.mp4",
+        "seat_from_right": 1
+      },
+      "b": {
+        "recording": "WhatsApp Video 2026-09-27 at 10.19.02 AM.mp4",
+        "seat_from_right": 1
+      }
+    },
+    {
+      "section": 2,
+      "a": {
+        "recording": "WhatsApp Video 2026-09-27 at 10.19.44 AM.mp4",
+        "seat_from_right": 2
+      },
+      "b": {
+        "recording": "WhatsApp Video 2026-09-27 at 10.19.02 AM.mp4",
+        "seat_from_right": 2
+      }
+    },
+    {
+      "section": 2,
+      "a": {
+        "recording": "WhatsApp Video 2026-09-27 at 10.19.44 AM.mp4",
+        "seat_from_right": 3
+      },
+      "b": {
+        "recording": "WhatsApp Video 2026-09-27 at 10.19.02 AM.mp4",
+        "seat_from_right": 3
+      }
+    },
+    {
+      "section": 2,
+      "a": {
+        "recording": "WhatsApp Video 2026-09-27 at 10.19.44 AM.mp4",
+        "seat_from_right": 4
+      },
+      "b": {
+        "recording": "WhatsApp Video 2026-09-27 at 10.19.02 AM.mp4",
+        "seat_from_right": 4
+      }
+    },
+    {
+      "section": 2,
+      "a": {
+        "recording": "WhatsApp Video 2026-09-27 at 10.19.44 AM.mp4",
+        "seat_from_right": 5
+      },
+      "b": {
+        "recording": "WhatsApp Video 2026-09-27 at 10.19.02 AM.mp4",
+        "seat_from_right": 5
+      }
+    },
+    {
+      "section": 2,
+      "a": {
+        "recording": "WhatsApp Video 2026-09-27 at 10.19.44 AM.mp4",
+        "seat_from_right": 6
+      },
+      "b": {
+        "recording": "WhatsApp Video 2026-09-27 at 10.19.02 AM.mp4",
+        "seat_from_right": 6
+      }
+    },
+    {
+      "section": 2,
+      "a": {
+        "recording": "WhatsApp Video 2026-09-27 at 10.19.44 AM.mp4",
+        "seat_from_right": 7
+      },
+      "b": {
+        "recording": "WhatsApp Video 2026-09-27 at 10.19.02 AM.mp4",
+        "seat_from_right": 7
+      }
+    },
+    {
+      "section": 2,
+      "a": {
+        "recording": "WhatsApp Video 2026-09-27 at 10.19.44 AM.mp4",
+        "seat_from_right": 8
+      },
+      "b": {
+        "recording": "WhatsApp Video 2026-09-27 at 10.19.02 AM.mp4",
+        "seat_from_right": 8
+      }
+    },
+    {
+      "section": 3,
+      "a": {
+        "recording": "WhatsApp Video 2026-09-27 at 1.16.36 PM.mp4",
+        "seat_from_right": 5
+      },
+      "b": {
+        "recording": "IMG_3997.MOV",
+        "seat_from_right": 7
+      }
+    },
+    {
+      "section": 3,
+      "a": {
+        "recording": "IMG_3997.MOV",
+        "seat_from_right": 7
+      },
+      "b": {
+        "recording": "IMG_3962.MOV",
+        "seat_from_right": 1
+      }
+    },
+    {
+      "section": 4,
+      "a": {
+        "recording": "WhatsApp Video 2026-09-27 at 10.19.02 AM.mp4",
+        "seat_from_right": 8
+      },
+      "b": {
+        "recording": "IMG_3983.MOV",
+        "seat_from_right": 1
+      }
+    },
+    {
+      "section": 4,
+      "a": {
+        "recording": "WhatsApp Video 2026-09-27 at 10.19.02 AM.mp4",
+        "seat_from_right": 7
+      },
+      "b": {
+        "recording": "IMG_3983.MOV",
+        "seat_from_right": 6
+      }
+    },
+    {
+      "section": 4,
+      "a": {
+        "recording": "WhatsApp Video 2026-09-27 at 10.19.02 AM.mp4",
+        "seat_from_right": 6
+      },
+      "b": {
+        "recording": "IMG_3983.MOV",
+        "seat_from_right": 5
+      }
+    }
+  ]
+}

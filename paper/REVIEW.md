@@ -7,6 +7,7 @@ Reviewed on October 12, 2026, against main revision `8b126b7` after a fast-forwa
 | Statement | Evidence | What it does not establish |
 | --- | --- | --- |
 | Eleven recordings and 85 marked slots | Committed benchmark summary, one row per original recording | Unique participants, recruitment coverage, consent, or independent identity truth |
+| Nineteen author-supplied cross-recording identity links; 66 provisional identity components; six provisional recording components | Corrected handwritten notes transcribed in `docs/research/PARTICIPANT_OVERLAP.json`; slot bounds and connected components checked against benchmark counts | A confirmed count of 66 unique people, six statistically independent groups, word-level attribution truth, consent, or live database updates |
 | Guarded PSYCON 57; guarded Nemotron modes 51 each | Totals rechecked against per-recording counts; usable durations rechecked against the same JSON | Behavioral accuracy, identity accuracy, significant superiority, or active instrument validation |
 | Ten local scans, 228 pages, no extractable text | Read-only PDF inventory; one visually inspected source sheet states 5.0 | All sheets' rubric equivalence, checked transcription, training eligibility, or unique sample size |
 | Deployed rubric 4.0; S unavailable and visual-only T excluded | `backend/instrument/forms.py` and `datasets.py`, tracked marksheet/guide | A fully validated psychological measure or complete modality coverage |
