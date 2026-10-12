@@ -5,6 +5,7 @@ from collections import defaultdict
 from itertools import combinations
 from copy import deepcopy
 import json
+import hashlib
 import math
 import os
 import statistics
@@ -15,7 +16,7 @@ from .store import decode, encode, uid, now
 from .profiles import DIMENSIONS, METHOD
 from .local_llm import local_models, LocalLLMError
 
-PROMPT_VERSION = "psycon-abc-1.2.0"
+PROMPT_VERSION = "psycon-abc-1.2.1"
 GENERATION_OPTIONS = dict(temperature=0, seed=42, num_ctx=16384, num_predict=3200)
 CONDITIONS = {"A": "Transcript-only", "B": "Structured context", "C": "Full PSYCON"}
 CRITERIA = ("grounding", "attribution", "contextual_appropriateness", "archetype_agreement", "usefulness", "overclaiming", "trait_validity")
@@ -25,6 +26,8 @@ For structured inputs, use the supplied feature values in observations and expla
 When comparison values are supplied, explain the strongest overlaps and differences across those dimensions. Never invent comparison percentages.
 Do not diagnose, infer psychological states as facts, invent evidence, or treat archetype similarity as identity.
 Distinguish measured observations, human annotations, supervised predictions, and LLM interpretation. Predicted scores are uncertain model estimates, not observed facts; preserve abstention and model versions.
+Resolve any metadata_ref through prediction_metadata; referenced lineage, uncertainty and evidence IDs apply in full to that prediction.
+Exchange preceding_id and response_id refer to the corresponding entries in transcript, including their text and timestamps.
 Separate observation from inference, cite supplied evidence IDs belonging to the target speaker for every claim, and state uncertainty.
 Other speakers' words supply interaction context; they cannot be the only evidence for a claim about the target speaker.
 Use only the supplied historical baseline; absence means unavailable. Never imply causation from correlation.
@@ -94,6 +97,21 @@ class Ollama:
         except (json.JSONDecodeError,ValueError):return content  # Retain malformed output as a failed generation, never as a report.
 
 
+def compact_prediction_metadata(predictions):
+    """Losslessly store repeated lineage/uncertainty once within an LLM packet."""
+    registry = {}
+    compact = deepcopy(predictions)
+    for prediction in compact:
+        for name in ('lineage', 'uncertainty', 'evidence_ids'):
+            value = prediction.get(name)
+            if value is None:
+                continue
+            key = hashlib.sha256(encode(value).encode()).hexdigest()
+            registry[key] = value
+            prediction[name] = dict(metadata_ref=key)
+    return compact, registry
+
+
 def packets(instrument, speaker_id):
     report = instrument.report(speaker_id)
     store = instrument.store
@@ -141,6 +159,14 @@ def packets(instrument, speaker_id):
                   for r in report["archetypes"]]
     c = dict(**b, personal_baseline=report["baseline"], reference_profiles=references, evidence=evidence,
              feature_normalization=DIMENSIONS, similarity_method=METHOD)
+    if any(len(encode(p)) > 48000 for p in (b, c)) and b['supervised_predictions']:
+        predictions, metadata = compact_prediction_metadata(b['supervised_predictions'])
+        for packet in (b, c):
+            packet['supervised_predictions'] = predictions
+            packet['prediction_metadata'] = metadata
+            packet['context'] = dict(packet['context'],
+                exchanges=[dict(preceding_id=e['preceding']['id'], response_id=e['response']['id'])
+                           for e in packet['context']['exchanges']])
     # Fail transparently instead of letting the provider silently truncate the baseline/evidence.
     for packet in (a, b, c):
         if len(encode(packet)) > 48000:
