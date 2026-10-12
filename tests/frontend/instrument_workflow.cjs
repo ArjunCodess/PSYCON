@@ -22,5 +22,12 @@ vm.createContext(context);vm.runInContext(fs.readFileSync("backend/static/instru
  html=await vm.runInContext("PSYCONWorkflow.training()",context);
  assert.match(html,/<button >Freeze reviewed dataset/);assert.match(html,/<button >Predict with active models/);
  assert.match(html,/Exploratory model/);assert.match(html,/Held-out evaluation unavailable/);
+ data.evaluations=[{model_id:'model',split:'retrospective_nested_cv',n:402,metrics:{accuracy:.6218905,mae:.490,macro_sensitivity:.2998036},baseline:{mae:.460},uncertainty:{status:'exploratory'}}];
+ html=await vm.runInContext("PSYCONWorkflow.training()",context);
+ assert.match(html,/Retrospective nested group CV; no independent final test/);
+ assert.match(html,/62.2%/);assert.match(html,/30.0%/);
+ data.evaluations[0].metrics={confusion:[[2,1],[1,6]],balanced_accuracy:.7};
+ html=await vm.runInContext("PSYCONWorkflow.training()",context);
+ assert.match(html,/80.0%/);assert.match(html,/70.0%/);
  console.log("Training interface: frozen split counts, fit/invalidation gates, empty data, model status and speaker choices passed.");
 })().catch(error=>{console.error(error);process.exitCode=1;});

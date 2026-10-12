@@ -43,6 +43,12 @@ const report = {speaker: {id: "speaker", display_name: "Test speaker"}, target_a
   const measured=context.measurementSummary({measurement_summary:{status:"available",observations:[{label:"Speaking share",display_value:17.8,display_unit:"%",meaning:"Context <script>"}],history_sessions:0,history_status:"insufficient_history",optional_practice:"A suggestion",practice_basis:"Selected goal",practice_effect:"Not evaluated",limitations:["No validated norm"]}});
   assert(measured.includes("17.8") && measured.includes("Not evaluated") && measured.includes("Context &lt;script&gt;"));
   assert(!measured.includes("<script>"));
+  const boundedRun=JSON.parse(JSON.stringify(run));boundedRun.input.report_focus={generation_contract:'bounded-2'};
+  const boundedHtml=context.communicationReportContent(boundedRun,'Test speaker');
+  assert(boundedHtml.includes('complete attributed recording'));
+  assert(boundedHtml.includes('do not independently verify the aggregate quantities'));
+  assert(boundedHtml.includes('Measured quantity') && boundedHtml.includes('linked excerpt'));
+  assert(!boundedHtml.includes('not a personality assessment or a report on the entire recording'));
   assert(html.includes("At a glance"));
   assert(html.includes("Fixture observation"));
   assert(html.includes("Fixture inference"));

@@ -64,6 +64,8 @@ def test_sensitivity_has_explicit_zero_support_and_one_vs_rest_counts():
 
 def packet_and_report():
     focus=measurement_focus([dict(name='speaking_share',value=.178,unit='proportion',status='measured')])
+    # Legacy provider contract remains supported; bounded-2 is checked separately.
+    focus.pop('generation_contract')
     packet=dict(target_speaker_id='s',transcript=[dict(id='u',speaker_id='s')],evidence=[],report_focus=focus)
     claim=dict(speaker_id='s',observation='Attributed speaking share is 17.80%.',inference='Participation depends on role.',
                evidence_ids=['u'],confidence='moderate',limitation='No validated norm.',
@@ -129,3 +131,18 @@ def test_feature_denominators_use_actual_opportunities_and_turn_counts():
     assert own['unhedged_proposal_ratio']['denominator']==1
     assert own['words_per_minute']['denominator']==4.
     assert own['question_rate']['denominator']==10.
+
+
+def test_bounded_report_rejects_extra_numbers_and_false_scope_even_with_valid_anchor():
+    from backend.instrument.research import BOUNDED_INFERENCES,BOUNDED_SUMMARY
+    p,r=packet_and_report();focus=p['report_focus'];focus['generation_contract']='bounded-2'
+    r['claims'][0]['observation']='Speaking share: 17.80% across the complete attributed recording.'
+    r['claims'][0]['limitation']=focus['limitations'][0];r['limitations']=focus['limitations']
+    r['claims'][0]['inference']=BOUNDED_INFERENCES[0];r['summary']=BOUNDED_SUMMARY
+    r['claims'][0]['suggestion']=focus['optional_practice']
+    assert validate_output(r,p,'C')==r
+    r['claims'][0]['observation']+=' This is an ideal 99% improvement.'
+    with pytest.raises(ValueError,match='match the measurement anchor'):validate_output(r,p,'C')
+    r['claims'][0]['observation']='Speaking share: 17.80% across the complete attributed recording.'
+    r['claims'][0]['limitation']='A single point in time.'
+    with pytest.raises(ValueError,match='preserve measurement scope'):validate_output(r,p,'C')

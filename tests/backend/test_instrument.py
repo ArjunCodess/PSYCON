@@ -257,7 +257,13 @@ class Provider:
         if packet.get('report_focus'):
             anchor = packet['report_focus']['anchors'][0]
             report['claims'][0]['feature_names'] = [anchor['name']]
-            report['claims'][0]['observation'] = 'Synthetic measurement: '+anchor['display_value']
+            report['claims'][0]['observation'] = f"{anchor['label']}: {anchor['display_value']} across the complete attributed recording."
+            report['claims'][0]['limitation'] = packet['report_focus']['limitations'][0]
+            report['limitations'] = packet['report_focus']['limitations']
+            from backend.instrument.research import BOUNDED_INFERENCES,BOUNDED_SUMMARY
+            report['claims'][0]['inference']=BOUNDED_INFERENCES[0]
+            report['claims'][0]['suggestion']=packet['report_focus']['optional_practice']
+            report['summary']=BOUNDED_SUMMARY
         return report
 
 
