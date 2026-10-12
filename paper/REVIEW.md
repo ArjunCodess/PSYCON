@@ -1,5 +1,9 @@
 # Evidence and review record
 
+## Consent records reviewed (October 12)
+
+Nine supplied photographs document signed voluntary group-discussion participation. The reviewed statement covers stopping and no diagnosis, but does not explicitly cover recording, automated analysis, training or publication. Parent/guardian permission and prior ethics approval were not supplied in these sheets; authors report separate approval records. Incomplete session fields and repeated participants prevent certification of recording coverage or unique-person counts. Signed originals remain private and Git-ignored. This review changes documentation only, with no permission-flag changes or new eligibility/performance claims. See [the anonymized review](../docs/CONSENT_REVIEW.md).
+
 ## Latest compact-model revision (October 12)
 
 The current build contains fifteen paper pages and exactly two synopsis pages; abstracts contain 275 and 232 whitespace-separated words. All seventeen PDF pages and six new PNG/vector-PDF analysis figures were rendered and visually inspected. Complete proposed slide text covers exactly 25 numbered content slides, including captions, tables, the actual recording example, limitations, future work and acknowledgements/references. Slides remain uncommitted.
@@ -12,7 +16,7 @@ Forty-one focused model/report/packet tests and both frontend verification scrip
 
 A real pinned qwen3.5:4b call completed with prompt psycon-abc-1.3.3, temperature 0, seed 42 and the recorded context/output budgets. Scope limitations now explicitly concern the full attributed recording, replacing the earlier misleading single-point limitation. The bounded inference, summary and prewritten goal exercise are checked along with the exact numeric anchor. Revalidation of this actual output passed. The stricter contract limits generation; it does not demonstrate independent semantic quality, beneficial coaching or personal-history effects. The recording-report interface distinguishes whole-recording measurements from selected linked excerpts and no longer describes these excerpts as independent numerical support. The model-evaluation interface now displays exact agreement and observed-class sensitivity and distinguishes retrospective nested CV from an independent final test.
 
-The authors report existing approval/consent records; document verification and citations remain pending. Strict reviewed-label eligibility, independent rater agreement, a fresh source/participant-disjoint test sample and blinded report-benefit results remain unavailable. No source answer, independent review, approval detail or test outcome was fabricated. AI-assisted papers and slides remain preparation drafts requiring independent student work and verification against the applicable fair rules.
+Nine private signed discussion-participation sheets have now been visually reviewed; separate approval records, parental permission and recording/training scope remain unverified. See the consent review below. Strict reviewed-label eligibility, independent rater agreement, a fresh source/participant-disjoint test sample and blinded report-benefit results remain unavailable. No source answer, independent review, approval detail or test outcome was fabricated. AI-assisted papers and slides remain preparation drafts requiring independent student work and verification against the applicable fair rules.
 
 ## Current defensibility revision (October 12)
 
