@@ -34,7 +34,7 @@ Both use `article` and the `arxiv.sty` preprint style shown in the requested [Ov
 - The implemented A/B/C experiment changes history, evidence, and references together; a history-only ablation is needed to isolate history's effect.
 - Archived WESAD metrics concern a different physiology task with a label-informed calm baseline; hardware is paused, wrist values are placeholders, and no tracked KiCad design exists.
 
-School, city, and state names are omitted conservatively from the submission copy; the current portal should be checked rather than assuming an older anonymity guideline still applies. Funding, conflicts, recruitment counts, and approvals are not invented. The presentation at `docs/IRIS_PRESENTATION.md` has exactly 25 numbered content slides and is intentionally uncommitted.
+School, city, and state names are omitted conservatively from the submission copy; the current portal should be checked rather than assuming an older anonymity guideline still applies. Funding, conflicts, recruitment counts, and approvals are not invented. The versioned presentation at `docs/IRIS_PRESENTATION.md` has exactly 25 numbered content slides.
 
 The completed Docker source-score fit and aggregate target counts are documented in [the training release](../docs/report_assets/source-training-summary.json). Seven new eligibility/overlap tests and fourteen scored API predictions passed; this verifies execution, not behavioral accuracy. See the updated review record for remaining human-validation and clean-image-build dependencies.
 

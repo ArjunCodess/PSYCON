@@ -1,5 +1,9 @@
 # Evidence and review record
 
+## Build and versioning check (October 13)
+
+All seven standalone LaTeX documents compiled, both firmware targets built, protocol typechecking and twenty protocol tests passed, and both frontend scripts passed. The local Python suite passed 381 tests with five skips; the three PostgreSQL-dependent instrument suites were excluded. Docker remained unresponsive after a configured build attempt, so no container rebuild is claimed. See [the build record](../docs/BUILD_VERIFICATION.md). Slides are now versioned under the latest author instruction; earlier references to uncommitted slides describe the previous release. Public audit outputs contain anonymized examples and aggregate metrics only. Source recordings, signed forms, rating scans and private runtime artifacts remain excluded.
+
 ## Consent records reviewed (October 12)
 
 Nine supplied photographs document signed voluntary group-discussion participation. The reviewed statement covers stopping and no diagnosis, but does not explicitly cover recording, automated analysis, training or publication. The authors subsequently confirmed that recording/training permissions, applicable parental permission and prior approval are documented in the complete records, including details outside these photographs. This confirmation has not been independently checked. Incomplete session fields and repeated participants prevent certification of recording coverage or unique-person counts. Signed originals remain private and Git-ignored. This review changes documentation only, with no permission-flag changes or new eligibility/performance claims. See [the anonymized review](../docs/CONSENT_REVIEW.md).
