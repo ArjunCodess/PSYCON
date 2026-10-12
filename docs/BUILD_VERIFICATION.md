@@ -1,5 +1,9 @@
 # Build verification, 13 October 2026
 
+## Presentation framing revision
+
+The paper abstract, synopsis abstract, README introduction and slides now lead with the implemented workflow, measured improvement over the original model and verified engineering contributions. Reference comparisons, class-wise results and development-status limitations remain visible; the complete audit artifacts are unchanged. The rebuilt paper has 17 pages and the synopsis two, with 177- and 184-word abstracts. Both first pages were rendered and inspected, their printed comparison metrics were checked, and the presentation retains exactly 25 numbered slides. Unchanged figure PDFs were restored after rendered equality checks.
+
 ## Latest pipeline-autopsy build
 
 `python paper/build.py` rebuilt the paper at 17 pages and the synopsis at exactly two pages, with resolved references and no overflowing boxes. The new pipeline-autopsy page was rendered and inspected. Existing figure PDFs rendered identically to their committed versions, so their timestamp-only changes were discarded. The presentation still has exactly 25 numbered content slides.

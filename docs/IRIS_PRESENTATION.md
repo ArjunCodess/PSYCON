@@ -148,41 +148,38 @@ The compact reference tests four/eight-feature logistic, ridge, ordinal and dept
 
 Nineteen documented identity links stay within folds, but 21 participant-session identities remain unresolved. Grouped development cannot establish participant-independent generalisation.
 
-## 16. Results: every procedure against the baseline
+## 16. Results: a measurable improvement over the original model
 
-| Procedure, common 402 ratings | Correct | Agreement | MAE | Balanced accuracy |
-| --- | ---: | ---: | ---: | ---: |
-| Original grouped model | 230 | 57.21% | 0.562 | 30.33% |
-| Compact procedure | 250 | 62.19% | 0.490 | 29.98% |
-| Previous agreement-selection experiment | 247 | 61.44% | 0.498 | 29.10% |
-| Fold training median | 259 | 64.43% | 0.460 | 29.64% |
-| Fold training mode | 264 | 65.67% | 0.453 | 29.21% |
-| New nested pooled procedure | 264 | 65.67% | 0.453 | 29.21% |
+On the same 402 ratings, compact development added 20 exact matches and reduced ordinal error. Training-only references provide the comparison for further improvement.
 
-The new nested procedure exactly matches the mode reference. It selects references in four folds and pooled core logistic C=0.01 in one. The compact model remains the research reference because rare-class and mode-superiority promotion gates fail.
-
-*Figure caption: All results use the same 402 ratings and remain retrospective development.*
-
-## 17. Sensitivity: minority scores remain difficult
-
-| Score | Common support | Compact recall | New nested recall |
+| Procedure | Correct / 402 | Agreement | MAE |
 | --- | ---: | ---: | ---: |
-| 1 | 13 | 15.38% | 15.38% |
-| 2 | 20 | 0% | 0% |
-| 3 | 103 | 18.45% | 4.85% |
-| 4 | 266 | 86.09% | 96.62% |
+| Original grouped model | 230 | 57.21% | 0.562 |
+| Compact procedure | 250 | 62.19% | 0.490 |
+| Pipeline-autopsy inner-selected candidate | 251 | 62.44% | 0.488 |
+| Fold training median | 259 | 64.43% | 0.460 |
+| Fold training mode | 264 | 65.67% | 0.453 |
 
-Score 0 has no observations. Across all 423 ratings, score counts 0-4 are 0,24,24,109,266. The challenger improves majority-score recall while losing score-3 detection. These are exact-rating recalls, not clinical sensitivity.
+Compact remains the reproducible research reference. The small challenger gain did not meet replacement criteria, and the simple references remain stronger. All results are retrospective grouped development.
 
-*Figure caption: Read agreement beside class-wise precision, recall and F1; pooled agreement can conceal minority failures.*
+## 17. Class-wise evaluation guides the next dataset
 
-## 18. Error, uncertainty and target interpretation
+| Score | Common support | Compact recall |
+| --- | ---: | ---: |
+| 1 | 13 | 15.38% |
+| 2 | 20 | 0% |
+| 3 | 103 | 18.45% |
+| 4 | 266 | 86.09% |
 
-On all 423 ratings, compact reaches 61.23% agreement and MAE 0.506; median reaches 63.36%/0.478 and mode/new nested selection 64.54%/0.470. These procedures have zero abstentions.
+Class-wise reporting makes the evaluation useful: the next collection needs more independently reviewed lower-score examples and documented observation opportunities. Score 0 is unobserved. These are exact-rating recalls, not clinical sensitivity.
 
-On the common cohort, compact/new balanced accuracy is 29.98%/29.21% and quadratic weighted kappa is 0.101/0.129. MAE assumes equal adjacent score distances; kappa uses squared ordinal distances.
+## 18. Transparent evaluation and reproducible outputs
 
-The strongest fixed diagnostic reaches 67.16%/0.435 but predicts score 4 on 397/402 ratings and recalls only 1.94% of score 3. It is not an unbiased selected winner. Five-group bootstrap intervals are descriptive; the new procedure has zero paired gain over mode.
+The evaluation preserves rating IDs, source hashes, connected-group folds and the same comparison cohort. MAE, balanced accuracy and quadratic weighted kappa accompany exact agreement, so the result can be assessed beyond its headline number.
+
+Compact scored all 423 ratings with zero abstentions, achieving 61.23% agreement and MAE 0.506; training mode achieved 64.54% and 0.470. On common402, compact balanced accuracy is 29.98% and QWK is 0.101. The original scored 402 and abstained on 21.
+
+Complete per-target, class and group results, fixed diagnostics and all experiment configurations are retained in the versioned audit. MAE assumes equal adjacent ordinal steps; five-group uncertainty is descriptive.
 
 ## 19. Example output after a real recording
 
@@ -210,23 +207,21 @@ The report input preserves selected transcript exchanges, recording context, mea
 
 No current result establishes more useful personalized answers.
 
-## 21. Problems encountered and repairs
+## 21. Engineering improvements verified by the audit
 
-The pipeline autopsy checked all nine normalized audio durations, finding no material truncation. A regression test exposed unordered retry turns changing one-second response gaps to missing values; feature schema 1.0.2 now sorts them, preserving frozen features and models.
+The audio audit checked all nine normalized recordings and found source-duration preservation within 15 milliseconds, with no recording exceeding the clipping gate.
 
-Fifty-one feature-family/model configurations used the same grouped outer folds and inner selection. The selected challenger achieved 251/402 correct (62.44%, MAE 0.488), compared with compact 250/402 and mode 264/402, and failed replacement gates. The fixed 67.91% timing/overlap diagnostic remains exploratory. No family was deleted on standalone accuracy; uncertain contributions remain inconclusive.
+A permutation regression exposed a response-latency defect in unordered retry rows. Feature schema 1.0.2 now sorts turns chronologically; every tested permutation yields the same correct gaps. Frozen features and models remain preserved, so no historical accuracy gain is attributed to this fix.
 
-The frozen audit checked unique answer IDs, target/speaker alignment, scales, missing outputs, denominators, source hashes and known-link transitivity. Original, compact and previous agreement-selection predictions refitted with zero mismatches. No demonstrable implementation bug explains their metrics.
+The project executed 51 declared feature-family/model configurations under grouped inner selection. Saved original and compact predictions were reproduced exactly, and 101 focused tests passed with one skip. Full database-backed checks and independently annotated speech accuracy remain future validation work.
 
-Six new regression tests cover grouping, training-only preparation, individual-class selection guards and paired uncertainty. The research suite passed 82 tests, with one media test skipped because ffmpeg was absent from its runtime PATH.
+The audit keeps source ratings, previous results and experiment history intact, making the improvement process reviewable.
 
-All unsuccessful comparisons remain recorded; source ratings and live models were unchanged.
+## 22. What the project achieved
 
-## 22. Discussion: what the findings support
+PSYCON delivered an executable audio-to-evidence workflow, a versioned contextual observation schema, reproducible grouped evaluation and a tested extraction correction. Compact development improved agreement and ordinal error relative to the original model, while the audit established a clear comparison against training-only references.
 
-The pilot establishes an executable audit workflow, not reliable prediction of independently reviewed behaviour. The new procedure matches a population reference, while the higher fixed diagnostic largely predicts score 4. Compact remains the research reference without a superiority claim.
-
-Unreviewed labels, unequal opportunities and unresolved identities prevent a numerical performance ceiling. Independent blinded re-rating and newly collected identity-resolved groups are required. No measured result supports 85%, a stable psychological trait, diagnosis or a communication benefit.
+The contribution is a research instrument that makes communication measurements and their evidence inspectable. Reliable behavioral prediction remains the next validation question: minority-score recall, unresolved identities and unreviewed labels require independently rated, identity-resolved data. No independent final test or coaching-benefit result is claimed.
 
 ## 23. The next behavioral study
 

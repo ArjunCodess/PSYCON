@@ -1,6 +1,6 @@
 # PSYCON
 
-PSYCON studies contextual communication behavior: following a discussion, structuring a contribution, sharing turns, responding to challenge, and changing participation after an identifiable event. Its local research instrument connects speaker-specific audio and discussion context to psychologist-reviewed A-T observations, timestamped evidence, and earlier personal history. Software provides the measurement and evaluation workflow; human behavioral conclusions require independent evidence.
+PSYCON turns recorded discussions into speaker-specific communication measurements and evidence-linked reports for psychologist review. The working prototype combines audio normalization, speaker diarization, transcription, timestamped exchanges and a versioned observation rubric, so a reviewer can trace a measurement back to its source. Its research contribution is a reproducible workflow for studying communication behavior in context.
 
 The project is framed for **Behavioral and Social Sciences (BEHA)** using the [ISEF science-project judging criteria](https://www.societyforscience.org/isef/grand-award/criteria/). The emphasis is the testable behavioral question, operational definitions, independent observations, sampling, controls, reliability, and limits of interpretation. A completed pipeline or a ready-profile count does not establish psychological validity.
 
@@ -53,6 +53,8 @@ The current live audit contains 76 imported version 5.0 participant forms from t
 Ten private scanned bundles contain 228 image-only pages. Their imported version 5.0 form has A-T plus P1-P12 role-related items and is retained as `psycon-context-5.0`, separately from the legacy v4.0 rubric. Raw transcriptions remain source observations, not independently reviewed psychological ground truth. Missing answers and unavailable review fields have not been fabricated.
 
 ## Results that can be reported
+
+The compact procedure improved agreement from **57.21% to 62.19%** and reduced MAE from **0.562 to 0.490** on the same 402 ratings. The project also delivered a 51-configuration feature audit, reproduced saved predictions and fixed a tested temporal-ordering defect. Training-mode agreement remains higher at 65.67%, so these retrospective results establish a working research prototype rather than independently validated behavioral prediction.
 
 The [full pipeline autopsy](docs/research/pipeline-autopsy-2026-10-13/full_pipeline_report.md) traces audio through rating alignment and executes 51 fixed feature-family/model configurations with inner grouped selection. The selected challenger gets 251/402 correct (62.44%, MAE 0.488), versus compact 250/402 (62.19%, 0.490) and training mode 264/402 (65.67%, 0.453), so compact remains the research reference. A 273/402 fixed timing/overlap diagnostic is exploratory and was not promoted. A tested chronological-order correction fixes response latency on unordered stage retries; frozen features, ratings and current model artifacts remain unchanged. Stage speech/identity accuracy and a numerical label-reliability ceiling remain unmeasured.
 
