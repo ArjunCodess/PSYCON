@@ -237,31 +237,32 @@ def main():
     print(json.dumps({k:summary[k] for k in ['nested','median','final_methods','paired_uncertainty']},indent=2))
 
 
-def register_candidates(snapshot_id, summary):
+def register_candidates(snapshot_id, summary, *, models_path=None, rows_path=None, policy=None, selection_source=None):
     """Record final fits without silently promoting a below-baseline system."""
     from backend.instrument.store import Store, uid, encode
     from backend.instrument.assets import register
     from backend.instrument.training import runtime_versions
-    store=Store('instance/instrument'); run_id=uid(); models=json.loads(Path('.runtime/defensible-analysis/models.json').read_text())
-    rows=json.loads(Path('.runtime/defensible-analysis/nested-predictions.json').read_text())
+    store=Store('instance/instrument'); run_id=uid(); models=json.loads(Path(models_path or '.runtime/defensible-analysis/models.json').read_text())
+    rows=json.loads(Path(rows_path or '.runtime/defensible-analysis/nested-predictions.json').read_text())
+    policy=policy or POLICY
     versions=runtime_versions()
-    versions['selection_code_sha256']=hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    versions['selection_code_sha256']=hashlib.sha256(Path(selection_source or __file__).read_bytes()).hexdigest()
     try:
         with store.connect() as db:
             if db.execute('SELECT id FROM snapshot_invalidations WHERE snapshot_id=%s',(snapshot_id,)).fetchone():
                 raise ValueError('Snapshot was invalidated; candidates withheld')
             store.insert('training_runs',dict(id=run_id,snapshot_id=snapshot_id,owner_id='local',job_id=None,
-                         status='complete',configuration=POLICY,versions=versions,error=None),db)
+                         status='complete',configuration=policy,versions=versions,error=None),db)
             for target, artifact in models.items():
                 mid=uid();folder=store.root/'models'/mid;folder.mkdir(parents=True,exist_ok=False)
                 path=folder/'model.json';path.write_text(encode(artifact),encoding='utf-8')
                 asset=register(store,path,'model',root=folder,db=db)
                 limitations=summary['limitations']+['Candidate only: nested procedure remains below median baseline overall',
-                              'Empirical class frequencies are not calibrated individual confidence; ridge provides no class probabilities']
+                              'Empirical class frequencies and ordinal probabilities are not calibrated individual confidence; regression provides no class probabilities']
                 if artifact['format']=='psycon-source-constant-1':
                     limitations.append('Population reference constant, not an individualized trained behavior estimate')
                 manifest=dict(snapshot_hash=summary['snapshot_hash'],versions=versions,train_n=artifact['train_n'],
-                              train_groups=artifact['train_groups'],selected_method=artifact['method'],policy=POLICY,
+                              train_groups=artifact['train_groups'],selected_method=artifact['method'],policy=policy,
                               label_policy='Unreviewed raw source-form ratings',validation_status='Retrospective nested group diagnostics; no independent final test')
                 store.insert('model_versions',dict(id=mid,run_id=run_id,family='source-v5-exploratory',target=target,
                              status='candidate',evaluation_status='exploratory',feature_schema=dict(version=FEATURE_VERSION,names=artifact['features']),
@@ -272,7 +273,7 @@ def register_candidates(snapshot_id, summary):
                              baseline=measures([dict(r,prediction=r['baseline']) for r in rows if r['target']==target]),
                              uncertainty={'status':'not estimated per target','reason':'Sparse target classes and few known groups; pooled paired analysis is reported separately'}),db)
             store.insert('training_run_events',dict(id=uid(),run_id=run_id,message='Fourteen nested-selection final fits saved as exploratory candidates; active deployment unchanged because the procedure loses to baseline'),db)
-        Path('.runtime/defensible-analysis/candidate-run.json').write_text(encode(dict(run_id=run_id,models=len(models),status='candidate',versions=versions)),encoding='utf-8')
+        Path(models_path or '.runtime/defensible-analysis/models.json').with_name('candidate-run.json').write_text(encode(dict(run_id=run_id,models=len(models),status='candidate',versions=versions)),encoding='utf-8')
         print('Registered candidate run',run_id,flush=True)
     finally:store.pool.close()
 

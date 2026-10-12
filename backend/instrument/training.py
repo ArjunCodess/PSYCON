@@ -75,12 +75,33 @@ def portable(pipeline,names):
 def infer(artifact,values):
     if artifact['format']=='psycon-source-constant-1':
         return int(artifact['score']),artifact['distribution']
-    if artifact['format'] not in ('psycon-logistic-json-1','psycon-source-ridge-1'):
+    if artifact['format'] not in ('psycon-logistic-json-1','psycon-source-ridge-1','psycon-source-ordinal-1','psycon-source-forest-1'):
         raise ValueError('Unknown model artifact format')
     x=np.asarray([values.get(n,np.nan) if values.get(n) is not None else np.nan for n in artifact['features']],dtype=float)
     missing=np.isnan(x); x=np.where(missing,np.asarray(artifact['medians']),x)
     x=np.concatenate([x,missing[np.asarray(artifact['indicator_features'],dtype=int)].astype(float)])
     x=(x-np.asarray(artifact['means']))/np.asarray(artifact['scales'])
+    if artifact['format']=='psycon-source-ordinal-1':
+        exceed=[]
+        for threshold in artifact['thresholds']:
+            if 'constant' in threshold: exceed.append(threshold['constant'])
+            else:
+                logit=float(np.dot(threshold['coefficients'],x)+threshold['intercept'])
+                exceed.append(float(1/(1+np.exp(-np.clip(logit,-700,700)))))
+        # Enforce P(Y>k) nonincreasing so class probabilities stay nonnegative.
+        exceed=np.minimum.accumulate(np.clip(exceed,0,1))
+        cumulative=np.concatenate(([1.],exceed,[0.]))
+        distribution={str(k):float(cumulative[k]-cumulative[k+1]) for k in range(5)}
+        return int(np.sum(exceed>.5)),distribution  # Lower median minimizes expected ordinal absolute error.
+    if artifact['format']=='psycon-source-forest-1':
+        x=x.astype(np.float32)  # Match scikit-learn tree prediction input precision.
+        predictions=[]
+        for tree in artifact['trees']:
+            node=0
+            while tree['left'][node]!=-1:
+                node=tree['left'][node] if x[tree['feature'][node]]<=tree['threshold'][node] else tree['right'][node]
+            predictions.append(tree['value'][node])
+        return int(np.clip(np.floor(np.mean(predictions)+.5),0,4)),{}
     if artifact['format']=='psycon-source-ridge-1':
         value=float(np.dot(artifact['coefficients'],x)+artifact['intercept'])
         return int(np.clip(np.floor(value+.5),0,4)),{}  # Regression has no class probabilities.
@@ -90,7 +111,9 @@ def infer(artifact,values):
     else:
         logits-=max(logits); probs=np.exp(logits); probs/=sum(probs)
     distribution={str(k):float(v) for k,v in zip(artifact['classes'],probs)}
-    return int(artifact['classes'][int(np.argmax(probs))]),distribution
+    tolerance=artifact.get('tie_tolerance',0.)
+    winner=int(np.flatnonzero(probs>=max(probs)-tolerance)[0])
+    return int(artifact['classes'][winner]),distribution
 
 
 def grouped_interval(y,p,groups,seed):
@@ -224,7 +247,7 @@ def load(store,model):
     artifact=store.one('SELECT asset_id FROM model_artifacts WHERE model_id=%s',(model['id'],))
     path=resolve(store,artifact['asset_id'],verify=True)
     result=json.loads(path.read_text(encoding='utf-8'))
-    if result['format'] not in ('psycon-logistic-json-1','psycon-source-constant-1','psycon-source-ridge-1') or result['feature_version']!=FEATURE_VERSION or result['features']!=model['feature_schema']['names']:
+    if result['format'] not in ('psycon-logistic-json-1','psycon-source-constant-1','psycon-source-ridge-1','psycon-source-ordinal-1','psycon-source-forest-1') or result['feature_version']!=FEATURE_VERSION or result['features']!=model['feature_schema']['names']:
         raise ValueError('Model feature schema is incompatible')
     return result
 
