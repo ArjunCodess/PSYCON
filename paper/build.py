@@ -77,6 +77,20 @@ def figures():
     fig.savefig(folder/'source-nested-comparison.pdf')
     fig.savefig(folder/'source-nested-comparison.png',dpi=180)
     plt.close(fig)
+    compact=json.loads((ROOT/'docs/report_assets/compact-source-summary.json').read_text(encoding='utf-8'))
+    compared=[common['original'],compact['common'],compact['median_common']]
+    if any(m['n']!=402 or sum(map(sum,m['confusion']))!=402 for m in compared):
+        raise ValueError('Compact comparison must use the same 402 labels')
+    fig,axes=plt.subplots(1,3,figsize=(11,3.6),layout='constrained')
+    labels=['Original','Compact procedure','Median reference'];colors=['#315a91','#2c786a','#697581']
+    for ax,key,title,mult in zip(axes,['accuracy','mae','macro_sensitivity'],
+                                ['Exact agreement (%)','Mean absolute error','Mean class sensitivity (%)'],[100,1,100]):
+        bars=ax.bar(labels,[m[key]*mult for m in compared],color=colors)
+        ax.bar_label(bars,fmt='%.1f' if mult==100 else '%.3f',padding=4)
+        ax.set_ylim(0,100 if mult==100 else .7);ax.tick_params(axis='x',labelrotation=20)
+        ax.set_title(title,fontsize=9);ax.spines[['top','right']].set_visible(False)
+    fig.savefig(folder/'source-compact-comparison.pdf');fig.savefig(folder/'source-compact-comparison.png',dpi=180)
+    plt.close(fig)
 
 
 def build():
