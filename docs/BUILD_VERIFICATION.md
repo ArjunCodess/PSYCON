@@ -1,5 +1,13 @@
 # Build verification, 13 October 2026
 
+## Full rebuild after the documentation revision
+
+The paper and synopsis rebuilt at 17 and two pages. The LaTeX compile skill used the installed MiKTeX toolchain to build the 41-page engineering document, three-page discussion report, five-page marksheet, two-page interpretation guide and one-page blank consent template. Rendered comparisons matched the committed PDFs except the consent template, where an explicit line break removed a 0.442pt field-row overflow. The corrected page was visually inspected; consent wording and completed private forms were unchanged. Timestamp-only PDF changes were discarded.
+
+Both ESP32 PlatformIO builds passed. Ear firmware used 17.0% RAM and 82.6% flash; wrist firmware used 11.1% RAM and 47.0% flash. Protocol typechecking and all 20 Vitest tests passed, as did both frontend behavior checks and Python bytecode compilation. The local Python suite passed 392 tests with five skips and one dependency deprecation warning. The three dedicated PostgreSQL instrument suites were excluded because their validation database was unavailable; this is not a new database integration or physical-device validation result.
+
+The Docker server probe timed out after 20 seconds, so container builds could not start. No container rebuild or deployment is claimed. Commands, per-job results, logs, test XML and PDF comparisons are retained under `.runtime/full-build-2026-10-13-v2/`. The working tree was clean before this rebuild, and no reference ratings, experiment results or model artifacts were changed.
+
 ## Presentation framing revision
 
 The paper abstract, synopsis abstract, README introduction and slides now lead with the implemented workflow, measured improvement over the original model and verified engineering contributions. Reference comparisons, class-wise results and development-status limitations remain visible; the complete audit artifacts are unchanged. The rebuilt paper has 17 pages and the synopsis two, with 177- and 184-word abstracts. Both first pages were rendered and inspected, their printed comparison metrics were checked, and the presentation retains exactly 25 numbered slides. Unchanged figure PDFs were restored after rendered equality checks.
