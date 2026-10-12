@@ -1,5 +1,11 @@
 # Evidence and review record
 
+## Pipeline-autopsy follow-up, October 13
+
+The paper and synopsis now include the 51-configuration feature-family audit. Inner selection reached 251/402 correct, MAE 0.488, and failed the replacement criteria; a 273/402 timing/overlap diagnostic remains exploratory. A response-latency permutation regression failed before chronological sorting and passed afterward, while frozen source features and model artifacts remained unchanged. The focused suite passed 101 tests with one skip. Canonical stage export and dedicated PostgreSQL integration fixtures were unavailable, so no upstream stage accuracy or new integration pass is claimed.
+
+The rebuilt paper has 17 pages and the synopsis two, with no unresolved references or overflow warnings. The added autopsy page was rendered and inspected. Aggregate results are in `docs/research/pipeline-autopsy-2026-10-13/`; individual prediction rows and the complete submission ZIP remain private under `.runtime`.
+
 ## Maximum-defensible documentation revision, 13 October
 
 The paper, synopsis, README, versioned 25-slide content, defense notes, instrument status, research index and reproducibility instructions now distinguish the compact procedure from the new nested challenger and the rejected fixed diagnostic. Public summaries contain aggregate metrics only; individual predictions, labels/notes, identity journals and private input manifests remain ignored. Original, compact and previous agreement-selection refits have zero mismatches. The research suite passed 82 tests with one ffmpeg-dependent skip. No live model, rating or eligibility record changed.

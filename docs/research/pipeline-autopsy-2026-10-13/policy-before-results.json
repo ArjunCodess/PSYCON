@@ -1,0 +1,637 @@
+{
+  "version": "pipeline-autopsy-1",
+  "seed": 42,
+  "families": {
+    "participation": [
+      "speaking_time",
+      "speaking_share",
+      "turn_count",
+      "word_count",
+      "words_per_minute"
+    ],
+    "turn_structure": [
+      "mean_turn_duration",
+      "median_turn_duration",
+      "longest_turn",
+      "shortest_turn"
+    ],
+    "timing_overlap": [
+      "response_latency",
+      "overlap_time",
+      "interruption_candidate_rate"
+    ],
+    "linguistic": [
+      "question_rate",
+      "question_ratio",
+      "hedging_ratio",
+      "assertion_ratio",
+      "acknowledgement_ratio",
+      "proposal_rate",
+      "unhedged_proposal_ratio",
+      "disagreement_rate",
+      "reasoning_ratio",
+      "experimentation_ratio",
+      "concession_ratio",
+      "open_question_ratio",
+      "backchannel_candidate_rate"
+    ],
+    "context_quality": [
+      "context_meeting",
+      "context_group_discussion",
+      "context_interview",
+      "context_presentation",
+      "context_other",
+      "transcript_confidence"
+    ]
+  },
+  "feature_sets": {
+    "full": [
+      "speaking_time",
+      "speaking_share",
+      "turn_count",
+      "word_count",
+      "words_per_minute",
+      "mean_turn_duration",
+      "median_turn_duration",
+      "longest_turn",
+      "shortest_turn",
+      "response_latency",
+      "overlap_time",
+      "interruption_candidate_rate",
+      "question_rate",
+      "question_ratio",
+      "hedging_ratio",
+      "assertion_ratio",
+      "acknowledgement_ratio",
+      "proposal_rate",
+      "unhedged_proposal_ratio",
+      "disagreement_rate",
+      "reasoning_ratio",
+      "experimentation_ratio",
+      "concession_ratio",
+      "open_question_ratio",
+      "backchannel_candidate_rate",
+      "context_meeting",
+      "context_group_discussion",
+      "context_interview",
+      "context_presentation",
+      "context_other",
+      "transcript_confidence"
+    ],
+    "core": [
+      "speaking_share",
+      "words_per_minute",
+      "mean_turn_duration",
+      "response_latency"
+    ],
+    "compact": [
+      "speaking_share",
+      "words_per_minute",
+      "mean_turn_duration",
+      "response_latency",
+      "question_rate",
+      "proposal_rate",
+      "acknowledgement_ratio",
+      "interruption_candidate_rate"
+    ],
+    "participation": [
+      "speaking_time",
+      "speaking_share",
+      "turn_count",
+      "word_count",
+      "words_per_minute"
+    ],
+    "turn_structure": [
+      "mean_turn_duration",
+      "median_turn_duration",
+      "longest_turn",
+      "shortest_turn"
+    ],
+    "timing_overlap": [
+      "response_latency",
+      "overlap_time",
+      "interruption_candidate_rate"
+    ],
+    "linguistic": [
+      "question_rate",
+      "question_ratio",
+      "hedging_ratio",
+      "assertion_ratio",
+      "acknowledgement_ratio",
+      "proposal_rate",
+      "unhedged_proposal_ratio",
+      "disagreement_rate",
+      "reasoning_ratio",
+      "experimentation_ratio",
+      "concession_ratio",
+      "open_question_ratio",
+      "backchannel_candidate_rate"
+    ],
+    "context_quality": [
+      "context_meeting",
+      "context_group_discussion",
+      "context_interview",
+      "context_presentation",
+      "context_other",
+      "transcript_confidence"
+    ],
+    "without_participation": [
+      "mean_turn_duration",
+      "median_turn_duration",
+      "longest_turn",
+      "shortest_turn",
+      "response_latency",
+      "overlap_time",
+      "interruption_candidate_rate",
+      "question_rate",
+      "question_ratio",
+      "hedging_ratio",
+      "assertion_ratio",
+      "acknowledgement_ratio",
+      "proposal_rate",
+      "unhedged_proposal_ratio",
+      "disagreement_rate",
+      "reasoning_ratio",
+      "experimentation_ratio",
+      "concession_ratio",
+      "open_question_ratio",
+      "backchannel_candidate_rate",
+      "context_meeting",
+      "context_group_discussion",
+      "context_interview",
+      "context_presentation",
+      "context_other",
+      "transcript_confidence"
+    ],
+    "without_turn_structure": [
+      "speaking_time",
+      "speaking_share",
+      "turn_count",
+      "word_count",
+      "words_per_minute",
+      "response_latency",
+      "overlap_time",
+      "interruption_candidate_rate",
+      "question_rate",
+      "question_ratio",
+      "hedging_ratio",
+      "assertion_ratio",
+      "acknowledgement_ratio",
+      "proposal_rate",
+      "unhedged_proposal_ratio",
+      "disagreement_rate",
+      "reasoning_ratio",
+      "experimentation_ratio",
+      "concession_ratio",
+      "open_question_ratio",
+      "backchannel_candidate_rate",
+      "context_meeting",
+      "context_group_discussion",
+      "context_interview",
+      "context_presentation",
+      "context_other",
+      "transcript_confidence"
+    ],
+    "without_timing_overlap": [
+      "speaking_time",
+      "speaking_share",
+      "turn_count",
+      "word_count",
+      "words_per_minute",
+      "mean_turn_duration",
+      "median_turn_duration",
+      "longest_turn",
+      "shortest_turn",
+      "question_rate",
+      "question_ratio",
+      "hedging_ratio",
+      "assertion_ratio",
+      "acknowledgement_ratio",
+      "proposal_rate",
+      "unhedged_proposal_ratio",
+      "disagreement_rate",
+      "reasoning_ratio",
+      "experimentation_ratio",
+      "concession_ratio",
+      "open_question_ratio",
+      "backchannel_candidate_rate",
+      "context_meeting",
+      "context_group_discussion",
+      "context_interview",
+      "context_presentation",
+      "context_other",
+      "transcript_confidence"
+    ],
+    "without_linguistic": [
+      "speaking_time",
+      "speaking_share",
+      "turn_count",
+      "word_count",
+      "words_per_minute",
+      "mean_turn_duration",
+      "median_turn_duration",
+      "longest_turn",
+      "shortest_turn",
+      "response_latency",
+      "overlap_time",
+      "interruption_candidate_rate",
+      "context_meeting",
+      "context_group_discussion",
+      "context_interview",
+      "context_presentation",
+      "context_other",
+      "transcript_confidence"
+    ],
+    "without_context_quality": [
+      "speaking_time",
+      "speaking_share",
+      "turn_count",
+      "word_count",
+      "words_per_minute",
+      "mean_turn_duration",
+      "median_turn_duration",
+      "longest_turn",
+      "shortest_turn",
+      "response_latency",
+      "overlap_time",
+      "interruption_candidate_rate",
+      "question_rate",
+      "question_ratio",
+      "hedging_ratio",
+      "assertion_ratio",
+      "acknowledgement_ratio",
+      "proposal_rate",
+      "unhedged_proposal_ratio",
+      "disagreement_rate",
+      "reasoning_ratio",
+      "experimentation_ratio",
+      "concession_ratio",
+      "open_question_ratio",
+      "backchannel_candidate_rate"
+    ],
+    "clean": [
+      "speaking_time",
+      "speaking_share",
+      "turn_count",
+      "word_count",
+      "words_per_minute",
+      "mean_turn_duration",
+      "median_turn_duration",
+      "longest_turn",
+      "shortest_turn",
+      "response_latency",
+      "overlap_time",
+      "interruption_candidate_rate",
+      "question_rate",
+      "question_ratio",
+      "hedging_ratio",
+      "assertion_ratio",
+      "acknowledgement_ratio",
+      "proposal_rate",
+      "unhedged_proposal_ratio",
+      "disagreement_rate",
+      "reasoning_ratio",
+      "experimentation_ratio",
+      "concession_ratio",
+      "open_question_ratio",
+      "backchannel_candidate_rate",
+      "context_meeting",
+      "context_group_discussion",
+      "context_interview",
+      "context_presentation",
+      "context_other",
+      "transcript_confidence"
+    ],
+    "log_transform": [
+      "speaking_time",
+      "speaking_share",
+      "turn_count",
+      "word_count",
+      "words_per_minute",
+      "mean_turn_duration",
+      "median_turn_duration",
+      "longest_turn",
+      "shortest_turn",
+      "response_latency",
+      "overlap_time",
+      "interruption_candidate_rate",
+      "question_rate",
+      "question_ratio",
+      "hedging_ratio",
+      "assertion_ratio",
+      "acknowledgement_ratio",
+      "proposal_rate",
+      "unhedged_proposal_ratio",
+      "disagreement_rate",
+      "reasoning_ratio",
+      "experimentation_ratio",
+      "concession_ratio",
+      "open_question_ratio",
+      "backchannel_candidate_rate",
+      "context_meeting",
+      "context_group_discussion",
+      "context_interview",
+      "context_presentation",
+      "context_other",
+      "transcript_confidence"
+    ],
+    "winsorized": [
+      "speaking_time",
+      "speaking_share",
+      "turn_count",
+      "word_count",
+      "words_per_minute",
+      "mean_turn_duration",
+      "median_turn_duration",
+      "longest_turn",
+      "shortest_turn",
+      "response_latency",
+      "overlap_time",
+      "interruption_candidate_rate",
+      "question_rate",
+      "question_ratio",
+      "hedging_ratio",
+      "assertion_ratio",
+      "acknowledgement_ratio",
+      "proposal_rate",
+      "unhedged_proposal_ratio",
+      "disagreement_rate",
+      "reasoning_ratio",
+      "experimentation_ratio",
+      "concession_ratio",
+      "open_question_ratio",
+      "backchannel_candidate_rate",
+      "context_meeting",
+      "context_group_discussion",
+      "context_interview",
+      "context_presentation",
+      "context_other",
+      "transcript_confidence"
+    ]
+  },
+  "configurations": [
+    {
+      "name": "full|logistic_0.1",
+      "feature_set": "full",
+      "estimator": "logistic_0.1"
+    },
+    {
+      "name": "full|logistic_1",
+      "feature_set": "full",
+      "estimator": "logistic_1"
+    },
+    {
+      "name": "full|ridge_10",
+      "feature_set": "full",
+      "estimator": "ridge_10"
+    },
+    {
+      "name": "core|logistic_0.1",
+      "feature_set": "core",
+      "estimator": "logistic_0.1"
+    },
+    {
+      "name": "core|logistic_1",
+      "feature_set": "core",
+      "estimator": "logistic_1"
+    },
+    {
+      "name": "core|ridge_10",
+      "feature_set": "core",
+      "estimator": "ridge_10"
+    },
+    {
+      "name": "compact|logistic_0.1",
+      "feature_set": "compact",
+      "estimator": "logistic_0.1"
+    },
+    {
+      "name": "compact|logistic_1",
+      "feature_set": "compact",
+      "estimator": "logistic_1"
+    },
+    {
+      "name": "compact|ridge_10",
+      "feature_set": "compact",
+      "estimator": "ridge_10"
+    },
+    {
+      "name": "participation|logistic_0.1",
+      "feature_set": "participation",
+      "estimator": "logistic_0.1"
+    },
+    {
+      "name": "participation|logistic_1",
+      "feature_set": "participation",
+      "estimator": "logistic_1"
+    },
+    {
+      "name": "participation|ridge_10",
+      "feature_set": "participation",
+      "estimator": "ridge_10"
+    },
+    {
+      "name": "turn_structure|logistic_0.1",
+      "feature_set": "turn_structure",
+      "estimator": "logistic_0.1"
+    },
+    {
+      "name": "turn_structure|logistic_1",
+      "feature_set": "turn_structure",
+      "estimator": "logistic_1"
+    },
+    {
+      "name": "turn_structure|ridge_10",
+      "feature_set": "turn_structure",
+      "estimator": "ridge_10"
+    },
+    {
+      "name": "timing_overlap|logistic_0.1",
+      "feature_set": "timing_overlap",
+      "estimator": "logistic_0.1"
+    },
+    {
+      "name": "timing_overlap|logistic_1",
+      "feature_set": "timing_overlap",
+      "estimator": "logistic_1"
+    },
+    {
+      "name": "timing_overlap|ridge_10",
+      "feature_set": "timing_overlap",
+      "estimator": "ridge_10"
+    },
+    {
+      "name": "linguistic|logistic_0.1",
+      "feature_set": "linguistic",
+      "estimator": "logistic_0.1"
+    },
+    {
+      "name": "linguistic|logistic_1",
+      "feature_set": "linguistic",
+      "estimator": "logistic_1"
+    },
+    {
+      "name": "linguistic|ridge_10",
+      "feature_set": "linguistic",
+      "estimator": "ridge_10"
+    },
+    {
+      "name": "context_quality|logistic_0.1",
+      "feature_set": "context_quality",
+      "estimator": "logistic_0.1"
+    },
+    {
+      "name": "context_quality|logistic_1",
+      "feature_set": "context_quality",
+      "estimator": "logistic_1"
+    },
+    {
+      "name": "context_quality|ridge_10",
+      "feature_set": "context_quality",
+      "estimator": "ridge_10"
+    },
+    {
+      "name": "without_participation|logistic_0.1",
+      "feature_set": "without_participation",
+      "estimator": "logistic_0.1"
+    },
+    {
+      "name": "without_participation|logistic_1",
+      "feature_set": "without_participation",
+      "estimator": "logistic_1"
+    },
+    {
+      "name": "without_participation|ridge_10",
+      "feature_set": "without_participation",
+      "estimator": "ridge_10"
+    },
+    {
+      "name": "without_turn_structure|logistic_0.1",
+      "feature_set": "without_turn_structure",
+      "estimator": "logistic_0.1"
+    },
+    {
+      "name": "without_turn_structure|logistic_1",
+      "feature_set": "without_turn_structure",
+      "estimator": "logistic_1"
+    },
+    {
+      "name": "without_turn_structure|ridge_10",
+      "feature_set": "without_turn_structure",
+      "estimator": "ridge_10"
+    },
+    {
+      "name": "without_timing_overlap|logistic_0.1",
+      "feature_set": "without_timing_overlap",
+      "estimator": "logistic_0.1"
+    },
+    {
+      "name": "without_timing_overlap|logistic_1",
+      "feature_set": "without_timing_overlap",
+      "estimator": "logistic_1"
+    },
+    {
+      "name": "without_timing_overlap|ridge_10",
+      "feature_set": "without_timing_overlap",
+      "estimator": "ridge_10"
+    },
+    {
+      "name": "without_linguistic|logistic_0.1",
+      "feature_set": "without_linguistic",
+      "estimator": "logistic_0.1"
+    },
+    {
+      "name": "without_linguistic|logistic_1",
+      "feature_set": "without_linguistic",
+      "estimator": "logistic_1"
+    },
+    {
+      "name": "without_linguistic|ridge_10",
+      "feature_set": "without_linguistic",
+      "estimator": "ridge_10"
+    },
+    {
+      "name": "without_context_quality|logistic_0.1",
+      "feature_set": "without_context_quality",
+      "estimator": "logistic_0.1"
+    },
+    {
+      "name": "without_context_quality|logistic_1",
+      "feature_set": "without_context_quality",
+      "estimator": "logistic_1"
+    },
+    {
+      "name": "without_context_quality|ridge_10",
+      "feature_set": "without_context_quality",
+      "estimator": "ridge_10"
+    },
+    {
+      "name": "clean|logistic_0.1",
+      "feature_set": "clean",
+      "estimator": "logistic_0.1"
+    },
+    {
+      "name": "clean|logistic_1",
+      "feature_set": "clean",
+      "estimator": "logistic_1"
+    },
+    {
+      "name": "clean|ridge_10",
+      "feature_set": "clean",
+      "estimator": "ridge_10"
+    },
+    {
+      "name": "log_transform|logistic_0.1",
+      "feature_set": "log_transform",
+      "estimator": "logistic_0.1"
+    },
+    {
+      "name": "log_transform|logistic_1",
+      "feature_set": "log_transform",
+      "estimator": "logistic_1"
+    },
+    {
+      "name": "log_transform|ridge_10",
+      "feature_set": "log_transform",
+      "estimator": "ridge_10"
+    },
+    {
+      "name": "winsorized|logistic_0.1",
+      "feature_set": "winsorized",
+      "estimator": "logistic_0.1"
+    },
+    {
+      "name": "winsorized|logistic_1",
+      "feature_set": "winsorized",
+      "estimator": "logistic_1"
+    },
+    {
+      "name": "winsorized|ridge_10",
+      "feature_set": "winsorized",
+      "estimator": "ridge_10"
+    },
+    {
+      "name": "full|logistic_1_balanced",
+      "feature_set": "full",
+      "estimator": "logistic_1_balanced"
+    },
+    {
+      "name": "median",
+      "feature_set": "none",
+      "estimator": "median"
+    },
+    {
+      "name": "mode",
+      "feature_set": "none",
+      "estimator": "mode"
+    }
+  ],
+  "protocol": "Same five frozen connected groups; outer leave-one-group-out, inner leave-one-group-out; training-only feature selection and preprocessing",
+  "stage": "Retrospective exploratory development after inspecting prior outer results; no independent external test",
+  "selection": "Per-target inner equal-group MAE, constrained to no observed-class recall loss >.02 versus median on classes with support >=3; require .025 MAE gain over median; declaration-order tie break",
+  "transformations": "Clean removes train-constant, >50% train-missing, or |training Pearson|>.9 redundant features in declared order. Log applies log1p to nonnegative non-context/non-proportion values. Winsorization clips to training 5/95 percentiles. No held-out feature selection.",
+  "promotion": "Single nested procedure only: agreement gain >=.025 versus compact, MAE <=compact and mode, each observed-class recall >=compact-.02, all five group MAE <=compact, positive descriptive paired agreement lower bound vs mode. Otherwise retain compact research reference.",
+  "inference": "Completed recording only. No observer notes/windows, target labels, future sessions or identities as predictors.",
+  "bounds": "No adaptive reruns, searches or threshold changes based on outer diagnostics",
+  "activate": false
+}

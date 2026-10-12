@@ -2,6 +2,8 @@
 
 ## Latest frozen-source audit
 
+The [full pipeline autopsy](pipeline-autopsy-2026-10-13/full_pipeline_report.md) traces audio through rating alignment and executes 51 fixed feature-family/model configurations with inner grouped selection. The selected challenger gets 251/402 correct (62.44%, MAE 0.488), versus compact 250/402 (62.19%, 0.490) and training mode 264/402 (65.67%, 0.453), so compact remains the research reference. A 273/402 fixed timing/overlap diagnostic is exploratory and was not promoted. A tested chronological-order correction fixes response latency on unordered stage retries; frozen features, ratings and current model artifacts remain unchanged. Stage speech/identity accuracy and a numerical label-reliability ceiling remain unmeasured.
+
 The October 13 audit refitted the original, compact and previous agreement-selection procedures with zero saved-prediction mismatches. Its new nested procedure reached 264/402 exact matches (65.67%) and MAE 0.453, exactly matching the fold training-mode predictions. It selected median/mode references in four of five outer folds and a pooled core logistic model in the fifth. Score-3 recall fell from compact's 18.45% to 4.85%, so the predefined promotion gates failed and compact remains the research model reference. No candidate was activated.
 
 The strongest fixed-configuration diagnostic reached 270/402 (67.16%), MAE 0.435, but predicted score 4 on 397 ratings and recalled only 1.94% of score 3. This is a disclosed outer diagnostic, not the inner-selected procedure or an unbiased winner. An 85% target is unsupported by the measured evidence.

@@ -10,6 +10,8 @@ All 423 rating counts for scores 0-4 are 0, 24, 24, 109 and 266. The common coho
 
 These are retrospective development results, not independent final testing. Known links stay within folds, but 21 participant-session identities remain unresolved. The fitted labels have zero independent reviews, structured evidence windows, recorded fair-opportunity decisions or individual observer-confidence fields. Rubric reliability and a numerical performance ceiling cannot be inferred. Independent blinded re-rating and a newly collected identity-resolved test sample are required. Session observations do not establish stable psychological traits.
 
+The later [pipeline autopsy](research/pipeline-autopsy-2026-10-13/full_pipeline_report.md) tested 51 declared configurations. Nested selection reached 251/402 correct, MAE 0.488, and failed replacement gates. Feature schema 1.0.2 sorts turns before response-latency extraction; the frozen dataset and working model were preserved. Focused validation passed 101 tests with one skip; PostgreSQL integration fixtures were unavailable in this audit.
+
 See [the aggregate audit](research/maximum-defensible-2026-10-13/submission_results.md). Earlier dated implementation and experiment records below remain historical.
 
 

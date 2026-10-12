@@ -212,6 +212,10 @@ No current result establishes more useful personalized answers.
 
 ## 21. Problems encountered and repairs
 
+The pipeline autopsy checked all nine normalized audio durations, finding no material truncation. A regression test exposed unordered retry turns changing one-second response gaps to missing values; feature schema 1.0.2 now sorts them, preserving frozen features and models.
+
+Fifty-one feature-family/model configurations used the same grouped outer folds and inner selection. The selected challenger achieved 251/402 correct (62.44%, MAE 0.488), compared with compact 250/402 and mode 264/402, and failed replacement gates. The fixed 67.91% timing/overlap diagnostic remains exploratory. No family was deleted on standalone accuracy; uncertain contributions remain inconclusive.
+
 The frozen audit checked unique answer IDs, target/speaker alignment, scales, missing outputs, denominators, source hashes and known-link transitivity. Original, compact and previous agreement-selection predictions refitted with zero mismatches. No demonstrable implementation bug explains their metrics.
 
 Six new regression tests cover grouping, training-only preparation, individual-class selection guards and paired uncertainty. The research suite passed 82 tests, with one media test skipped because ffmpeg was absent from its runtime PATH.
@@ -256,4 +260,4 @@ We acknowledge the school psychologists who supplied observation reference mater
 
 These sources motivate methods and limitations; they do not validate Psycon's rubric or effectiveness.
 
-Aggregate source: `docs/report_assets/maximum-defensible-summary.json`; audit details: `docs/research/maximum-defensible-2026-10-13/submission_results.md`. Private individual predictions remain local.
+Aggregate source: `docs/report_assets/maximum-defensible-summary.json`; audit details: `docs/research/maximum-defensible-2026-10-13/submission_results.md`. The full stage map and ablations are in `docs/research/pipeline-autopsy-2026-10-13/full_pipeline_report.md`. Private individual predictions remain local.

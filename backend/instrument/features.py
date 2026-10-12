@@ -7,7 +7,7 @@ from collections import Counter, defaultdict
 
 from .store import uid, encode
 
-SCHEMA_VERSION = "1.0.1"  # Denominator metadata corrected; numerical features are unchanged.
+SCHEMA_VERSION = "1.0.2"  # Chronological turn ordering is enforced before temporal features.
 
 
 def definition(description, unit, calculation, source, valid_range, confidence="moderate"):
@@ -95,6 +95,9 @@ def time_metrics(turns):
 
 def extract(session, speakers, turns, utterances):
     """Each metric and candidate event remains tied to its speaker and source time."""
+    # Retried stage reads need not preserve insertion order. Never interpret a
+    # database row's predecessor as the preceding turn without sorting first.
+    turns = sorted(turns, key=lambda r: (r["start"], r["speaker_id"], r["end"]))
     duration = session["duration"]
     speech, exclusive, overlaps = time_metrics(turns)
     total_exclusive = sum(exclusive.values())

@@ -1,0 +1,21 @@
+{
+  "source_sha256": "8deb36b2d54cd1380fee7e48174b7c5498e2df2fe2801dcf0770172992f927d7",
+  "source_preserved": true,
+  "seed": 42,
+  "python": "3.12.15",
+  "sklearn": "1.9.1",
+  "code_sha256": "f028d92d00ddeb4aeb97057f22cf141cd3e5accc284c8a13f76bfd2fc7d04959",
+  "revision": "d57ef1582965be9fc7c3be71fc487a130747b202",
+  "configurations": 51,
+  "fit_log_records": 13974,
+  "command": ".runtime/venv/Scripts/python.exe -m research.pipeline_autopsy --output .runtime/pipeline-autopsy-2026-10-13-submission",
+  "no_live_writes": true,
+  "code_files_sha256": {
+    "C:\\Users\\USER\\Desktop\\code\\PSYCON\\research\\pipeline_autopsy_report.py": "0e6aafb55b0de1954901a079228ca42a8c07a8e2a054da283093d59c0edf9f37",
+    "research\\pipeline_autopsy.py": "f028d92d00ddeb4aeb97057f22cf141cd3e5accc284c8a13f76bfd2fc7d04959",
+    "backend\\instrument\\features.py": "38296ae33207c1a28c9c27dcb187ca57347fe62a665df9017b7c4c2f29ca0999",
+    "research\\emergency_audit.py": "6428b3debf5785b74a38b5a056bbe90e7793ae23f4d7a2557208fb5ac3ff1c24",
+    "research\\compact_source_models.py": "c78215e1d6c6c28183520c4c799b1550fe77e00379602db12dbe8db95be86ba4",
+    "research\\maximum_defensible.py": "ce203d6c55ded7de20fc0d4db08d084b241a7c80a0dce851754f925428f0e352"
+  }
+}

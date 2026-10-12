@@ -1,5 +1,11 @@
 # Build verification, 13 October 2026
 
+## Latest pipeline-autopsy build
+
+`python paper/build.py` rebuilt the paper at 17 pages and the synopsis at exactly two pages, with resolved references and no overflowing boxes. The new pipeline-autopsy page was rendered and inspected. Existing figure PDFs rendered identically to their committed versions, so their timestamp-only changes were discarded. The presentation still has exactly 25 numbered content slides.
+
+The executed 51-configuration autopsy produced 13,974 fit/evaluation log records. Its inner-selected result is 251/402 correct, MAE 0.488; no replacement passed the declared gates. The private submission directory retains predictions for every configuration, folds, reference hashes, category distributions, quality slices and failed/superseded run history. The focused suite passed 101 tests with one ffmpeg-dependent skip. Broader PostgreSQL integration fixtures produced setup errors because the dedicated test URL was unset; no integration pass is claimed. Canonical stage export was unavailable, so no transcript, speaker or stage-accuracy result is fabricated. Source ratings, frozen feature values and current model artifacts retain their original hashes.
+
 ## Latest maximum-defensible documentation build
 
 `python paper/build.py` rebuilt a sixteen-page paper and exactly two-page synopsis with resolved citations/references and no overflowing boxes. Abstracts contain 234 and 260 whitespace-separated words. All paper pages were rendered into a contact sheet; the new audit table/figure pages and both synopsis pages were inspected at reading size. The source presentation retains exactly 25 numbered content slides. The new figure reads only the committed aggregate audit and checks the 402-rating denominator.
