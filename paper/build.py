@@ -60,6 +60,23 @@ def figures():
     fig.savefig(folder / 'source-training-cv.pdf')
     fig.savefig(folder / 'source-training-cv.png', dpi=180)
     plt.close(fig)
+    revised = json.loads((ROOT / 'docs/report_assets/defensible-source-summary.json').read_text(encoding='utf-8'))
+    common = revised['common_original_coverage']
+    methods = ['original', 'revised', 'median']
+    if any(common[m]['n'] != common['n'] or sum(map(sum,common[m]['confusion'])) != common['n'] for m in methods):
+        raise ValueError('Nested comparison denominators do not match')
+    fig, axes = plt.subplots(1, 2, figsize=(9, 3.8), layout='constrained')
+    labels = ['Original', 'Nested selection', 'Median reference']
+    colors = ['#315a91', '#c18b31', '#697581']
+    for ax, key, title in [(axes[0], 'accuracy', 'Exact raw-score agreement (%)'),
+                            (axes[1], 'macro_sensitivity', 'Mean observed-class sensitivity (%)')]:
+        bars=ax.bar(labels,[common[m][key]*100 for m in methods],color=colors)
+        ax.bar_label(bars,fmt='%.1f',padding=4); ax.set_ylim(0,100)
+        ax.set_title(title,fontsize=10); ax.tick_params(axis='x',labelrotation=15)
+        ax.spines[['top','right']].set_visible(False)
+    fig.savefig(folder/'source-nested-comparison.pdf')
+    fig.savefig(folder/'source-nested-comparison.png',dpi=180)
+    plt.close(fig)
 
 
 def build():

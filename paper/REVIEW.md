@@ -1,5 +1,17 @@
 # Evidence and review record
 
+## Current defensibility revision (October 12)
+
+The current build contains fourteen paper pages and exactly two synopsis pages. References resolve without overflowing boxes; all sixteen pages and five new analysis figures were rendered and visually inspected. The presentation retains exactly 25 numbered content slides and remains uncommitted.
+
+Nine-candidate MAE-oriented nested development achieved 60.9% agreement, MAE 0.493 and 28.8% observed-class sensitivity on the common 402 labels. Separately disclosed sensitivity-oriented development achieved 56.5%/0.562/29.9%. Both are retrospective, use training-only preprocessing and inner selection, and fail to establish reliable superiority to the median reference. Fourteen MAE-oriented final fits were registered as candidates and replayed; no repaired model was promoted. Additional sensitivity fits are retained as private exploratory artifacts. Independent calculations reproduced counts, MAE and class recall from saved predictions.
+
+Twenty-nine focused model/report/packet tests and both frontend verification scripts passed. A fresh PostgreSQL workflow rerun stalled during the first export request; a separate training rerun completed one import/revision test before further connection waits. Both reruns were stopped and their diagnostic traces retained. The earlier 63-test PostgreSQL result below is historical, not a successful rerun of this patch. This unresolved database verification is a release limitation.
+
+The actual local LLM run completed with prompt psycon-abc-1.3.2 and the pinned qwen3.5:4b digest. It produced one low-confidence claim containing the supplied 17.80% speaking-share measurement, a constrained interpretation and a prewritten selected-goal exercise. Earlier failed generations are retained. Citation/value/schema checks do not establish semantic correctness or coaching benefit. The example has no eligible earlier history. A deterministic summary separately exposes duration, share and speech rate; the history-only input-pair helper refuses missing history. Metadata version 1.0.1 corrects feature denominators without changing frozen numeric values.
+
+These new fits ran on native Python 3.12.15 with the recorded ML dependencies, not in a new Docker run; Docker's Linux daemon remained unavailable. The prior Docker fit below is a separate historical execution. The authors report that approval and consent records exist, with documents, approving body and dates pending verification and citation. No missing observations, review, approval details or independent test outcomes were invented. AI-assisted drafts remain preparation material subject to independent author work and the applicable submission rules.
+
 Reviewed on October 12, 2026, against main revision `8b126b7` after a fast-forward pull of 44 commits. The initial documentation audit was followed by a live canonical-database audit, transactional overlap application, and exploratory Docker source-score fitting. No new human experiment or missing participant observation was invented.
 
 ## Behavioral claim boundaries
