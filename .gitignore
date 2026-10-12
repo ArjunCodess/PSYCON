@@ -72,3 +72,4 @@ output/pdf/*.out
 
 # Private signed participant documents
 /consents/
+/validated_data_pdfs/
